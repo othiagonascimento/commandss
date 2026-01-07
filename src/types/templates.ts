@@ -1,4 +1,6 @@
-// Types for Niche Template Manager
+// Types for Niche Template Manager - Uôpa AI Training Platform
+
+// ==================== Base Types ====================
 
 export interface FunnelStage {
   name: string;
@@ -7,6 +9,12 @@ export interface FunnelStage {
   sort_order: number;
   is_won: boolean;
   is_lost: boolean;
+  // Enhanced fields
+  objective?: string;
+  criteria_to_advance?: string[];
+  max_time_hours?: number;
+  stage_prompt?: string;
+  auto_actions?: string[];
 }
 
 export interface TagCategory {
@@ -21,6 +29,9 @@ export interface QuickReply {
   trigger: string;
   message: string;
   technique: string;
+  category?: string;
+  context_tags?: string[];
+  variations?: string[];
 }
 
 export interface ObjectionHandler {
@@ -31,6 +42,197 @@ export interface QualificationCriterion {
   weight: number;
   question: string;
 }
+
+// ==================== Enhanced Types ====================
+
+// Business Context for Template Identity
+export interface BusinessContext {
+  business_type: 'B2B' | 'B2C' | 'D2C' | 'B2B2C';
+  market_segment: string;
+  average_ticket: number;
+  sales_cycle_days: number;
+  value_proposition: string;
+  competitive_advantages: string[];
+  target_audience: string;
+  main_products_services: string;
+}
+
+// Customer Personas
+export interface CustomerPersona {
+  id: string;
+  name: string;
+  demographic_profile: string;
+  main_pains: string[];
+  purchase_motivations: string[];
+  typical_objections: string[];
+  approach_strategy: string;
+  preferred_communication_style: string;
+  avatar_emoji: string;
+}
+
+// Conversation Examples for Few-shot learning
+export interface ConversationMessage {
+  role: 'customer' | 'agent';
+  content: string;
+  annotation?: string;
+}
+
+export interface ConversationExample {
+  id: string;
+  title: string;
+  context: string;
+  messages: ConversationMessage[];
+  outcome: 'success' | 'objection_handled' | 'qualified' | 'scheduled' | 'lost';
+  tags: string[];
+}
+
+// FAQ Item for Knowledge Base
+export interface FAQItem {
+  id: string;
+  category: string;
+  question: string;
+  answer: string;
+  keywords: string[];
+}
+
+// AI Agents Configuration
+export interface AIAgent {
+  id: string;
+  name: string;
+  type: 'qualification' | 'followup' | 'closing' | 'post_sale' | 'support' | 'custom';
+  description: string;
+  objective: string;
+  prompt: string;
+  temperature: number;
+  allowed_actions: string[];
+  transfer_rules: string[];
+  triggers: string[];
+  is_active: boolean;
+  icon: string;
+}
+
+// Copilot Mode Configuration
+export interface CopilotConfig {
+  assistance_level: 'suggestion' | 'draft' | 'autocomplete';
+  suggestion_triggers: string[];
+  suggestion_format: 'bullet' | 'prose' | 'options';
+  options_count: 1 | 2 | 3;
+  response_speed: 'fast' | 'balanced' | 'elaborate';
+  no_suggest_rules: string[];
+  human_transition_phrases: string[];
+  confidence_threshold: number;
+}
+
+// Insights Mode Configuration
+export interface InsightAlert {
+  id: string;
+  name: string;
+  condition: string;
+  action: string;
+  is_active: boolean;
+}
+
+export interface InsightsConfig {
+  metrics_to_track: string[];
+  automatic_alerts: InsightAlert[];
+  qualification_score_weights: Record<string, number>;
+  intent_detection_enabled: boolean;
+  sentiment_analysis_enabled: boolean;
+  competitor_detection_enabled: boolean;
+  auto_summary_enabled: boolean;
+  suggested_tags_enabled: boolean;
+}
+
+// Sales Methodologies
+export interface MethodologyStep {
+  name: string;
+  description: string;
+  questions: string[];
+  success_indicators: string[];
+}
+
+export interface SalesMethodology {
+  id: string;
+  name: string;
+  description: string;
+  steps: MethodologyStep[];
+  is_active: boolean;
+}
+
+// Enhanced Objection Handler
+export interface EnhancedObjectionHandler {
+  id: string;
+  objection_type: string;
+  root_cause: string;
+  severity: 'light' | 'moderate' | 'strong';
+  responses: string[];
+  follow_up_questions: string[];
+  avoid_phrases: string[];
+}
+
+// Closing Scripts
+export interface ClosingScript {
+  id: string;
+  name: string;
+  type: 'assumptive' | 'alternative' | 'urgency' | 'summary' | 'trial' | 'custom';
+  script: string;
+  best_for: string;
+  transition_phrases: string[];
+}
+
+// Product/Service Details
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price_range: { min: number; max: number };
+  benefits: string[];
+  features: string[];
+  common_objections: string[];
+  complementary_products: string[];
+  faq: FAQItem[];
+  keywords: string[];
+}
+
+// Competitor Info
+export interface Competitor {
+  id: string;
+  name: string;
+  strengths: string[];
+  weaknesses: string[];
+  differentiators: string[];
+  response_when_mentioned: string;
+}
+
+// Escalation Rules
+export interface EscalationRule {
+  id: string;
+  name: string;
+  condition: string;
+  escalate_to: string;
+  transition_message: string;
+  max_time_without_human: number;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  is_active: boolean;
+}
+
+// Success Metrics / KPIs
+export interface SuccessMetric {
+  id: string;
+  name: string;
+  target_value: number;
+  unit: string;
+  measurement_period: 'daily' | 'weekly' | 'monthly';
+}
+
+// Prohibited Phrases
+export interface ProhibitedPhrase {
+  phrase: string;
+  reason: string;
+  alternative: string;
+}
+
+// ==================== Core Prompt Structures ====================
 
 export interface Prompts {
   greeting: string;
@@ -47,24 +249,33 @@ export interface AIConfig {
   techniques: string[];
 }
 
+// ==================== Automation Types ====================
+
 export interface AutomationTrigger {
   type: string;
   hours?: number;
   value?: string | number;
+  condition?: string;
 }
 
 export interface AutomationAction {
   type: string;
   message?: string;
+  target?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface AutomationFlow {
   id: string;
   name: string;
+  description?: string;
   trigger: AutomationTrigger;
   action: AutomationAction;
+  conditions?: string[];
   is_active?: boolean;
 }
+
+// ==================== SLA Types ====================
 
 export interface SLAConfig {
   first_response_minutes: number;
@@ -77,10 +288,55 @@ export interface SLAConfig {
   working_days: number[];
 }
 
+export interface OperationsConfig extends SLAConfig {
+  escalation_rules: EscalationRule[];
+  success_metrics: SuccessMetric[];
+  out_of_hours_message: string;
+  queue_priority_rules: string[];
+}
+
+// ==================== Product Types ====================
+
 export interface ProductCategory {
   name: string;
   description: string;
   icon: string;
+}
+
+// ==================== Main Template Data ====================
+
+export interface UopaAICoreConfig {
+  // Personality & Voice
+  tone_of_voice: 'formal' | 'casual' | 'technical' | 'friendly' | 'consultative';
+  proactivity_level: 'low' | 'medium' | 'high';
+  communication_style: 'direct' | 'consultative' | 'educational' | 'empathetic';
+  language_regionalism: string;
+  
+  // Context
+  business_context: BusinessContext;
+  personas: CustomerPersona[];
+  
+  // Knowledge
+  knowledge_base: FAQItem[];
+  conversation_examples: ConversationExample[];
+  
+  // Boundaries
+  prohibited_phrases: ProhibitedPhrase[];
+  confidential_topics: string[];
+}
+
+export interface PlaybookConfig {
+  methodologies: SalesMethodology[];
+  quick_replies: QuickReply[];
+  objection_handlers: EnhancedObjectionHandler[];
+  closing_scripts: ClosingScript[];
+}
+
+export interface CatalogConfig {
+  categories: ProductCategory[];
+  products: Product[];
+  competitors: Competitor[];
+  general_policies: FAQItem[];
 }
 
 export interface TemplateData {
@@ -91,19 +347,34 @@ export interface TemplateData {
   icon: string;
   is_base_template: boolean;
   parent_template_id?: string;
+  
+  // Core Configurations
   funnel_config: {
     stages: FunnelStage[];
   };
   tags: {
     categories: TagCategory[];
   };
-  quick_replies_config: QuickReply[];
   prompts: Prompts;
   ai_config: AIConfig;
+  
+  // Enhanced Configurations (Uôpa AI Platform)
+  uopa_ai_core?: UopaAICoreConfig;
+  copilot_config?: CopilotConfig;
+  insights_config?: InsightsConfig;
+  agents_config?: AIAgent[];
+  playbook_config?: PlaybookConfig;
+  operations_config?: OperationsConfig;
+  catalog_config?: CatalogConfig;
+  
+  // Legacy (for backward compatibility)
+  quick_replies_config: QuickReply[];
   automation_flows_config: AutomationFlow[];
   sla_config: SLAConfig;
   product_categories: ProductCategory[];
 }
+
+// ==================== API Response Types ====================
 
 export interface Template {
   id: string;
@@ -168,8 +439,10 @@ export interface PublishResponse {
   action: 'created' | 'updated';
 }
 
-// Form data structure for React Hook Form
+// ==================== Form Data Structure ====================
+
 export interface TemplateFormData {
+  // Identity
   slug: string;
   name: string;
   description: string;
@@ -177,8 +450,44 @@ export interface TemplateFormData {
   icon: string;
   is_base_template: boolean;
   parent_template_id?: string;
+  
+  // Business Context
+  business_context: BusinessContext;
+  
+  // Funnel
   funnel_stages: FunnelStage[];
   tag_categories: TagCategory[];
+  
+  // Uôpa AI Core
+  uopa_ai_core: {
+    tone_of_voice: 'formal' | 'casual' | 'technical' | 'friendly' | 'consultative';
+    proactivity_level: 'low' | 'medium' | 'high';
+    communication_style: 'direct' | 'consultative' | 'educational' | 'empathetic';
+    language_regionalism: string;
+    personas: CustomerPersona[];
+    knowledge_base: FAQItem[];
+    conversation_examples: ConversationExample[];
+    prohibited_phrases: ProhibitedPhrase[];
+    confidential_topics: string[];
+  };
+  
+  // Copilot Config
+  copilot_config: CopilotConfig;
+  
+  // Insights Config
+  insights_config: InsightsConfig;
+  
+  // Agents
+  agents: AIAgent[];
+  
+  // Playbook
+  playbook: {
+    methodologies: SalesMethodology[];
+    objection_handlers: EnhancedObjectionHandler[];
+    closing_scripts: ClosingScript[];
+  };
+  
+  // Legacy prompts & quick replies (for compatibility)
   quick_replies: QuickReply[];
   prompts: {
     greeting: string;
@@ -192,15 +501,45 @@ export interface TemplateFormData {
     temperature: number;
     techniques: string[];
   };
+  
+  // Automations
   automations: Array<{
     id: string;
     name: string;
+    description?: string;
     trigger_type: string;
     trigger_value: number;
+    trigger_condition?: string;
     action_type: string;
     action_message: string;
+    action_target?: string;
     is_active: boolean;
   }>;
+  
+  // Operations
+  operations: {
+    sla: {
+      first_response_minutes: number;
+      follow_up_hours: number;
+      escalation_hours: number;
+      working_hours_start: string;
+      working_hours_end: string;
+      working_days: number[];
+    };
+    escalation_rules: EscalationRule[];
+    success_metrics: SuccessMetric[];
+    out_of_hours_message: string;
+  };
+  
+  // Catalog
+  catalog: {
+    categories: ProductCategory[];
+    products: Product[];
+    competitors: Competitor[];
+    general_policies: FAQItem[];
+  };
+  
+  // Legacy
   sla: {
     first_response_minutes: number;
     follow_up_hours: number;
@@ -212,7 +551,41 @@ export interface TemplateFormData {
   product_categories: ProductCategory[];
 }
 
-// Default values for new template
+// ==================== Default Values ====================
+
+export const defaultBusinessContext: BusinessContext = {
+  business_type: 'B2C',
+  market_segment: '',
+  average_ticket: 0,
+  sales_cycle_days: 7,
+  value_proposition: '',
+  competitive_advantages: [],
+  target_audience: '',
+  main_products_services: '',
+};
+
+export const defaultCopilotConfig: CopilotConfig = {
+  assistance_level: 'suggestion',
+  suggestion_triggers: ['pergunta detectada', 'objeção detectada', 'inatividade 30s'],
+  suggestion_format: 'options',
+  options_count: 2,
+  response_speed: 'balanced',
+  no_suggest_rules: [],
+  human_transition_phrases: ['Vou verificar isso com nosso especialista', 'Um momento, vou consultar'],
+  confidence_threshold: 0.7,
+};
+
+export const defaultInsightsConfig: InsightsConfig = {
+  metrics_to_track: ['tempo_resposta', 'sentimento', 'intencao_compra', 'qualificacao'],
+  automatic_alerts: [],
+  qualification_score_weights: { budget: 30, authority: 25, need: 25, timing: 20 },
+  intent_detection_enabled: true,
+  sentiment_analysis_enabled: true,
+  competitor_detection_enabled: false,
+  auto_summary_enabled: true,
+  suggested_tags_enabled: true,
+};
+
 export const defaultTemplateFormData: TemplateFormData = {
   slug: '',
   name: '',
@@ -220,6 +593,9 @@ export const defaultTemplateFormData: TemplateFormData = {
   category: 'universal',
   icon: '📋',
   is_base_template: false,
+  
+  business_context: defaultBusinessContext,
+  
   funnel_stages: [
     { name: 'Novo Lead', slug: 'novo', color: '#3B82F6', sort_order: 1, is_won: false, is_lost: false },
     { name: 'Em Negociação', slug: 'negociacao', color: '#F59E0B', sort_order: 2, is_won: false, is_lost: false },
@@ -229,6 +605,30 @@ export const defaultTemplateFormData: TemplateFormData = {
   tag_categories: [
     { name: 'Interesse', color: '#10B981', tags: ['alto', 'médio', 'baixo'] },
   ],
+  
+  uopa_ai_core: {
+    tone_of_voice: 'friendly',
+    proactivity_level: 'medium',
+    communication_style: 'consultative',
+    language_regionalism: 'pt-BR',
+    personas: [],
+    knowledge_base: [],
+    conversation_examples: [],
+    prohibited_phrases: [],
+    confidential_topics: [],
+  },
+  
+  copilot_config: defaultCopilotConfig,
+  insights_config: defaultInsightsConfig,
+  
+  agents: [],
+  
+  playbook: {
+    methodologies: [],
+    objection_handlers: [],
+    closing_scripts: [],
+  },
+  
   quick_replies: [
     { id: 'qr_1', label: 'Saudação', trigger: 'oi', message: 'Olá! Como posso ajudar você hoje?', technique: 'Rapport' },
   ],
@@ -244,7 +644,30 @@ export const defaultTemplateFormData: TemplateFormData = {
     temperature: 0.7,
     techniques: ['rapport'],
   },
+  
   automations: [],
+  
+  operations: {
+    sla: {
+      first_response_minutes: 5,
+      follow_up_hours: 24,
+      escalation_hours: 48,
+      working_hours_start: '08:00',
+      working_hours_end: '18:00',
+      working_days: [1, 2, 3, 4, 5],
+    },
+    escalation_rules: [],
+    success_metrics: [],
+    out_of_hours_message: 'Obrigado pelo contato! Retornaremos em breve durante nosso horário comercial.',
+  },
+  
+  catalog: {
+    categories: [],
+    products: [],
+    competitors: [],
+    general_policies: [],
+  },
+  
   sla: {
     first_response_minutes: 5,
     follow_up_hours: 24,
