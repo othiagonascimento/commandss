@@ -59,7 +59,9 @@ export default function FeatureFlags() {
   const { data: flags, isLoading } = useQuery({
     queryKey: ['feature-flags'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('feature-flags');
+      const { data, error } = await supabase.functions.invoke('feature-flags', {
+        method: 'GET',
+      });
       if (error) throw error;
       return data.flags as FeatureFlag[];
     },
