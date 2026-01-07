@@ -23,7 +23,6 @@ export function UnitEconomicsCard({ tenantId }: UnitEconomicsCardProps) {
     queryKey: ['unit-economics', tenantId],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('unit-economics', {
-        body: {},
         method: 'GET',
       });
       if (error) throw error;

@@ -23,7 +23,7 @@ serve(async (req) => {
   );
 
   try {
-    logStep('Function started');
+    logStep('Function started', { method: req.method });
 
     const url = new URL(req.url);
 
@@ -66,7 +66,7 @@ serve(async (req) => {
       });
     }
 
-    // Admin endpoints
+    // Admin endpoints require authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('No authorization header');
 
@@ -86,8 +86,8 @@ serve(async (req) => {
 
     if (!roleData) throw new Error('Only super admins can manage broadcasts');
 
+    // GET: List all broadcasts (admin)
     if (req.method === 'GET') {
-      // List all broadcasts
       const { data, error } = await supabaseAdmin
         .from('broadcasts')
         .select('*')
@@ -100,9 +100,14 @@ serve(async (req) => {
       });
     }
 
+    // POST: Create, end, or delete broadcasts
     if (req.method === 'POST') {
-      const body = await req.json();
+      const body = await req.json().catch(() => ({}));
       const { action } = body;
+
+      if (!action) {
+        throw new Error('Missing action. Allowed: create, end, delete');
+      }
 
       if (action === 'create') {
         const {
@@ -146,7 +151,6 @@ serve(async (req) => {
       }
 
       if (action === 'end') {
-        // End a broadcast immediately
         const { broadcastId } = body;
         if (!broadcastId) throw new Error('broadcastId is required');
 
@@ -181,9 +185,15 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      throw new Error(`Unknown action: ${action}. Allowed: create, end, delete`);
     }
 
-    throw new Error('Invalid request');
+    // Method not allowed
+    return new Response(JSON.stringify({ error: 'Method not allowed', allowed: ['GET', 'POST'] }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 405,
+    });
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

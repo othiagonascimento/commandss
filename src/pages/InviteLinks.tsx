@@ -78,7 +78,6 @@ export default function InviteLinks() {
     queryKey: ['invite-links'],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('invite-links', {
-        body: {},
         method: 'GET',
       });
       if (error) throw error;
@@ -89,6 +88,7 @@ export default function InviteLinks() {
   const createMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('invite-links', {
+        method: 'POST',
         body: {
           action: 'create',
           planType,
@@ -106,12 +106,13 @@ export default function InviteLinks() {
       setDialogOpen(false);
       resetForm();
     },
-    onError: () => toast.error('Erro ao criar link'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao criar link'),
   });
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const { data, error } = await supabase.functions.invoke('invite-links', {
+        method: 'POST',
         body: { action: 'toggle', linkId: id, isActive },
       });
       if (error) throw error;
@@ -121,6 +122,7 @@ export default function InviteLinks() {
       queryClient.invalidateQueries({ queryKey: ['invite-links'] });
       toast.success('Status atualizado!');
     },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao atualizar status'),
   });
 
   const resetForm = () => {

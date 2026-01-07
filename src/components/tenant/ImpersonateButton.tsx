@@ -29,6 +29,7 @@ export function ImpersonateButton({ tenantId, tenantName }: ImpersonateButtonPro
   const createSessionMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('impersonate', {
+        method: 'POST',
         body: { action: 'create', tenantId },
       });
       if (error) throw error;
