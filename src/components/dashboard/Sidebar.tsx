@@ -11,6 +11,9 @@ import {
   X,
   HelpCircle,
   LogOut,
+  Flag,
+  Megaphone,
+  Link2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -52,6 +55,24 @@ const navItems = [
     label: 'Assinaturas', 
     path: '/subscriptions',
     description: 'Planos e cobranças',
+  },
+  { 
+    icon: Link2, 
+    label: 'Links de Convite', 
+    path: '/invite-links',
+    description: 'Gerar links comerciais',
+  },
+  { 
+    icon: Flag, 
+    label: 'Feature Flags', 
+    path: '/feature-flags',
+    description: 'Controle de funcionalidades',
+  },
+  { 
+    icon: Megaphone, 
+    label: 'Broadcasts', 
+    path: '/broadcasts',
+    description: 'Comunicados e avisos',
   },
   { 
     icon: Settings, 

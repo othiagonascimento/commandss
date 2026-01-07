@@ -14,6 +14,9 @@ import NewContract from "./pages/NewContract";
 import Users from "./pages/Users";
 import Subscriptions from "./pages/Subscriptions";
 import Settings from "./pages/Settings";
+import FeatureFlags from "./pages/FeatureFlags";
+import Broadcasts from "./pages/Broadcasts";
+import InviteLinks from "./pages/InviteLinks";
 import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
@@ -34,6 +37,9 @@ const App = () => (
             <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
             <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/feature-flags" element={<ProtectedRoute><FeatureFlags /></ProtectedRoute>} />
+            <Route path="/broadcasts" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
+            <Route path="/invite-links" element={<ProtectedRoute><InviteLinks /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

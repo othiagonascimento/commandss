@@ -40,10 +40,15 @@ import {
   TrendingDown,
   RefreshCw,
   XCircle,
+  ClipboardList,
+  DollarSign,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { ImpersonateButton } from '@/components/tenant/ImpersonateButton';
+import { OnboardingChecklist } from '@/components/tenant/OnboardingChecklist';
+import { UnitEconomicsCard } from '@/components/tenant/UnitEconomicsCard';
 
 const planColors: Record<string, string> = {
   basic: 'bg-muted text-muted-foreground',
@@ -153,19 +158,20 @@ export default function TenantDetail() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/tenants')}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-foreground">{tenant.name}</h1>
-              <Badge className={planColors[tenant.plan_type]}>
-                {tenant.plan_type}
-              </Badge>
-              <Badge variant={tenant.is_active ? 'default' : 'secondary'}>
-                {tenant.is_active ? 'Ativo' : 'Inativo'}
-              </Badge>
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-foreground">{tenant.name}</h1>
+                <Badge className={planColors[tenant.plan_type]}>
+                  {tenant.plan_type}
+                </Badge>
+                <Badge variant={tenant.is_active ? 'default' : 'secondary'}>
+                  {tenant.is_active ? 'Ativo' : 'Inativo'}
+                </Badge>
+              </div>
+              <p className="text-muted-foreground">{tenant.slug}</p>
             </div>
-            <p className="text-muted-foreground">{tenant.slug}</p>
+            <ImpersonateButton tenantId={id!} tenantName={tenant.name} />
           </div>
-        </div>
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
@@ -189,6 +195,14 @@ export default function TenantDetail() {
             <TabsTrigger value="settings" className="gap-2">
               <Settings className="w-4 h-4" />
               Configurações
+            </TabsTrigger>
+            <TabsTrigger value="onboarding" className="gap-2">
+              <ClipboardList className="w-4 h-4" />
+              Onboarding
+            </TabsTrigger>
+            <TabsTrigger value="economics" className="gap-2">
+              <DollarSign className="w-4 h-4" />
+              Unit Economics
             </TabsTrigger>
           </TabsList>
 
@@ -511,6 +525,16 @@ export default function TenantDetail() {
                 </p>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Onboarding Tab */}
+          <TabsContent value="onboarding">
+            <OnboardingChecklist tenantId={id!} />
+          </TabsContent>
+
+          {/* Unit Economics Tab */}
+          <TabsContent value="economics">
+            <UnitEconomicsCard tenantId={id!} />
           </TabsContent>
         </Tabs>
       </main>
