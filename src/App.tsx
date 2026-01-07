@@ -21,6 +21,7 @@ import Broadcasts from "./pages/Broadcasts";
 import InviteLinks from "./pages/InviteLinks";
 import Templates from "./pages/Templates";
 import TemplateEditor from "./pages/TemplateEditor";
+import MasterUsers from "./pages/MasterUsers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="/feature-flags" element={<ProtectedRoute><FeatureFlags /></ProtectedRoute>} />
               <Route path="/broadcasts" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
               <Route path="/invite-links" element={<ProtectedRoute><InviteLinks /></ProtectedRoute>} />
+              <Route path="/master-users" element={<ProtectedRoute><MasterUsers /></ProtectedRoute>} />
               <Route path="/admin/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
               <Route path="/admin/templates/new" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
               <Route path="/admin/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
