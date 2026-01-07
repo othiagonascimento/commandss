@@ -1,9 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { Header } from '@/components/dashboard/Header';
-import { Sidebar } from '@/components/dashboard/Sidebar';
-import { cn } from '@/lib/utils';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Header } from '@/components/dashboard/Header';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { tenantsApi, subscriptionsApi, usersApi, TenantUser } from '@/services/masterApi';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -61,9 +59,6 @@ export default function TenantDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { data: tenant, isLoading } = useQuery({
     queryKey: ['tenant', id],
@@ -118,61 +113,48 @@ export default function TenantDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
     );
   }
 
   if (!tenant) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
+      <DashboardLayout>
+        <div className="text-center py-12">
           <h2 className="text-xl font-semibold">Tenant não encontrado</h2>
           <Button className="mt-4" onClick={() => navigate('/tenants')}>
             Voltar para lista
           </Button>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <Header onMenuClick={() => setMobileMenuOpen(true)} />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
-
-      <main
-        className={cn(
-          'transition-[margin] duration-300 p-4 lg:p-6',
-          'lg:ml-[280px]',
-          sidebarCollapsed && 'lg:ml-[72px]'
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/tenants')}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-foreground">{tenant.name}</h1>
-                <Badge className={planColors[tenant.plan_type]}>
-                  {tenant.plan_type}
-                </Badge>
-                <Badge variant={tenant.is_active ? 'default' : 'secondary'}>
-                  {tenant.is_active ? 'Ativo' : 'Inativo'}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground">{tenant.slug}</p>
-            </div>
-            <ImpersonateButton tenantId={id!} tenantName={tenant.name} />
+    <DashboardLayout>
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/tenants')}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-foreground">{tenant.name}</h1>
+            <Badge className={planColors[tenant.plan_type]}>
+              {tenant.plan_type}
+            </Badge>
+            <Badge variant={tenant.is_active ? 'default' : 'secondary'}>
+              {tenant.is_active ? 'Ativo' : 'Inativo'}
+            </Badge>
           </div>
+          <p className="text-muted-foreground">{tenant.slug}</p>
+        </div>
+        <ImpersonateButton tenantId={id!} tenantName={tenant.name} />
+      </div>
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
@@ -530,7 +512,6 @@ export default function TenantDetail() {
             <UnitEconomicsCard tenantId={id!} />
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }
