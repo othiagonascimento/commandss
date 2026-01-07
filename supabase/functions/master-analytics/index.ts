@@ -5,6 +5,54 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Generate mock time series data
+function generateTimeSeriesData(months: number = 12) {
+  const data = [];
+  const now = new Date();
+  
+  for (let i = months - 1; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthName = date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+    
+    // Generate realistic growing data with some variance
+    const baseGrowth = 1 + (months - i) * 0.08;
+    const variance = 0.9 + Math.random() * 0.2;
+    
+    data.push({
+      month: monthName,
+      date: date.toISOString(),
+      mrr: Math.round(2500 * baseGrowth * variance),
+      tenants: Math.round(8 + (months - i) * 0.6 * variance),
+      leads: Math.round(150 * baseGrowth * variance),
+      users: Math.round(25 * baseGrowth * variance),
+      messages: Math.round(800 * baseGrowth * variance),
+    });
+  }
+  
+  return data;
+}
+
+// Generate daily data for last 30 days
+function generateDailyData(days: number = 30) {
+  const data = [];
+  const now = new Date();
+  
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const dayName = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    
+    data.push({
+      day: dayName,
+      date: date.toISOString(),
+      leads: Math.round(5 + Math.random() * 15),
+      users: Math.round(1 + Math.random() * 3),
+      messages: Math.round(50 + Math.random() * 100),
+    });
+  }
+  
+  return data;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -13,7 +61,7 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
-    const endpoint = pathParts[1] || 'overview'; // overview, revenue, tenant, usage
+    const endpoint = pathParts[1] || 'overview';
 
     console.log(`[Master Analytics] Endpoint: ${endpoint}`);
 
@@ -40,6 +88,14 @@ serve(async (req) => {
             professional: 2200,
             enterprise: 1500
           }
+        };
+        break;
+
+      case 'timeseries':
+        const period = url.searchParams.get('period') || 'monthly';
+        responseData = {
+          period,
+          data: period === 'daily' ? generateDailyData(30) : generateTimeSeriesData(12),
         };
         break;
 

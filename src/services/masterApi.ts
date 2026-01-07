@@ -36,6 +36,8 @@ async function callMasterApi<T>(
 export const analyticsApi = {
   getOverview: () => callMasterApi<AnalyticsOverview>('master-analytics', 'GET', 'overview'),
   getRevenue: () => callMasterApi<RevenueData>('master-analytics', 'GET', 'revenue'),
+  getTimeSeries: (period: 'monthly' | 'daily' = 'monthly') => 
+    callMasterApi<TimeSeriesResponse>('master-analytics', 'GET', `timeseries?period=${period}`),
   getTenantMetrics: (tenantId: string) => 
     callMasterApi<TenantMetrics>('master-analytics', 'GET', `tenant/${tenantId}`),
   getUsage: () => callMasterApi<UsageData>('master-analytics', 'GET', 'usage'),
@@ -156,6 +158,22 @@ export interface UsageData {
   total_users: number;
   total_messages: number;
   total_storage: number;
+}
+
+export interface TimeSeriesDataPoint {
+  month?: string;
+  day?: string;
+  date: string;
+  mrr?: number;
+  tenants?: number;
+  leads: number;
+  users: number;
+  messages: number;
+}
+
+export interface TimeSeriesResponse {
+  period: 'monthly' | 'daily';
+  data: TimeSeriesDataPoint[];
 }
 
 export interface Tenant {
