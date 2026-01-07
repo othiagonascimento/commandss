@@ -1,9 +1,8 @@
 import { motion } from 'framer-motion';
-import { Bell, Settings, Menu } from 'lucide-react';
+import { Bell, Menu, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { StatusLED } from './StatusLED';
-import uopaSymbol from '@/assets/uopa-symbol.png';
 import uopaLogo from '@/assets/uopa-logo-white.png';
+import uopaSymbol from '@/assets/uopa-symbol.png';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -15,7 +14,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl"
+      className="sticky top-0 z-50 w-full border-b border-border bg-card"
     >
       <div className="flex h-16 items-center justify-between px-4 lg:px-6">
         {/* Left: Logo & Menu */}
@@ -31,55 +30,46 @@ export function Header({ onMenuClick }: HeaderProps) {
           
           {/* UÔPA Logo */}
           <div className="flex items-center gap-3">
-            <motion.div
-              className="relative flex items-center justify-center animate-breathing"
-              style={{
-                filter: 'drop-shadow(0 0 12px hsl(270 100% 60% / 0.5))',
-              }}
-            >
-              <img 
-                src={uopaSymbol} 
-                alt="UÔPA Symbol" 
-                className="h-10 w-auto"
-              />
-            </motion.div>
+            <img 
+              src={uopaSymbol} 
+              alt="UÔPA" 
+              className="h-9 w-auto"
+            />
             <div className="hidden sm:block">
-              <img 
-                src={uopaLogo} 
-                alt="UÔPA CRM" 
-                className="h-6 w-auto opacity-90"
-              />
-              <p className="text-[10px] text-muted-foreground mt-0.5">God Mode • Admin Dashboard</p>
+              <h1 className="font-semibold text-foreground">Painel Administrativo</h1>
+              <p className="text-xs text-muted-foreground">Visão geral do seu negócio</p>
             </div>
           </div>
         </div>
 
-        {/* Center: System Status */}
+        {/* Center: Welcome */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full glass-card"
+          className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 border border-success/20"
         >
-          <StatusLED status="online" size="sm" />
-          <span className="font-mono text-sm text-neon-green">
-            Sistema Operacional: Online
-          </span>
-          <span className="text-muted-foreground text-sm">|</span>
-          <span className="text-sm text-foreground/80">
-            Bem-vindo, <span className="text-neon-cyan font-medium">Admin</span>
+          <span className="status-dot status-dot-success" />
+          <span className="text-sm text-success font-medium">
+            Tudo funcionando normalmente
           </span>
         </motion.div>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="relative">
+            <HelpCircle className="h-5 w-5 text-muted-foreground" />
+          </Button>
+          <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-neon-magenta animate-pulse" />
+            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-destructive" />
           </Button>
-          <Button variant="ghost" size="icon">
-            <Settings className="h-5 w-5" />
-          </Button>
+          <div className="hidden sm:flex items-center gap-2 ml-2 pl-4 border-l border-border">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm">
+              A
+            </div>
+            <span className="text-sm font-medium">Admin</span>
+          </div>
         </div>
       </div>
     </motion.header>

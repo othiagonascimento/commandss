@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Terminal, Pause, Play, Filter } from 'lucide-react';
-import { GlassCard } from './GlassCard';
+import { ScrollText, Pause, Play, HelpCircle } from 'lucide-react';
+import { InfoCard } from './InfoCard';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { LogEntry } from '@/types/dashboard';
@@ -11,20 +11,12 @@ interface LiveFeedProps {
   delay?: number;
 }
 
-const typeColors = {
-  info: 'text-neon-cyan',
-  warning: 'text-neon-yellow',
-  error: 'text-neon-magenta',
-  success: 'text-neon-green',
-  debug: 'text-neon-purple',
-};
-
-const typeBadgeColors = {
-  info: 'bg-neon-cyan/20 text-neon-cyan',
-  warning: 'bg-neon-yellow/20 text-neon-yellow',
-  error: 'bg-neon-magenta/20 text-neon-magenta',
-  success: 'bg-neon-green/20 text-neon-green',
-  debug: 'bg-neon-purple/20 text-neon-purple',
+const typeLabels = {
+  info: { label: 'Info', color: 'bg-info/10 text-info', description: 'Informação normal do sistema' },
+  warning: { label: 'Aviso', color: 'bg-warning/10 text-warning', description: 'Algo que merece atenção' },
+  error: { label: 'Erro', color: 'bg-destructive/10 text-destructive', description: 'Algo deu errado' },
+  success: { label: 'OK', color: 'bg-success/10 text-success', description: 'Ação completada com sucesso' },
+  debug: { label: 'Debug', color: 'bg-muted text-muted-foreground', description: 'Informação técnica' },
 };
 
 export function LiveFeed({ logs, delay = 0 }: LiveFeedProps) {
@@ -45,77 +37,99 @@ export function LiveFeed({ logs, delay = 0 }: LiveFeedProps) {
   }, [displayedLogs, paused]);
 
   return (
-    <GlassCard span={2} rowSpan={2} delay={delay} glowColor="accent">
+    <InfoCard
+      title="Atividade em Tempo Real"
+      description="O que está acontecendo agora no sistema"
+      helpText="Este é um 'diário' do sistema que mostra tudo que está acontecendo: usuários entrando, mensagens sendo enviadas, pagamentos processados, etc. É útil para sua equipe técnica identificar problemas rapidamente. Você pode pausar para ler com calma."
+      icon={<ScrollText className="w-5 h-5" />}
+      delay={delay}
+      span={2}
+    >
+      {/* Controls */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Terminal className="w-5 h-5 text-neon-cyan" />
-          <h3 className="font-semibold">Live Feed</h3>
-          {!paused && (
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-neon-green animate-pulse" />
-              <span className="text-xs text-neon-green font-mono">LIVE</span>
+          {!paused ? (
+            <span className="flex items-center gap-2 text-sm">
+              <span className="status-dot status-dot-success" />
+              <span className="text-success font-medium">Ao vivo</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Pause className="w-4 h-4" />
+              Pausado
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setPaused(!paused)}
-          >
-            {paused ? (
-              <Play className="h-4 w-4 text-neon-green" />
-            ) : (
-              <Pause className="h-4 w-4" />
-            )}
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Filter className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setPaused(!paused)}
+          className="h-8"
+        >
+          {paused ? (
+            <>
+              <Play className="h-4 w-4 mr-1" />
+              Continuar
+            </>
+          ) : (
+            <>
+              <Pause className="h-4 w-4 mr-1" />
+              Pausar
+            </>
+          )}
+        </Button>
       </div>
 
+      {/* Log List */}
       <div
         ref={scrollRef}
-        className="h-[240px] lg:h-[320px] overflow-y-auto custom-scrollbar space-y-1 font-mono text-xs"
+        className="h-[280px] overflow-y-auto custom-scrollbar space-y-2 pr-2"
       >
         <AnimatePresence mode="popLayout">
-          {displayedLogs.slice(0, 30).map((log) => (
-            <motion.div
-              key={log.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-start gap-2 p-2 rounded hover:bg-muted/30 transition-colors"
-            >
-              <span className="text-muted-foreground shrink-0 w-[70px]">
-                {log.timestamp.toLocaleTimeString('en-US', { 
-                  hour12: false,
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                })}
-              </span>
-              <span className={cn(
-                'px-1.5 py-0.5 rounded text-[10px] uppercase font-semibold shrink-0',
-                typeBadgeColors[log.type]
-              )}>
-                {log.type}
-              </span>
-              {log.source && (
-                <span className="text-muted-foreground shrink-0">
-                  [{log.source}]
+          {displayedLogs.slice(0, 25).map((log) => {
+            const typeInfo = typeLabels[log.type];
+            return (
+              <motion.div
+                key={log.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+              >
+                <span className="text-xs text-muted-foreground font-mono shrink-0 mt-0.5">
+                  {log.timestamp.toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })}
                 </span>
-              )}
-              <span className={cn('flex-1', typeColors[log.type])}>
-                {log.message}
-              </span>
-            </motion.div>
-          ))}
+                <span className={cn(
+                  'px-2 py-0.5 rounded text-xs font-medium shrink-0',
+                  typeInfo.color
+                )}>
+                  {typeInfo.label}
+                </span>
+                <span className="text-sm text-foreground flex-1">
+                  {log.message}
+                </span>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
       </div>
-    </GlassCard>
+
+      {/* Legend */}
+      <div className="mt-3 pt-3 border-t border-border flex items-center gap-4 flex-wrap text-xs">
+        <span className="text-muted-foreground flex items-center gap-1">
+          <HelpCircle className="w-3 h-3" /> Legenda:
+        </span>
+        {Object.entries(typeLabels).slice(0, 4).map(([key, info]) => (
+          <span key={key} className="flex items-center gap-1">
+            <span className={cn('px-1.5 py-0.5 rounded', info.color)}>{info.label}</span>
+          </span>
+        ))}
+      </div>
+    </InfoCard>
   );
 }

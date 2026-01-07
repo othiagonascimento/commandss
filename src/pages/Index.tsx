@@ -12,6 +12,7 @@ import { QueueStatus } from '@/components/dashboard/QueueStatus';
 import { SystemStats } from '@/components/dashboard/SystemStats';
 import { useMockData } from '@/hooks/useMockData';
 import { cn } from '@/lib/utils';
+import { HelpCircle } from 'lucide-react';
 
 const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -19,7 +20,7 @@ const Index = () => {
   const data = useMockData();
 
   return (
-    <div className="min-h-screen w-full">
+    <div className="min-h-screen w-full bg-background">
       <Header onMenuClick={() => setMobileMenuOpen(true)} />
       <Sidebar
         collapsed={sidebarCollapsed}
@@ -31,30 +32,48 @@ const Index = () => {
       <main
         className={cn(
           'transition-all duration-300 p-4 lg:p-6',
-          'lg:ml-[240px]',
-          sidebarCollapsed && 'lg:ml-16'
+          'lg:ml-[280px]',
+          sidebarCollapsed && 'lg:ml-[72px]'
         )}
       >
+        {/* Welcome Message */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/20"
         >
-          {/* Row 1: Health Monitor + Stats */}
-          <HealthMonitor data={data.latency} delay={0} />
-          <ActiveUsers data={data.activeUsers} delay={1} />
-          <RevenueCard data={data.revenue} delay={2} />
-
-          {/* Row 2: Services + Errors */}
-          <ServiceStatus services={data.services} delay={3} />
-          <ErrorHeatmap errors={data.errors} delay={4} />
-
-          {/* Row 3: Live Feed + Queues + System */}
-          <LiveFeed logs={data.logs} delay={5} />
-          <QueueStatus queues={data.queues} delay={6} />
-          <SystemStats data={data.system} delay={7} />
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <HelpCircle className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-foreground">Bem-vindo ao seu Painel de Controle!</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Aqui você vê tudo que acontece no seu sistema em tempo real. Passe o mouse sobre qualquer card 
+                e clique no <span className="inline-flex items-center"><HelpCircle className="w-3 h-3 mx-1" /></span> 
+                para entender o que cada número significa. Não se preocupe se não entender tudo de primeira - 
+                estamos aqui para ajudar!
+              </p>
+            </div>
+          </div>
         </motion.div>
+
+        {/* Dashboard Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {/* Row 1: Key Metrics */}
+          <HealthMonitor data={data.latency} delay={1} />
+          <ActiveUsers data={data.activeUsers} delay={2} />
+          <RevenueCard data={data.revenue} delay={3} />
+
+          {/* Row 2: Services & Errors */}
+          <ServiceStatus services={data.services} delay={4} />
+          <ErrorHeatmap errors={data.errors} delay={5} />
+
+          {/* Row 3: Live Feed, Queues & System */}
+          <LiveFeed logs={data.logs} delay={6} />
+          <QueueStatus queues={data.queues} delay={7} />
+          <SystemStats data={data.system} delay={8} />
+        </div>
       </main>
     </div>
   );
