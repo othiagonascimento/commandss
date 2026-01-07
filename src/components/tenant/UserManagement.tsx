@@ -136,10 +136,10 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
   const handleOpenEdit = (user: TenantUser) => {
     setEditingUser(user);
     setFormData({
-      name: user.name,
+      name: user.name || user.full_name || '',
       email: user.email,
       password: '',
-      role: user.role,
+      role: user.role as 'admin' | 'user',
     });
     setFormError(null);
     setIsDialogOpen(true);

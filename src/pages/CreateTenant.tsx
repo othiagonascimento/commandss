@@ -65,6 +65,7 @@ export default function CreateTenant() {
       const payload: CreateTenantPayload = {
         name: data.name,
         slug: data.slug,
+        subdomain: data.slug,
         plan_type: data.plan_type,
         branding: {
           company_name: data.company_name || data.name,
