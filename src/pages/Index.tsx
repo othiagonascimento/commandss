@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Header } from '@/components/dashboard/Header';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { HealthMonitor } from '@/components/dashboard/HealthMonitor';
@@ -31,17 +30,13 @@ const Index = () => {
 
       <main
         className={cn(
-          'transition-all duration-300 p-4 lg:p-6',
+          'transition-[margin] duration-300 p-4 lg:p-6',
           'lg:ml-[280px]',
           sidebarCollapsed && 'lg:ml-[72px]'
         )}
       >
         {/* Welcome Message */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/20"
-        >
+        <div className="mb-6 p-4 rounded-xl bg-primary/5 border border-primary/20">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <HelpCircle className="w-5 h-5 text-primary" />
@@ -56,23 +51,23 @@ const Index = () => {
               </p>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Dashboard Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {/* Row 1: Key Metrics */}
-          <HealthMonitor data={data.latency} delay={1} />
-          <ActiveUsers data={data.activeUsers} delay={2} />
-          <RevenueCard data={data.revenue} delay={3} />
+          <HealthMonitor data={data.latency} />
+          <ActiveUsers data={data.activeUsers} />
+          <RevenueCard data={data.revenue} />
 
           {/* Row 2: Services & Errors */}
-          <ServiceStatus services={data.services} delay={4} />
-          <ErrorHeatmap errors={data.errors} delay={5} />
+          <ServiceStatus services={data.services} />
+          <ErrorHeatmap errors={data.errors} />
 
           {/* Row 3: Live Feed, Queues & System */}
-          <LiveFeed logs={data.logs} delay={6} />
-          <QueueStatus queues={data.queues} delay={7} />
-          <SystemStats data={data.system} delay={8} />
+          <LiveFeed logs={data.logs} />
+          <QueueStatus queues={data.queues} />
+          <SystemStats data={data.system} />
         </div>
       </main>
     </div>

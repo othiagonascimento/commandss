@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ReactNode } from 'react';
 
@@ -35,27 +34,15 @@ export function GlassCard({
   children,
   className,
   glowColor = 'primary',
-  delay = 0,
   span = 1,
   rowSpan = 1,
 }: GlassCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{
-        duration: 0.4,
-        delay: delay * 0.1,
-        ease: [0.25, 0.46, 0.45, 0.94],
-      }}
-      whileHover={{
-        y: -4,
-        transition: { duration: 0.2 },
-      }}
+    <div
       className={cn(
         'glass-card p-4 lg:p-5',
-        'transition-all duration-300',
-        'hover:border-primary/40',
+        'transition-shadow duration-300',
+        'hover:border-primary/40 hover:-translate-y-1',
         glowClasses[glowColor],
         spanClasses[span],
         rowSpanClasses[rowSpan],
@@ -63,6 +50,6 @@ export function GlassCard({
       )}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
