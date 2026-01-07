@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { Bell, Settings, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusLED } from './StatusLED';
+import uopaSymbol from '@/assets/uopa-symbol.png';
+import uopaLogo from '@/assets/uopa-logo-white.png';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -27,19 +29,27 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Menu className="h-5 w-5" />
           </Button>
           
-          {/* Logo Placeholder */}
+          {/* UÔPA Logo */}
           <div className="flex items-center gap-3">
             <motion.div
-              className="w-10 h-10 rounded-lg bg-gradient-to-br from-neon-green to-neon-cyan flex items-center justify-center animate-breathing"
+              className="relative flex items-center justify-center animate-breathing"
               style={{
-                boxShadow: '0 0 20px hsl(160 100% 50% / 0.4)',
+                filter: 'drop-shadow(0 0 12px hsl(270 100% 60% / 0.5))',
               }}
             >
-              <span className="font-bold text-background text-lg">G</span>
+              <img 
+                src={uopaSymbol} 
+                alt="UÔPA Symbol" 
+                className="h-10 w-auto"
+              />
             </motion.div>
             <div className="hidden sm:block">
-              <h1 className="text-lg font-semibold tracking-tight">God Mode</h1>
-              <p className="text-xs text-muted-foreground">Admin Dashboard</p>
+              <img 
+                src={uopaLogo} 
+                alt="UÔPA CRM" 
+                className="h-6 w-auto opacity-90"
+              />
+              <p className="text-[10px] text-muted-foreground mt-0.5">God Mode • Admin Dashboard</p>
             </div>
           </div>
         </div>
