@@ -98,37 +98,91 @@ export type Database = {
       }
       tenants: {
         Row: {
+          ai_token_limit: number | null
+          channel_price: number | null
           config: Json | null
+          contact_email: string | null
+          contracted_users: number | null
           created_at: string | null
+          current_period_end: string | null
           custom_domain: string | null
+          discount_type: string | null
+          discount_value: number | null
+          document: string | null
+          extra_channels: number | null
           id: string
+          implementation_fee: number | null
           implementation_level: number | null
+          implementation_paid_externally: boolean | null
           name: string
           plan_type: string | null
+          price_per_user: number | null
           status: string | null
+          storage_limit_gb: number | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           subdomain: string
+          subscription_status: string | null
+          trial_days: number | null
+          trial_enabled: boolean | null
         }
         Insert: {
+          ai_token_limit?: number | null
+          channel_price?: number | null
           config?: Json | null
+          contact_email?: string | null
+          contracted_users?: number | null
           created_at?: string | null
+          current_period_end?: string | null
           custom_domain?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          document?: string | null
+          extra_channels?: number | null
           id?: string
+          implementation_fee?: number | null
           implementation_level?: number | null
+          implementation_paid_externally?: boolean | null
           name: string
           plan_type?: string | null
+          price_per_user?: number | null
           status?: string | null
+          storage_limit_gb?: number | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subdomain: string
+          subscription_status?: string | null
+          trial_days?: number | null
+          trial_enabled?: boolean | null
         }
         Update: {
+          ai_token_limit?: number | null
+          channel_price?: number | null
           config?: Json | null
+          contact_email?: string | null
+          contracted_users?: number | null
           created_at?: string | null
+          current_period_end?: string | null
           custom_domain?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          document?: string | null
+          extra_channels?: number | null
           id?: string
+          implementation_fee?: number | null
           implementation_level?: number | null
+          implementation_paid_externally?: boolean | null
           name?: string
           plan_type?: string | null
+          price_per_user?: number | null
           status?: string | null
+          storage_limit_gb?: number | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subdomain?: string
+          subscription_status?: string | null
+          trial_days?: number | null
+          trial_enabled?: boolean | null
         }
         Relationships: []
       }

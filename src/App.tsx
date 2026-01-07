@@ -10,11 +10,11 @@ import Auth from "./pages/Auth";
 import Tenants from "./pages/Tenants";
 import TenantDetail from "./pages/TenantDetail";
 import CreateTenant from "./pages/CreateTenant";
+import NewContract from "./pages/NewContract";
 import Users from "./pages/Users";
 import Subscriptions from "./pages/Subscriptions";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -29,6 +29,7 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/tenants" element={<ProtectedRoute><Tenants /></ProtectedRoute>} />
             <Route path="/tenants/new" element={<ProtectedRoute><CreateTenant /></ProtectedRoute>} />
+            <Route path="/tenants/contract" element={<ProtectedRoute><NewContract /></ProtectedRoute>} />
             <Route path="/tenants/:id" element={<ProtectedRoute><TenantDetail /></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
             <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
