@@ -1,18 +1,16 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Activity,
-  AlertTriangle,
-  Terminal,
+  Building2,
   Users,
-  Mail,
-  DollarSign,
-  Cpu,
+  CreditCard,
   Settings,
   ChevronLeft,
   ChevronRight,
   X,
   HelpCircle,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,6 +19,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -32,56 +31,68 @@ interface SidebarProps {
 const navItems = [
   { 
     icon: LayoutDashboard, 
-    label: 'Visão Geral', 
-    description: 'Resumo de tudo que acontece no seu sistema',
-    active: true 
+    label: 'Dashboard', 
+    path: '/',
+    description: 'Visão geral do sistema',
   },
   { 
-    icon: Activity, 
-    label: 'Saúde do Sistema', 
-    description: 'Veja se tudo está funcionando bem'
-  },
-  { 
-    icon: AlertTriangle, 
-    label: 'Problemas', 
-    description: 'Erros e avisos que precisam de atenção'
+    icon: Building2, 
+    label: 'Tenants', 
+    path: '/tenants',
+    description: 'Gerenciar empresas',
   },
   { 
     icon: Users, 
-    label: 'Usuários Ativos', 
-    description: 'Quantas pessoas estão usando agora'
+    label: 'Usuários', 
+    path: '/users',
+    description: 'Gerenciar usuários',
   },
   { 
-    icon: Mail, 
-    label: 'Mensagens', 
-    description: 'Fila de envio de mensagens'
+    icon: CreditCard, 
+    label: 'Assinaturas', 
+    path: '/subscriptions',
+    description: 'Planos e cobranças',
   },
   { 
-    icon: DollarSign, 
-    label: 'Faturamento', 
-    description: 'Receita e conversões'
+    icon: Settings, 
+    label: 'Configurações', 
+    path: '/settings',
+    description: 'Configurações do sistema',
   },
 ];
 
 export function Sidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }: SidebarProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { signOut } = useAuth();
+
   const NavItem = ({ item, index }: { item: typeof navItems[0]; index: number }) => {
+    const isActive = location.pathname === item.path || 
+      (item.path !== '/' && location.pathname.startsWith(item.path));
+    
+    const handleClick = () => {
+      navigate(item.path);
+      onMobileClose();
+    };
+
     const button = (
       <motion.button
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: index * 0.05 }}
+        onClick={handleClick}
         className={cn(
           'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
           'transition-all duration-200',
           'hover:bg-sidebar-accent',
           'group relative',
-          item.active && 'bg-sidebar-accent text-primary'
+          isActive && 'bg-sidebar-accent text-primary'
         )}
       >
         <item.icon
           className={cn(
             'h-5 w-5 flex-shrink-0 transition-colors',
-            item.active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+            isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
           )}
         />
         <AnimatePresence>
@@ -105,7 +116,7 @@ export function Sidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }: Si
         </AnimatePresence>
         
         {/* Active Indicator */}
-        {item.active && (
+        {isActive && (
           <motion.div
             layoutId="activeIndicator"
             className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full bg-primary"
@@ -172,8 +183,8 @@ export function Sidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }: Si
         ))}
       </nav>
 
-      {/* Help Section */}
-      <div className="p-3 border-t border-border">
+      {/* Bottom Section */}
+      <div className="p-3 border-t border-border space-y-1">
         <button
           className={cn(
             'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
@@ -191,8 +202,31 @@ export function Sidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }: Si
                 exit={{ opacity: 0, width: 0 }}
                 className="text-left"
               >
-                <span className="text-sm font-medium whitespace-nowrap block">Precisa de ajuda?</span>
-                <span className="text-xs text-muted-foreground whitespace-nowrap block">Tire suas dúvidas</span>
+                <span className="text-sm font-medium whitespace-nowrap block">Ajuda</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </button>
+        
+        <button
+          onClick={() => signOut()}
+          className={cn(
+            'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
+            'transition-all duration-200',
+            'hover:bg-destructive/10',
+            'text-muted-foreground hover:text-destructive'
+          )}
+        >
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          <AnimatePresence>
+            {!collapsed && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                className="text-left"
+              >
+                <span className="text-sm font-medium whitespace-nowrap block">Sair</span>
               </motion.div>
             )}
           </AnimatePresence>
