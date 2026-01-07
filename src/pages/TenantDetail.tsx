@@ -72,7 +72,7 @@ export default function TenantDetail() {
     queryKey: ['tenant-users', id],
     queryFn: async () => {
       const result = await usersApi.list(id!);
-      return result.data;
+      return result.data?.data || [];
     },
     enabled: !!id,
   });

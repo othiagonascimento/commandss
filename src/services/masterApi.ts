@@ -1,25 +1,23 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const PROXY_FUNCTION = 'master-proxy';
-
 interface ApiResponse<T> {
   data: T | null;
   error: string | null;
 }
 
 async function callMasterApi<T>(
-  path: string,
+  functionName: string,
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE' = 'GET',
+  pathSuffix?: string,
   body?: unknown
 ): Promise<ApiResponse<T>> {
   try {
-    const { data, error } = await supabase.functions.invoke(PROXY_FUNCTION, {
-      method: 'POST',
-      body: {
-        path,
-        method,
-        payload: body,
-      },
+    // Build the full path for the function URL
+    const functionPath = pathSuffix ? `${functionName}/${pathSuffix}` : functionName;
+    
+    const { data, error } = await supabase.functions.invoke(functionPath, {
+      method,
+      body: body || undefined,
     });
 
     if (error) {
@@ -36,11 +34,11 @@ async function callMasterApi<T>(
 
 // Analytics API
 export const analyticsApi = {
-  getOverview: () => callMasterApi<AnalyticsOverview>('/master-analytics/overview'),
-  getRevenue: () => callMasterApi<RevenueData>('/master-analytics/revenue'),
+  getOverview: () => callMasterApi<AnalyticsOverview>('master-analytics', 'GET', 'overview'),
+  getRevenue: () => callMasterApi<RevenueData>('master-analytics', 'GET', 'revenue'),
   getTenantMetrics: (tenantId: string) => 
-    callMasterApi<TenantMetrics>(`/master-analytics/tenant/${tenantId}`),
-  getUsage: () => callMasterApi<UsageData>('/master-analytics/usage'),
+    callMasterApi<TenantMetrics>('master-analytics', 'GET', `tenant/${tenantId}`),
+  getUsage: () => callMasterApi<UsageData>('master-analytics', 'GET', 'usage'),
 };
 
 // Tenants API
@@ -54,64 +52,64 @@ export const tenantsApi = {
     if (params?.is_active !== undefined) queryParams.set('is_active', String(params.is_active));
     
     const query = queryParams.toString();
-    return callMasterApi<TenantsListResponse>(`/master-tenants${query ? `?${query}` : ''}`);
+    return callMasterApi<TenantsListResponse>('master-tenants', 'GET', query ? `?${query}` : undefined);
   },
   
-  get: (id: string) => callMasterApi<TenantDetail>(`/master-tenants/${id}`),
+  get: (id: string) => callMasterApi<TenantDetail>('master-tenants', 'GET', id),
   
   create: (data: CreateTenantPayload) => 
-    callMasterApi<Tenant>('/master-tenants', 'POST', data),
+    callMasterApi<Tenant>('master-tenants', 'POST', undefined, data),
   
   update: (id: string, data: Partial<Tenant>) => 
-    callMasterApi<Tenant>(`/master-tenants/${id}`, 'PATCH', data),
+    callMasterApi<Tenant>('master-tenants', 'PATCH', id, data),
   
   deactivate: (id: string) => 
-    callMasterApi<void>(`/master-tenants/${id}`, 'DELETE'),
+    callMasterApi<void>('master-tenants', 'DELETE', id),
 };
 
 // Subscriptions API
 export const subscriptionsApi = {
   get: (tenantId: string) => 
-    callMasterApi<SubscriptionDetail>(`/master-subscriptions/${tenantId}`),
+    callMasterApi<SubscriptionDetail>('master-subscriptions', 'GET', tenantId),
   
   upgrade: (tenantId: string, plan: string) => 
-    callMasterApi<void>(`/master-subscriptions/${tenantId}/upgrade`, 'POST', { plan }),
+    callMasterApi<void>('master-subscriptions', 'POST', `${tenantId}/upgrade`, { plan }),
   
   downgrade: (tenantId: string, plan: string) => 
-    callMasterApi<void>(`/master-subscriptions/${tenantId}/downgrade`, 'POST', { plan }),
+    callMasterApi<void>('master-subscriptions', 'POST', `${tenantId}/downgrade`, { plan }),
   
   cancel: (tenantId: string) => 
-    callMasterApi<void>(`/master-subscriptions/${tenantId}/cancel`, 'POST'),
+    callMasterApi<void>('master-subscriptions', 'POST', `${tenantId}/cancel`),
   
   reactivate: (tenantId: string) => 
-    callMasterApi<void>(`/master-subscriptions/${tenantId}/reactivate`, 'POST'),
+    callMasterApi<void>('master-subscriptions', 'POST', `${tenantId}/reactivate`),
 };
 
 // Users API
 export const usersApi = {
   list: (tenantId: string) => 
-    callMasterApi<TenantUser[]>(`/master-users/${tenantId}`),
+    callMasterApi<UsersListResponse>('master-users', 'GET', tenantId),
   
   get: (tenantId: string, userId: string) => 
-    callMasterApi<TenantUser>(`/master-users/${tenantId}/${userId}`),
+    callMasterApi<TenantUser>('master-users', 'GET', `${tenantId}/${userId}`),
   
   create: (tenantId: string, data: CreateUserPayload) => 
-    callMasterApi<TenantUser>(`/master-users/${tenantId}`, 'POST', data),
+    callMasterApi<TenantUser>('master-users', 'POST', tenantId, data),
   
   update: (tenantId: string, userId: string, data: Partial<TenantUser>) => 
-    callMasterApi<TenantUser>(`/master-users/${tenantId}/${userId}`, 'PATCH', data),
+    callMasterApi<TenantUser>('master-users', 'PATCH', `${tenantId}/${userId}`, data),
   
   deactivate: (tenantId: string, userId: string) => 
-    callMasterApi<void>(`/master-users/${tenantId}/${userId}`, 'DELETE'),
+    callMasterApi<void>('master-users', 'DELETE', `${tenantId}/${userId}`),
 };
 
 // Branding API
 export const brandingApi = {
   get: (tenantId: string) => 
-    callMasterApi<BrandingData>(`/master-branding/${tenantId}`),
+    callMasterApi<BrandingData>('master-branding', 'GET', tenantId),
   
   update: (tenantId: string, data: BrandingPayload) => 
-    callMasterApi<BrandingData>(`/master-branding/${tenantId}`, 'PUT', data),
+    callMasterApi<BrandingData>('master-branding', 'PUT', tenantId, data),
 };
 
 // Types
@@ -164,14 +162,19 @@ export interface Tenant {
   id: string;
   name: string;
   slug: string;
+  subdomain: string;
+  status: string;
   is_active: boolean;
-  is_master: boolean;
-  plan_type: 'basic' | 'pro' | 'enterprise';
-  settings: Record<string, unknown>;
-  limits: Record<string, unknown>;
-  plan_features: Record<string, unknown>;
-  ai_credits: number;
+  is_master?: boolean;
+  plan_type: string;
+  implementation_level: number;
+  settings?: Record<string, unknown>;
+  limits?: Record<string, unknown>;
+  plan_features?: Record<string, unknown>;
+  ai_credits?: number;
   created_at: string;
+  user_count?: number;
+  lead_count?: number;
 }
 
 export interface TenantDetail extends Tenant {
@@ -185,12 +188,19 @@ export interface TenantsListResponse {
   total: number;
   page: number;
   limit: number;
+  total_pages: number;
+}
+
+export interface UsersListResponse {
+  data: TenantUser[];
+  total: number;
 }
 
 export interface CreateTenantPayload {
   name: string;
   slug: string;
-  plan_type: 'basic' | 'pro' | 'enterprise';
+  subdomain: string;
+  plan_type: string;
   branding?: {
     company_name: string;
     logo_url?: string;
@@ -199,47 +209,48 @@ export interface CreateTenantPayload {
 }
 
 export interface SubscriptionDetail {
-  id: string;
   tenant_id: string;
   plan: string;
-  status: 'active' | 'trial' | 'cancelled' | 'past_due';
-  current_period_start: string;
-  current_period_end: string;
-  invoices?: Invoice[];
-}
-
-export interface Invoice {
-  id: string;
-  amount: number;
   status: string;
-  created_at: string;
+  started_at: string;
+  expires_at: string | null;
+  billing_cycle: string;
+  amount: number;
+  currency: string;
+  features: string[];
 }
 
 export interface TenantUser {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'user';
+  full_name: string;
+  role: 'admin' | 'user' | string;
+  status: string;
   is_active: boolean;
   created_at: string;
+  last_login: string | null;
 }
 
 export interface CreateUserPayload {
   email: string;
   name: string;
+  full_name?: string;
   password: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | string;
 }
 
 export interface BrandingData {
+  tenant_id: string;
   company_name: string;
-  logo_url?: string;
-  logo_white_url?: string;
-  symbol_url?: string;
-  favicon_url?: string;
+  logo_url?: string | null;
+  logo_white_url?: string | null;
+  symbol_url?: string | null;
   primary_color?: string;
   secondary_color?: string;
-  allowed_fields: string[];
+  favicon_url?: string | null;
+  custom_css?: string | null;
+  allowed_fields?: string[];
 }
 
 export interface BrandingPayload {
@@ -247,7 +258,8 @@ export interface BrandingPayload {
   logo_url?: string;
   logo_white_url?: string;
   symbol_url?: string;
-  favicon_url?: string;
   primary_color?: string;
   secondary_color?: string;
+  favicon_url?: string;
+  custom_css?: string;
 }
