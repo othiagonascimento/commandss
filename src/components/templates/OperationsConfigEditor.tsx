@@ -135,14 +135,14 @@ export function OperationsConfigEditor({
                   <Label>Primeira Resposta (segundos)</Label>
                   <div className="flex items-center gap-4">
                     <Slider
-                      value={[slaConfig.first_response_seconds]}
+                      value={[slaConfig.first_response_seconds || 30]}
                       onValueChange={([value]) => updateSLA({ first_response_seconds: value })}
                       min={5}
                       max={300}
                       step={5}
                       className="flex-1"
                     />
-                    <span className="w-16 text-right font-medium">{slaConfig.first_response_seconds}s</span>
+                    <span className="w-16 text-right font-medium">{slaConfig.first_response_seconds || 30}s</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Tempo máximo para responder uma nova mensagem
@@ -153,14 +153,14 @@ export function OperationsConfigEditor({
                   <Label>Resolução (minutos)</Label>
                   <div className="flex items-center gap-4">
                     <Slider
-                      value={[slaConfig.resolution_minutes]}
+                      value={[slaConfig.resolution_minutes || 30]}
                       onValueChange={([value]) => updateSLA({ resolution_minutes: value })}
                       min={1}
                       max={60}
                       step={1}
                       className="flex-1"
                     />
-                    <span className="w-16 text-right font-medium">{slaConfig.resolution_minutes}min</span>
+                    <span className="w-16 text-right font-medium">{slaConfig.resolution_minutes || 30}min</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Tempo alvo para resolver a conversa
@@ -173,14 +173,14 @@ export function OperationsConfigEditor({
                   <Label>Tempo de Inatividade (minutos)</Label>
                   <div className="flex items-center gap-4">
                     <Slider
-                      value={[slaConfig.idle_timeout_minutes]}
+                      value={[slaConfig.idle_timeout_minutes || 10]}
                       onValueChange={([value]) => updateSLA({ idle_timeout_minutes: value })}
                       min={1}
                       max={30}
                       step={1}
                       className="flex-1"
                     />
-                    <span className="w-16 text-right font-medium">{slaConfig.idle_timeout_minutes}min</span>
+                    <span className="w-16 text-right font-medium">{slaConfig.idle_timeout_minutes || 10}min</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Quando considerar a conversa inativa
@@ -191,14 +191,14 @@ export function OperationsConfigEditor({
                   <Label>Máximo de Mensagens IA</Label>
                   <div className="flex items-center gap-4">
                     <Slider
-                      value={[slaConfig.max_ai_messages]}
+                      value={[slaConfig.max_ai_messages || 10]}
                       onValueChange={([value]) => updateSLA({ max_ai_messages: value })}
                       min={1}
                       max={20}
                       step={1}
                       className="flex-1"
                     />
-                    <span className="w-16 text-right font-medium">{slaConfig.max_ai_messages}</span>
+                    <span className="w-16 text-right font-medium">{slaConfig.max_ai_messages || 10}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Limite de mensagens antes de escalar para humano
@@ -250,7 +250,7 @@ export function OperationsConfigEditor({
                       <Label>Prioridade</Label>
                       <Select
                         value={rule.priority}
-                        onValueChange={(value: 'low' | 'medium' | 'high' | 'critical') =>
+                        onValueChange={(value: 'low' | 'medium' | 'high' | 'urgent' | 'critical') =>
                           updateEscalationRule(rule.id, { priority: value })
                         }
                       >
@@ -261,6 +261,7 @@ export function OperationsConfigEditor({
                           <SelectItem value="low">Baixa</SelectItem>
                           <SelectItem value="medium">Média</SelectItem>
                           <SelectItem value="high">Alta</SelectItem>
+                          <SelectItem value="urgent">Urgente</SelectItem>
                           <SelectItem value="critical">Crítica</SelectItem>
                         </SelectContent>
                       </Select>
