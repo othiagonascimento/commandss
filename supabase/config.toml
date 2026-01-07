@@ -1,1 +1,4 @@
 project_id = "btoyclznuuwvxbsacemw"
+
+[functions.master-proxy]
+verify_jwt = false
