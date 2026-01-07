@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -22,6 +22,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   Search, 
   Plus, 
@@ -35,6 +45,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 const planColors: Record<string, string> = {
   basic: 'bg-muted text-muted-foreground',
@@ -44,9 +55,11 @@ const planColors: Record<string, string> = {
 
 export default function Tenants() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
+  const [tenantToToggle, setTenantToToggle] = useState<Tenant | null>(null);
   const limit = 20;
 
   const { data, isLoading, error } = useQuery({
@@ -59,6 +72,24 @@ export default function Tenants() {
         plan_type: planFilter !== 'all' ? planFilter : undefined,
       });
       return result.data;
+    },
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      if (isActive) {
+        return tenantsApi.deactivate(id);
+      } else {
+        return tenantsApi.update(id, { is_active: true, status: 'active' });
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      toast.success(variables.isActive ? 'Tenant desativado' : 'Tenant ativado');
+      setTenantToToggle(null);
+    },
+    onError: (error) => {
+      toast.error('Erro ao alterar status: ' + (error as Error).message);
     },
   });
 
@@ -173,6 +204,7 @@ export default function Tenants() {
                             variant="ghost"
                             size="icon"
                             className={tenant.is_active ? 'text-destructive' : 'text-success'}
+                            onClick={() => setTenantToToggle(tenant)}
                           >
                             <Power className="w-4 h-4" />
                           </Button>
@@ -215,6 +247,41 @@ export default function Tenants() {
             </>
           )}
         </div>
+
+      {/* Confirm Dialog */}
+      <AlertDialog open={!!tenantToToggle} onOpenChange={() => setTenantToToggle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {tenantToToggle?.is_active ? 'Desativar Tenant?' : 'Ativar Tenant?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {tenantToToggle?.is_active 
+                ? `O tenant "${tenantToToggle?.name}" será desativado e seus usuários perderão acesso.`
+                : `O tenant "${tenantToToggle?.name}" será reativado e seus usuários terão acesso novamente.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (tenantToToggle) {
+                  toggleStatusMutation.mutate({ 
+                    id: tenantToToggle.id, 
+                    isActive: tenantToToggle.is_active 
+                  });
+                }
+              }}
+              className={tenantToToggle?.is_active ? 'bg-destructive hover:bg-destructive/90' : ''}
+            >
+              {toggleStatusMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : tenantToToggle?.is_active ? 'Desativar' : 'Ativar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
