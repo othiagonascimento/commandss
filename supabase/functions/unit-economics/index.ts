@@ -31,7 +31,7 @@ serve(async (req) => {
   );
 
   try {
-    logStep('Function started');
+    logStep('Function started', { method: req.method });
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('No authorization header');
@@ -54,6 +54,7 @@ serve(async (req) => {
 
     const url = new URL(req.url);
 
+    // GET requests - no body parsing
     if (req.method === 'GET') {
       const tenantId = url.searchParams.get('tenantId');
       const period = url.searchParams.get('period') || 'current'; // current, last, all
@@ -180,8 +181,9 @@ serve(async (req) => {
       });
     }
 
+    // POST requests - parse body safely
     if (req.method === 'POST') {
-      const body = await req.json();
+      const body = await req.json().catch(() => ({}));
       const { action, tenantId, usage } = body;
 
       if (action === 'record_usage') {
@@ -218,9 +220,15 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      throw new Error('Missing or invalid action. Allowed: record_usage');
     }
 
-    throw new Error('Invalid request');
+    // Method not allowed
+    return new Response(JSON.stringify({ error: 'Method not allowed', allowed: ['GET', 'POST'] }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 405,
+    });
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

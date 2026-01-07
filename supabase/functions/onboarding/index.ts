@@ -23,7 +23,7 @@ serve(async (req) => {
   );
 
   try {
-    logStep('Function started');
+    logStep('Function started', { method: req.method });
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('No authorization header');
@@ -36,11 +36,25 @@ serve(async (req) => {
     logStep('User authenticated', { userId });
 
     const url = new URL(req.url);
-    const body = req.method === 'POST' || req.method === 'PATCH' ? await req.json() : {};
 
+    // GET requests - no body parsing
     if (req.method === 'GET') {
-      // List all onboarding statuses (for implementers)
       const tenantId = url.searchParams.get('tenantId');
+
+      // GET templates
+      if (url.pathname.includes('templates')) {
+        const { data, error } = await supabaseAdmin
+          .from('niche_templates')
+          .select('*')
+          .eq('is_active', true)
+          .order('name');
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ templates: data }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       if (tenantId) {
         // Get specific tenant onboarding
@@ -78,8 +92,14 @@ serve(async (req) => {
       });
     }
 
+    // POST requests - parse body safely
     if (req.method === 'POST') {
+      const body = await req.json().catch(() => ({}));
       const { action, tenantId, templateId, status, checklistItem, notes } = body;
+
+      if (!action) {
+        throw new Error('Missing action. Allowed: init, apply_template, update_status, update_checklist, add_note');
+      }
 
       if (action === 'init') {
         // Initialize onboarding for a tenant
@@ -280,24 +300,15 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      throw new Error(`Unknown action: ${action}. Allowed: init, apply_template, update_status, update_checklist, add_note`);
     }
 
-    // GET templates
-    if (req.method === 'GET' && url.pathname.includes('templates')) {
-      const { data, error } = await supabaseAdmin
-        .from('niche_templates')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) throw error;
-
-      return new Response(JSON.stringify({ templates: data }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    throw new Error('Invalid request');
+    // Method not allowed
+    return new Response(JSON.stringify({ error: 'Method not allowed', allowed: ['GET', 'POST'] }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 405,
+    });
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

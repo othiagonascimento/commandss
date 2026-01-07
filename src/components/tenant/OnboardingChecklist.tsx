@@ -63,6 +63,7 @@ export function OnboardingChecklist({ tenantId, onboarding, templates }: Onboard
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
       const { data, error } = await supabase.functions.invoke('onboarding', {
+        method: 'POST',
         body: { action: 'update_status', tenantId, status: newStatus },
       });
       if (error) throw error;
@@ -72,12 +73,13 @@ export function OnboardingChecklist({ tenantId, onboarding, templates }: Onboard
       toast.success('Status atualizado!');
       queryClient.invalidateQueries({ queryKey: ['tenant', tenantId] });
     },
-    onError: () => toast.error('Erro ao atualizar status'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao atualizar status'),
   });
 
   const updateChecklistMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string; value: boolean }) => {
       const { data, error } = await supabase.functions.invoke('onboarding', {
+        method: 'POST',
         body: { action: 'update_checklist', tenantId, checklistItem: { key, value } },
       });
       if (error) throw error;
@@ -86,11 +88,13 @@ export function OnboardingChecklist({ tenantId, onboarding, templates }: Onboard
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant', tenantId] });
     },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao atualizar checklist'),
   });
 
   const applyTemplateMutation = useMutation({
     mutationFn: async (templateId: string) => {
       const { data, error } = await supabase.functions.invoke('onboarding', {
+        method: 'POST',
         body: { action: 'apply_template', tenantId, templateId },
       });
       if (error) throw error;
@@ -100,12 +104,13 @@ export function OnboardingChecklist({ tenantId, onboarding, templates }: Onboard
       toast.success(`Template "${data.template.name}" aplicado!`);
       queryClient.invalidateQueries({ queryKey: ['tenant', tenantId] });
     },
-    onError: () => toast.error('Erro ao aplicar template'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao aplicar template'),
   });
 
   const addNoteMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke('onboarding', {
+        method: 'POST',
         body: { action: 'add_note', tenantId, notes },
       });
       if (error) throw error;
@@ -116,6 +121,7 @@ export function OnboardingChecklist({ tenantId, onboarding, templates }: Onboard
       setNotes('');
       queryClient.invalidateQueries({ queryKey: ['tenant', tenantId] });
     },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao adicionar nota'),
   });
 
   const completedCount = Object.values(checklist).filter(Boolean).length;

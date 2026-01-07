@@ -33,7 +33,7 @@ serve(async (req) => {
   );
 
   try {
-    logStep('Function started');
+    logStep('Function started', { method: req.method });
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('No authorization header');
@@ -49,6 +49,7 @@ serve(async (req) => {
     const pathParts = url.pathname.split('/').filter(Boolean);
     const action = pathParts[pathParts.length - 1] || 'list';
 
+    // GET requests - no body parsing
     if (req.method === 'GET') {
       if (action === 'list' || action === 'invite-links') {
         // List user's invite links
@@ -104,10 +105,24 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      // Default: list links
+      const { data: links, error } = await supabaseAdmin
+        .from('invite_links')
+        .select('*')
+        .eq('sales_rep_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ links }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
+    // POST requests - parse body safely
     if (req.method === 'POST') {
-      const body = await req.json();
+      const body = await req.json().catch(() => ({}));
 
       if (body.action === 'create') {
         // Create new invite link
@@ -152,6 +167,23 @@ serve(async (req) => {
           link,
           inviteUrl,
         }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (body.action === 'toggle') {
+        const { linkId, isActive } = body;
+        if (!linkId) throw new Error('linkId is required');
+
+        const { error } = await supabaseAdmin
+          .from('invite_links')
+          .update({ is_active: isActive })
+          .eq('id', linkId)
+          .eq('sales_rep_id', userId);
+
+        if (error) throw error;
+
+        return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -237,9 +269,15 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+
+      throw new Error(`Missing or invalid action. Allowed: create, toggle, use, deactivate, extend_trial`);
     }
 
-    throw new Error('Invalid request');
+    // Method not allowed
+    return new Response(JSON.stringify({ error: 'Method not allowed', allowed: ['GET', 'POST'] }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 405,
+    });
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

@@ -76,7 +76,9 @@ export default function Broadcasts() {
   const { data: broadcasts, isLoading } = useQuery({
     queryKey: ['broadcasts'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('broadcasts');
+      const { data, error } = await supabase.functions.invoke('broadcasts', {
+        method: 'GET',
+      });
       if (error) throw error;
       return data.broadcasts as Broadcast[];
     },
@@ -86,6 +88,7 @@ export default function Broadcasts() {
     mutationFn: async () => {
       const endsAt = new Date(Date.now() + newBroadcast.endsInHours * 60 * 60 * 1000);
       const { data, error } = await supabase.functions.invoke('broadcasts', {
+        method: 'POST',
         body: {
           action: 'create',
           title: newBroadcast.title,
@@ -103,12 +106,13 @@ export default function Broadcasts() {
       setNewBroadcast({ title: '', message: '', type: 'info', endsInHours: 24 });
       queryClient.invalidateQueries({ queryKey: ['broadcasts'] });
     },
-    onError: () => toast.error('Erro ao enviar broadcast'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao enviar broadcast'),
   });
 
   const endMutation = useMutation({
     mutationFn: async (broadcastId: string) => {
       const { data, error } = await supabase.functions.invoke('broadcasts', {
+        method: 'POST',
         body: { action: 'end', broadcastId },
       });
       if (error) throw error;
@@ -118,6 +122,7 @@ export default function Broadcasts() {
       toast.success('Broadcast encerrado!');
       queryClient.invalidateQueries({ queryKey: ['broadcasts'] });
     },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao encerrar broadcast'),
   });
 
   const now = new Date();

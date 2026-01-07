@@ -137,6 +137,7 @@ export default function NewContract() {
   const createMutation = useMutation({
     mutationFn: async (data: ContractFormData) => {
       const { data: result, error } = await supabase.functions.invoke('create-subscription', {
+        method: 'POST',
         body: data,
       });
       
