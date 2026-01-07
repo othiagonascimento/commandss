@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { analyticsApi, AnalyticsOverview, RevenueData } from '@/services/masterApi';
+import { analyticsApi, AnalyticsOverview, RevenueData, TimeSeriesResponse } from '@/services/masterApi';
 
 export interface MasterDashboardData {
   overview: AnalyticsOverview | null;
   revenue: RevenueData | null;
+  timeSeries: TimeSeriesResponse | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -22,7 +23,7 @@ export function useMasterDashboard(): MasterDashboardData {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
     staleTime: 10000,
   });
 
@@ -42,16 +43,34 @@ export function useMasterDashboard(): MasterDashboardData {
     staleTime: 10000,
   });
 
+  const {
+    data: timeSeriesData,
+    isLoading: timeSeriesLoading,
+    error: timeSeriesError,
+    refetch: refetchTimeSeries,
+  } = useQuery({
+    queryKey: ['master-analytics-timeseries'],
+    queryFn: async () => {
+      const result = await analyticsApi.getTimeSeries('monthly');
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
+
   const refetch = () => {
     refetchOverview();
     refetchRevenue();
+    refetchTimeSeries();
   };
 
   return {
     overview: overviewData || null,
     revenue: revenueData || null,
-    isLoading: overviewLoading || revenueLoading,
-    error: overviewError?.message || revenueError?.message || null,
+    timeSeries: timeSeriesData || null,
+    isLoading: overviewLoading || revenueLoading || timeSeriesLoading,
+    error: overviewError?.message || revenueError?.message || timeSeriesError?.message || null,
     refetch,
   };
 }
