@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -21,6 +21,7 @@ import {
   BarChart3,
   Cog,
   UserCog,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   Collapsible,
   CollapsibleContent,
@@ -49,6 +51,7 @@ interface NavItem {
   path: string;
   description?: string;
   badge?: string;
+  permissionCheck?: () => boolean;
 }
 
 interface NavGroup {
@@ -56,113 +59,153 @@ interface NavGroup {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   items: NavItem[];
-  // roles?: string[]; // Para futuro controle de acesso
+  permissionCheck?: () => boolean;
 }
-
-const navGroups: NavGroup[] = [
-  {
-    id: 'overview',
-    label: 'Visão Geral',
-    icon: BarChart3,
-    items: [
-      {
-        icon: LayoutDashboard,
-        label: 'Dashboard',
-        path: '/',
-        description: 'Métricas e visão geral',
-      },
-    ],
-  },
-  {
-    id: 'ai',
-    label: 'Inteligência Artificial',
-    icon: Brain,
-    items: [
-      {
-        icon: Brain,
-        label: 'Templates de Nicho',
-        path: '/admin/templates',
-        description: 'Treinar IA por segmento',
-        badge: 'IA',
-      },
-    ],
-  },
-  {
-    id: 'clients',
-    label: 'Gestão de Clientes',
-    icon: Building2,
-    items: [
-      {
-        icon: Building2,
-        label: 'Tenants',
-        path: '/tenants',
-        description: 'Empresas cadastradas',
-      },
-      {
-        icon: Users,
-        label: 'Usuários',
-        path: '/users',
-        description: 'Usuários do sistema',
-      },
-    ],
-  },
-  {
-    id: 'commercial',
-    label: 'Comercial',
-    icon: Briefcase,
-    items: [
-      {
-        icon: CreditCard,
-        label: 'Assinaturas',
-        path: '/subscriptions',
-        description: 'Planos e cobranças',
-      },
-      {
-        icon: Link2,
-        label: 'Links de Convite',
-        path: '/invite-links',
-        description: 'Links comerciais',
-      },
-      {
-        icon: Megaphone,
-        label: 'Broadcasts',
-        path: '/broadcasts',
-        description: 'Comunicados',
-      },
-    ],
-  },
-  {
-    id: 'system',
-    label: 'Sistema',
-    icon: Cog,
-    items: [
-      {
-        icon: UserCog,
-        label: 'Usuários Master',
-        path: '/master-users',
-        description: 'Gestão de acessos',
-      },
-      {
-        icon: Flag,
-        label: 'Feature Flags',
-        path: '/feature-flags',
-        description: 'Controle de features',
-      },
-      {
-        icon: Settings,
-        label: 'Configurações',
-        path: '/settings',
-        description: 'Config. do sistema',
-      },
-    ],
-  },
-];
 
 export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }: AppSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
+  const permissions = usePermissions();
   const [openGroups, setOpenGroups] = useState<string[]>(['overview', 'ai', 'clients', 'commercial', 'system']);
+
+  // Define nav groups with permission checks
+  const navGroups: NavGroup[] = useMemo(() => [
+    {
+      id: 'overview',
+      label: 'Visão Geral',
+      icon: BarChart3,
+      permissionCheck: permissions.canViewDashboard,
+      items: [
+        {
+          icon: LayoutDashboard,
+          label: 'Dashboard',
+          path: '/',
+          description: 'Métricas e visão geral',
+          permissionCheck: permissions.canViewDashboard,
+        },
+      ],
+    },
+    {
+      id: 'ai',
+      label: 'Inteligência Artificial',
+      icon: Brain,
+      permissionCheck: permissions.canViewTemplates,
+      items: [
+        {
+          icon: Brain,
+          label: 'Templates de Nicho',
+          path: '/admin/templates',
+          description: 'Treinar IA por segmento',
+          badge: 'IA',
+          permissionCheck: permissions.canViewTemplates,
+        },
+      ],
+    },
+    {
+      id: 'clients',
+      label: 'Gestão de Clientes',
+      icon: Building2,
+      permissionCheck: () => permissions.canViewTenants() || permissions.canViewUsers(),
+      items: [
+        {
+          icon: Building2,
+          label: 'Tenants',
+          path: '/tenants',
+          description: 'Empresas cadastradas',
+          permissionCheck: permissions.canViewTenants,
+        },
+        {
+          icon: Users,
+          label: 'Usuários',
+          path: '/users',
+          description: 'Usuários do sistema',
+          permissionCheck: permissions.canViewUsers,
+        },
+      ],
+    },
+    {
+      id: 'commercial',
+      label: 'Comercial',
+      icon: Briefcase,
+      permissionCheck: () => permissions.canViewSubscriptions() || permissions.canViewInviteLinks() || permissions.canViewBroadcasts(),
+      items: [
+        {
+          icon: CreditCard,
+          label: 'Assinaturas',
+          path: '/subscriptions',
+          description: 'Planos e cobranças',
+          permissionCheck: permissions.canViewSubscriptions,
+        },
+        {
+          icon: Link2,
+          label: 'Links de Convite',
+          path: '/invite-links',
+          description: 'Links comerciais',
+          permissionCheck: permissions.canViewInviteLinks,
+        },
+        {
+          icon: Megaphone,
+          label: 'Broadcasts',
+          path: '/broadcasts',
+          description: 'Comunicados',
+          permissionCheck: permissions.canViewBroadcasts,
+        },
+        {
+          icon: FileText,
+          label: 'Novo Contrato',
+          path: '/tenants/contract',
+          description: 'Criar contrato',
+          permissionCheck: permissions.canViewTenants,
+        },
+      ],
+    },
+    {
+      id: 'system',
+      label: 'Sistema',
+      icon: Cog,
+      permissionCheck: () => permissions.canViewMasterUsers() || permissions.canViewFeatureFlags() || permissions.canViewSettings(),
+      items: [
+        {
+          icon: UserCog,
+          label: 'Usuários Master',
+          path: '/master-users',
+          description: 'Gestão de acessos',
+          permissionCheck: permissions.canViewMasterUsers,
+        },
+        {
+          icon: Flag,
+          label: 'Feature Flags',
+          path: '/feature-flags',
+          description: 'Controle de features',
+          permissionCheck: permissions.canViewFeatureFlags,
+        },
+        {
+          icon: Settings,
+          label: 'Configurações',
+          path: '/settings',
+          description: 'Config. do sistema',
+          permissionCheck: permissions.canViewSettings,
+        },
+      ],
+    },
+  ], [permissions]);
+
+  // Filter items based on permissions (if super admin or no master user yet, show all)
+  const filteredNavGroups = useMemo(() => {
+    // If still loading or user is super admin, show everything
+    if (permissions.isLoading || permissions.isSuperAdmin() || !permissions.masterUser) {
+      return navGroups;
+    }
+
+    return navGroups
+      .filter(group => !group.permissionCheck || group.permissionCheck())
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item => !item.permissionCheck || item.permissionCheck()),
+      }))
+      .filter(group => group.items.length > 0);
+  }, [navGroups, permissions]);
 
   const toggleGroup = (groupId: string) => {
     setOpenGroups((prev) =>
@@ -283,7 +326,7 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
 
       {/* Navigation Groups */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {navGroups.map((group) => {
+        {filteredNavGroups.map((group) => {
           const isOpen = openGroups.includes(group.id);
           const groupActive = isGroupActive(group);
 

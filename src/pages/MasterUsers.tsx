@@ -235,7 +235,34 @@ export default function MasterUsers() {
     },
   });
 
-  // Group permissions by category
+  // Invite user mutation
+  const inviteUserMutation = useMutation({
+    mutationFn: async (data: typeof newUserData) => {
+      const { data: result, error } = await supabase.functions.invoke('master-invite', {
+        body: {
+          email: data.email,
+          full_name: data.full_name,
+          role_ids: data.role_ids,
+        },
+      });
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['master-users'] });
+      setIsUserDialogOpen(false);
+      setNewUserData({ email: '', full_name: '', role_ids: [] });
+      
+      // Show success with temp password (in production, send via email)
+      toast.success(
+        `Usuário criado! Senha temporária: ${result.temp_password}`,
+        { duration: 10000 }
+      );
+    },
+    onError: (error) => {
+      toast.error('Erro ao convidar usuário: ' + error.message);
+    },
+  });
   const permissionsByCategory = permissions.reduce((acc, perm) => {
     if (!acc[perm.category]) acc[perm.category] = [];
     acc[perm.category].push(perm);
@@ -365,14 +392,10 @@ export default function MasterUsers() {
                       Cancelar
                     </Button>
                     <Button
-                      onClick={() => {
-                        // For now, show a toast - this would connect to an invite flow
-                        toast.info('Funcionalidade de convite será implementada com edge function');
-                        setIsUserDialogOpen(false);
-                      }}
-                      disabled={!newUserData.full_name || !newUserData.email}
+                      onClick={() => inviteUserMutation.mutate(newUserData)}
+                      disabled={!newUserData.full_name || !newUserData.email || inviteUserMutation.isPending}
                     >
-                      Enviar Convite
+                      {inviteUserMutation.isPending ? 'Enviando...' : 'Enviar Convite'}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
