@@ -259,25 +259,46 @@ export interface CreateUserPayload {
 }
 
 export interface BrandingData {
+  id?: string;
   tenant_id: string;
   company_name: string;
+  tagline?: string | null;
   logo_url?: string | null;
   logo_white_url?: string | null;
   symbol_url?: string | null;
+  favicon_url?: string | null;
   primary_color?: string;
   secondary_color?: string;
-  favicon_url?: string | null;
+  accent_color?: string;
+  text_color?: string;
+  background_color?: string;
+  font_family?: string;
+  border_radius?: string;
+  login_background_url?: string | null;
+  email_header_html?: string | null;
+  footer_text?: string | null;
   custom_css?: string | null;
   allowed_fields?: string[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface BrandingPayload {
   company_name?: string;
+  tagline?: string;
   logo_url?: string;
   logo_white_url?: string;
   symbol_url?: string;
+  favicon_url?: string;
   primary_color?: string;
   secondary_color?: string;
-  favicon_url?: string;
+  accent_color?: string;
+  text_color?: string;
+  background_color?: string;
+  font_family?: string;
+  border_radius?: string;
+  login_background_url?: string;
+  email_header_html?: string;
+  footer_text?: string;
   custom_css?: string;
 }

@@ -393,6 +393,86 @@ export type Database = {
           },
         ]
       }
+      tenant_branding: {
+        Row: {
+          accent_color: string | null
+          background_color: string | null
+          border_radius: string | null
+          company_name: string | null
+          created_at: string
+          custom_css: string | null
+          email_header_html: string | null
+          favicon_url: string | null
+          font_family: string | null
+          footer_text: string | null
+          id: string
+          login_background_url: string | null
+          logo_url: string | null
+          logo_white_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          symbol_url: string | null
+          tagline: string | null
+          tenant_id: string
+          text_color: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          border_radius?: string | null
+          company_name?: string | null
+          created_at?: string
+          custom_css?: string | null
+          email_header_html?: string | null
+          favicon_url?: string | null
+          font_family?: string | null
+          footer_text?: string | null
+          id?: string
+          login_background_url?: string | null
+          logo_url?: string | null
+          logo_white_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          symbol_url?: string | null
+          tagline?: string | null
+          tenant_id: string
+          text_color?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          border_radius?: string | null
+          company_name?: string | null
+          created_at?: string
+          custom_css?: string | null
+          email_header_html?: string | null
+          favicon_url?: string | null
+          font_family?: string | null
+          footer_text?: string | null
+          id?: string
+          login_background_url?: string | null
+          logo_url?: string | null
+          logo_white_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          symbol_url?: string | null
+          tagline?: string | null
+          tenant_id?: string
+          text_color?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_branding_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_onboarding: {
         Row: {
           assigned_implementer_id: string | null
