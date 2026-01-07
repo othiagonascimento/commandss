@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Header } from '@/components/dashboard/Header';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useMasterDashboard } from '@/hooks/useMasterDashboard';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,7 @@ import {
   CreditCard,
   UserPlus,
   Target,
+  LayoutDashboard,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -140,43 +141,24 @@ function CustomTooltip({ active, payload, label, valuePrefix = '', valueSuffix =
 }
 
 export default function Index() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [chartView, setChartView] = useState<'mrr' | 'growth' | 'activity'>('mrr');
   const { overview, revenue, timeSeries, isLoading, error, refetch } = useMasterDashboard();
 
   const chartData = timeSeries?.data || [];
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <Header onMenuClick={() => setMobileMenuOpen(true)} />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
-
-      <main
-        className={cn(
-          'transition-[margin] duration-300 p-4 lg:p-6',
-          'lg:ml-[280px]',
-          sidebarCollapsed && 'lg:ml-[72px]'
-        )}
-      >
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">
-              Visão geral do sistema multi-tenant
-            </p>
-          </div>
+    <DashboardLayout>
+      <PageHeader
+        title="Dashboard"
+        description="Visão geral do sistema multi-tenant"
+        icon={LayoutDashboard}
+        actions={
           <Button variant="outline" size="sm" onClick={refetch} disabled={isLoading}>
             <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
             Atualizar
           </Button>
-        </div>
+        }
+      />
 
         {/* Error State */}
         {error && (
@@ -581,7 +563,6 @@ export default function Index() {
             )}
           </CardContent>
         </Card>
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }
