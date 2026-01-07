@@ -19,6 +19,8 @@ import Settings from "./pages/Settings";
 import FeatureFlags from "./pages/FeatureFlags";
 import Broadcasts from "./pages/Broadcasts";
 import InviteLinks from "./pages/InviteLinks";
+import Templates from "./pages/Templates";
+import TemplateEditor from "./pages/TemplateEditor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -67,6 +69,9 @@ const App = () => (
               <Route path="/feature-flags" element={<ProtectedRoute><FeatureFlags /></ProtectedRoute>} />
               <Route path="/broadcasts" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
               <Route path="/invite-links" element={<ProtectedRoute><InviteLinks /></ProtectedRoute>} />
+              <Route path="/admin/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+              <Route path="/admin/templates/new" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
+              <Route path="/admin/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
