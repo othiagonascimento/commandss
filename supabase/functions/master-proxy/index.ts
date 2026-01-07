@@ -5,8 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const REMOTE_SUPABASE_URL = Deno.env.get('REMOTE_SUPABASE_URL')!;
-const REMOTE_SUPABASE_ANON_KEY = Deno.env.get('REMOTE_SUPABASE_ANON_KEY')!;
+const REMOTE_SUPABASE_URL = Deno.env.get('REMOTE_SUPABASE_URL');
+const REMOTE_SUPABASE_ANON_KEY = Deno.env.get('REMOTE_SUPABASE_ANON_KEY');
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -15,13 +15,35 @@ serve(async (req) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const path = url.searchParams.get('path');
-    const method = req.method;
+    // Check if secrets are configured
+    if (!REMOTE_SUPABASE_URL || !REMOTE_SUPABASE_ANON_KEY) {
+      console.error('[Master Proxy] Missing secrets: REMOTE_SUPABASE_URL or REMOTE_SUPABASE_ANON_KEY');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Proxy not configured. Missing REMOTE_SUPABASE_URL or REMOTE_SUPABASE_ANON_KEY secrets.' 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Parse request body (frontend sends path and method in body)
+    let requestBody: { path?: string; method?: string; payload?: unknown } = {};
+    try {
+      const text = await req.text();
+      if (text) {
+        requestBody = JSON.parse(text);
+      }
+    } catch (e) {
+      console.error('[Master Proxy] Failed to parse body:', e);
+    }
+
+    const path = requestBody.path;
+    const method = requestBody.method || 'GET';
+    const payload = requestBody.payload;
 
     if (!path) {
       return new Response(
-        JSON.stringify({ error: 'Missing path parameter' }),
+        JSON.stringify({ error: 'Missing path in request body' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -32,7 +54,7 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     
     // Build remote URL
-    const remoteUrl = `${REMOTE_SUPABASE_URL}/functions/v1${path}${url.search.replace(`path=${encodeURIComponent(path)}`, '').replace('?&', '?').replace(/^\?$/, '')}`;
+    const remoteUrl = `${REMOTE_SUPABASE_URL}/functions/v1${path}`;
     
     console.log(`[Master Proxy] Forwarding to: ${remoteUrl}`);
 
@@ -46,26 +68,22 @@ serve(async (req) => {
       headers['Authorization'] = authHeader;
     }
 
-    // Forward the request body if present
-    let body: string | undefined;
-    if (method !== 'GET' && method !== 'HEAD') {
-      try {
-        body = await req.text();
-      } catch {
-        body = undefined;
-      }
-    }
-
     // Make request to remote Supabase
-    const response = await fetch(remoteUrl, {
+    const fetchOptions: RequestInit = {
       method,
       headers,
-      body: body || undefined,
-    });
+    };
 
+    // Add body for non-GET requests
+    if (method !== 'GET' && method !== 'HEAD' && payload) {
+      fetchOptions.body = JSON.stringify(payload);
+    }
+
+    const response = await fetch(remoteUrl, fetchOptions);
     const responseData = await response.text();
     
     console.log(`[Master Proxy] Response status: ${response.status}`);
+    console.log(`[Master Proxy] Response preview: ${responseData.substring(0, 200)}`);
 
     return new Response(responseData, {
       status: response.status,
