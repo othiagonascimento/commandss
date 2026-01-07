@@ -20,6 +20,7 @@ import {
   Briefcase,
   BarChart3,
   Cog,
+  UserCog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -135,6 +136,12 @@ const navGroups: NavGroup[] = [
     label: 'Sistema',
     icon: Cog,
     items: [
+      {
+        icon: UserCog,
+        label: 'Usuários Master',
+        path: '/master-users',
+        description: 'Gestão de acessos',
+      },
       {
         icon: Flag,
         label: 'Feature Flags',
