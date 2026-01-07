@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Sidebar } from '@/components/dashboard/Sidebar';
-import { Header } from '@/components/dashboard/Header';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ import {
   Filter,
   LayoutGrid,
   List,
+  Brain,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -42,7 +43,6 @@ import type { Template } from '@/types/templates';
 export default function Templates() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -63,76 +63,65 @@ export default function Templates() {
   });
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar collapsed={!sidebarOpen} onCollapse={(c) => setSidebarOpen(!c)} mobileOpen={false} onMobileClose={() => {}} />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6">
-            {/* Header */}
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-foreground">Templates de Nicho</h1>
-                  <p className="text-sm text-muted-foreground">
-                    Gerencie templates para diferentes nichos de mercado
-                  </p>
-                </div>
-                <Button onClick={() => navigate('/admin/templates/new')} className="w-full sm:w-auto">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Template
-                </Button>
-              </div>
+    <DashboardLayout>
+      <PageHeader
+        title="Templates de Nicho"
+        description="Gerencie templates para treinamento de IA por segmento"
+        icon={Brain}
+        actions={
+          <Button onClick={() => navigate('/admin/templates/new')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Template
+          </Button>
+        }
+      />
 
-              {/* Search and Filters */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar templates..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                    <SelectTrigger className="w-full sm:w-[140px]">
-                      <Filter className="h-4 w-4 mr-2 sm:hidden" />
-                      <SelectValue placeholder="Categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      <SelectItem value="universal">Universal</SelectItem>
-                      <SelectItem value="vendas">Vendas</SelectItem>
-                      <SelectItem value="custom">Custom</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* View Mode Toggle - Hidden on mobile */}
-                  <div className="hidden sm:flex border rounded-md">
-                    <Button
-                      variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                      size="icon"
-                      onClick={() => setViewMode('grid')}
-                      className="rounded-r-none"
-                    >
-                      <LayoutGrid className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                      size="icon"
-                      onClick={() => setViewMode('list')}
-                      className="rounded-l-none"
-                    >
-                      <List className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar templates..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full sm:w-[140px]">
+              <Filter className="h-4 w-4 mr-2 sm:hidden" />
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="universal">Universal</SelectItem>
+              <SelectItem value="vendas">Vendas</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {/* View Mode Toggle - Hidden on mobile */}
+          <div className="hidden sm:flex border rounded-md">
+            <Button
+              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => setViewMode('grid')}
+              className="rounded-r-none"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+              size="icon"
+              onClick={() => setViewMode('list')}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
 
             {/* Error State */}
             {error && (
@@ -204,13 +193,10 @@ export default function Templates() {
                       onEdit={() => navigate(`/admin/templates/${template.id}`)}
                     />
                   ))}
-                </div>
-              )
-            )}
           </div>
-        </main>
-      </div>
-    </div>
+        )
+      )}
+    </DashboardLayout>
   );
 }
 

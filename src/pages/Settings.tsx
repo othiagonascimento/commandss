@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Header } from '@/components/dashboard/Header';
-import { Sidebar } from '@/components/dashboard/Sidebar';
-import { cn } from '@/lib/utils';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -24,9 +24,6 @@ import {
 import { toast } from 'sonner';
 
 export default function Settings() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
   // General settings
   const [systemName, setSystemName] = useState('UOPA Master');
   const [supportEmail, setSupportEmail] = useState('suporte@uopa.com.br');
@@ -48,38 +45,18 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <Header onMenuClick={() => setMobileMenuOpen(true)} />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
-
-      <main
-        className={cn(
-          'transition-[margin] duration-300 p-4 lg:p-6',
-          'lg:ml-[280px]',
-          sidebarCollapsed && 'lg:ml-[72px]'
-        )}
-      >
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <SettingsIcon className="w-6 h-6" />
-              Configurações
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Gerencie as configurações do sistema master
-            </p>
-          </div>
+    <DashboardLayout>
+      <PageHeader
+        title="Configurações"
+        description="Gerencie as configurações do sistema master"
+        icon={SettingsIcon}
+        actions={
           <Button onClick={handleSave}>
             <Save className="w-4 h-4 mr-2" />
             Salvar Alterações
           </Button>
-        </div>
+        }
+      />
 
         {/* Tabs */}
         <Tabs defaultValue="general" className="space-y-6">
@@ -401,18 +378,6 @@ export default function Settings() {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
-  );
-}
-
-function Badge({ children, variant = 'default' }: { children: React.ReactNode; variant?: string }) {
-  return (
-    <span className={cn(
-      'inline-flex items-center px-2 py-1 rounded-md text-xs font-medium',
-      variant === 'secondary' ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'
-    )}>
-      {children}
-    </span>
+    </DashboardLayout>
   );
 }
