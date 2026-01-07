@@ -64,6 +64,303 @@ export type Database = {
           },
         ]
       }
+      broadcasts: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          ends_at: string | null
+          id: string
+          is_banner: boolean | null
+          is_push: boolean | null
+          message: string
+          starts_at: string | null
+          target_niche: string | null
+          target_tenant_ids: string[] | null
+          title: string
+          type: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_banner?: boolean | null
+          is_push?: boolean | null
+          message: string
+          starts_at?: string | null
+          target_niche?: string | null
+          target_tenant_ids?: string[] | null
+          title: string
+          type?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          is_banner?: boolean | null
+          is_push?: boolean | null
+          message?: string
+          starts_at?: string | null
+          target_niche?: string | null
+          target_tenant_ids?: string[] | null
+          title?: string
+          type?: string | null
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          enabled_tenant_ids: string[] | null
+          id: string
+          is_enabled_globally: boolean | null
+          name: string
+          rollout_percentage: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          enabled_tenant_ids?: string[] | null
+          id?: string
+          is_enabled_globally?: boolean | null
+          name: string
+          rollout_percentage?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          enabled_tenant_ids?: string[] | null
+          id?: string
+          is_enabled_globally?: boolean | null
+          name?: string
+          rollout_percentage?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      impersonate_sessions: {
+        Row: {
+          admin_user_id: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          ip_address: unknown
+          target_tenant_id: string
+          target_user_id: string | null
+          token: string
+          used_at: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown
+          target_tenant_id: string
+          target_user_id?: string | null
+          token: string
+          used_at?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          target_tenant_id?: string
+          target_user_id?: string | null
+          token?: string
+          used_at?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impersonate_sessions_target_tenant_id_fkey"
+            columns: ["target_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invite_links: {
+        Row: {
+          code: string
+          created_at: string | null
+          discount_percent: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          plan_type: string | null
+          sales_rep_id: string
+          trial_days: number | null
+          updated_at: string | null
+          used_count: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          discount_percent?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          plan_type?: string | null
+          sales_rep_id: string
+          trial_days?: number | null
+          updated_at?: string | null
+          used_count?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          discount_percent?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          plan_type?: string | null
+          sales_rep_id?: string
+          trial_days?: number | null
+          updated_at?: string | null
+          used_count?: number | null
+        }
+        Relationships: []
+      }
+      master_prompts: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          niche_template_id: string | null
+          prompt_type: string
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          niche_template_id?: string | null
+          prompt_type: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          niche_template_id?: string | null
+          prompt_type?: string
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_prompts_niche_template_id_fkey"
+            columns: ["niche_template_id"]
+            isOneToOne: false
+            referencedRelation: "niche_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      niche_templates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          flows: Json | null
+          id: string
+          is_active: boolean | null
+          kanban_tags: Json | null
+          name: string
+          prompts: Json | null
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          flows?: Json | null
+          id?: string
+          is_active?: boolean | null
+          kanban_tags?: Json | null
+          name: string
+          prompts?: Json | null
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          flows?: Json | null
+          id?: string
+          is_active?: boolean | null
+          kanban_tags?: Json | null
+          name?: string
+          prompts?: Json | null
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      payment_failures: {
+        Row: {
+          amount_brl: number | null
+          attempt_number: number | null
+          blocked_at: string | null
+          created_at: string | null
+          failure_reason: string | null
+          id: string
+          resolved_at: string | null
+          stripe_invoice_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount_brl?: number | null
+          attempt_number?: number | null
+          blocked_at?: string | null
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          resolved_at?: string | null
+          stripe_invoice_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount_brl?: number | null
+          attempt_number?: number | null
+          blocked_at?: string | null
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          resolved_at?: string | null
+          stripe_invoice_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_failures_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -96,9 +393,121 @@ export type Database = {
           },
         ]
       }
+      tenant_onboarding: {
+        Row: {
+          assigned_implementer_id: string | null
+          checklist: Json | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          niche_template_id: string | null
+          notes: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["onboarding_status"] | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_implementer_id?: string | null
+          checklist?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          niche_template_id?: string | null
+          notes?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["onboarding_status"] | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_implementer_id?: string | null
+          checklist?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          niche_template_id?: string | null
+          notes?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["onboarding_status"] | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_onboarding_niche_template_id_fkey"
+            columns: ["niche_template_id"]
+            isOneToOne: false
+            referencedRelation: "niche_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_onboarding_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_usage: {
+        Row: {
+          active_users: number | null
+          ai_tokens_used: number | null
+          api_calls: number | null
+          created_at: string | null
+          estimated_cost_brl: number | null
+          id: string
+          messages_sent: number | null
+          period_end: string
+          period_start: string
+          storage_used_mb: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          active_users?: number | null
+          ai_tokens_used?: number | null
+          api_calls?: number | null
+          created_at?: string | null
+          estimated_cost_brl?: number | null
+          id?: string
+          messages_sent?: number | null
+          period_end: string
+          period_start: string
+          storage_used_mb?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          active_users?: number | null
+          ai_tokens_used?: number | null
+          api_calls?: number | null
+          created_at?: string | null
+          estimated_cost_brl?: number | null
+          id?: string
+          messages_sent?: number | null
+          period_end?: string
+          period_start?: string
+          storage_used_mb?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           ai_token_limit: number | null
+          blocked_at: string | null
+          blocked_reason: string | null
           channel_price: number | null
           config: Json | null
           contact_email: string | null
@@ -114,9 +523,13 @@ export type Database = {
           implementation_fee: number | null
           implementation_level: number | null
           implementation_paid_externally: boolean | null
+          invite_link_id: string | null
+          is_blocked: boolean | null
+          lead_source: string | null
           name: string
           plan_type: string | null
           price_per_user: number | null
+          sales_rep_id: string | null
           status: string | null
           storage_limit_gb: number | null
           stripe_customer_id: string | null
@@ -128,6 +541,8 @@ export type Database = {
         }
         Insert: {
           ai_token_limit?: number | null
+          blocked_at?: string | null
+          blocked_reason?: string | null
           channel_price?: number | null
           config?: Json | null
           contact_email?: string | null
@@ -143,9 +558,13 @@ export type Database = {
           implementation_fee?: number | null
           implementation_level?: number | null
           implementation_paid_externally?: boolean | null
+          invite_link_id?: string | null
+          is_blocked?: boolean | null
+          lead_source?: string | null
           name: string
           plan_type?: string | null
           price_per_user?: number | null
+          sales_rep_id?: string | null
           status?: string | null
           storage_limit_gb?: number | null
           stripe_customer_id?: string | null
@@ -157,6 +576,8 @@ export type Database = {
         }
         Update: {
           ai_token_limit?: number | null
+          blocked_at?: string | null
+          blocked_reason?: string | null
           channel_price?: number | null
           config?: Json | null
           contact_email?: string | null
@@ -172,9 +593,13 @@ export type Database = {
           implementation_fee?: number | null
           implementation_level?: number | null
           implementation_paid_externally?: boolean | null
+          invite_link_id?: string | null
+          is_blocked?: boolean | null
+          lead_source?: string | null
           name?: string
           plan_type?: string | null
           price_per_user?: number | null
+          sales_rep_id?: string | null
           status?: string | null
           storage_limit_gb?: number | null
           stripe_customer_id?: string | null
@@ -184,7 +609,15 @@ export type Database = {
           trial_days?: number | null
           trial_enabled?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tenants_invite_link_id_fkey"
+            columns: ["invite_link_id"]
+            isOneToOne: false
+            referencedRelation: "invite_links"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -365,6 +798,12 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "admin" | "manager" | "viewer"
+      onboarding_status:
+        | "pending"
+        | "configuring"
+        | "whatsapp_connected"
+        | "training_done"
+        | "go_live"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -493,6 +932,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "manager", "viewer"],
+      onboarding_status: [
+        "pending",
+        "configuring",
+        "whatsapp_connected",
+        "training_done",
+        "go_live",
+      ],
     },
   },
 } as const

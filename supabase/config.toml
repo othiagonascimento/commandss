@@ -20,3 +20,21 @@ verify_jwt = false
 
 [functions.create-subscription]
 verify_jwt = false
+
+[functions.impersonate]
+verify_jwt = false
+
+[functions.invite-links]
+verify_jwt = false
+
+[functions.onboarding]
+verify_jwt = false
+
+[functions.feature-flags]
+verify_jwt = false
+
+[functions.broadcasts]
+verify_jwt = false
+
+[functions.unit-economics]
+verify_jwt = false
