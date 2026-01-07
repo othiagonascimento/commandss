@@ -49,6 +49,7 @@ import { toast } from 'sonner';
 import { ImpersonateButton } from '@/components/tenant/ImpersonateButton';
 import { OnboardingChecklist } from '@/components/tenant/OnboardingChecklist';
 import { UnitEconomicsCard } from '@/components/tenant/UnitEconomicsCard';
+import { BrandingManagement } from '@/components/tenant/BrandingManagement';
 
 const planColors: Record<string, string> = {
   basic: 'bg-muted text-muted-foreground',
@@ -495,19 +496,11 @@ export default function TenantDetail() {
 
           {/* Branding Tab */}
           <TabsContent value="branding">
-            <Card>
-              <CardHeader>
-                <CardTitle>Personalização Visual</CardTitle>
-                <CardDescription>
-                  Configure a identidade visual do tenant
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Funcionalidade de branding em desenvolvimento...
-                </p>
-              </CardContent>
-            </Card>
+            <BrandingManagement
+              tenantId={id!}
+              branding={tenant.branding}
+              planType={tenant.plan_type}
+            />
           </TabsContent>
 
           {/* Settings Tab */}

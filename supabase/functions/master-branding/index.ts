@@ -5,35 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Mock branding data by tenant
-const mockBranding: Record<string, {
-  tenant_id: string;
-  logo_url: string | null;
-  primary_color: string;
-  secondary_color: string;
-  company_name: string;
-  favicon_url: string | null;
-  custom_css: string | null;
-}> = {
-  '1': {
-    tenant_id: '1',
-    logo_url: 'https://example.com/alpha-logo.png',
-    primary_color: '#3B82F6',
-    secondary_color: '#10B981',
-    company_name: 'Empresa Alpha',
-    favicon_url: null,
-    custom_css: null
-  },
-  '2': {
-    tenant_id: '2',
-    logo_url: 'https://example.com/beta-logo.png',
-    primary_color: '#8B5CF6',
-    secondary_color: '#F59E0B',
-    company_name: 'Beta Corp',
-    favicon_url: 'https://example.com/beta-favicon.ico',
-    custom_css: '.header { background: linear-gradient(90deg, #8B5CF6, #F59E0B); }'
-  },
-};
+// In-memory branding storage (will be replaced with real DB later)
+const brandingStore: Record<string, Record<string, unknown>> = {};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -55,28 +28,44 @@ serve(async (req) => {
       );
     }
 
-    // GET /master-branding/:tenantId - Get branding
+    const defaultBranding = {
+      tenant_id: tenantId,
+      company_name: 'Empresa',
+      primary_color: '#6366f1',
+      secondary_color: '#8b5cf6',
+      accent_color: '#22d3ee',
+      text_color: '#1f2937',
+      background_color: '#ffffff',
+      font_family: 'Inter',
+      border_radius: 'md',
+      logo_url: null,
+      logo_white_url: null,
+      symbol_url: null,
+      favicon_url: null,
+      login_background_url: null,
+      custom_css: null,
+      tagline: null,
+      footer_text: null,
+    };
+
+    // GET /master-branding/:tenantId
     if (method === 'GET') {
-      const branding = mockBranding[tenantId] || {
-        tenant_id: tenantId,
-        logo_url: null,
-        primary_color: '#000000',
-        secondary_color: '#666666',
-        company_name: 'Unknown',
-        favicon_url: null,
-        custom_css: null
-      };
+      const branding = brandingStore[tenantId] || defaultBranding;
       return new Response(
         JSON.stringify(branding),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // PUT /master-branding/:tenantId - Update branding
+    // PUT /master-branding/:tenantId
     if (method === 'PUT') {
       const body = await req.json();
-      const existing = mockBranding[tenantId] || { tenant_id: tenantId };
+      const existing = brandingStore[tenantId] || defaultBranding;
       const updated = { ...existing, ...body, tenant_id: tenantId };
+      brandingStore[tenantId] = updated;
+      
+      console.log('[Master Branding] Updated branding for tenant:', tenantId);
+      
       return new Response(
         JSON.stringify(updated),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
