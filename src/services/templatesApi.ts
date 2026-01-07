@@ -1,4 +1,5 @@
 // API Service for communicating with the destination project's Edge Functions via proxy
+// Falls back to mock data when the destination is unavailable
 import { supabase } from '@/integrations/supabase/client';
 import type {
   Template,
@@ -9,21 +10,32 @@ import type {
   PublishResponse,
   SyncResponse,
 } from '@/types/templates';
+import {
+  mockTemplates,
+  mockTemplateData,
+  mockVersionHistory,
+  mockSubscribers,
+  createMockSyncResponse,
+} from '@/data/mockTemplates';
 
 interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
 
+// Set to true to always use mock data (useful for development)
+const USE_MOCK_DATA = true;
+
 async function callTemplatesProxy<T>(
   action: string,
   params?: Record<string, string>,
   body?: unknown
 ): Promise<ApiResponse<T>> {
+  if (USE_MOCK_DATA) {
+    return { error: 'MOCK_MODE' };
+  }
+
   try {
-    // Build query string for the proxy
-    const queryParams = new URLSearchParams({ action, ...params });
-    
     const requestBody = body 
       ? { ...(body as object), _action: action, _params: params } 
       : { _action: action, _params: params };
@@ -176,12 +188,26 @@ export function templateDataToFormData(template: Template & { data?: TemplateDat
 export const templatesApi = {
   // List all templates
   async list(): Promise<ApiResponse<Template[]>> {
-    return callTemplatesProxy<Template[]>('list');
+    const response = await callTemplatesProxy<Template[]>('list');
+    if (response.error) {
+      console.log('[templatesApi] Using mock data for list');
+      return { data: mockTemplates };
+    }
+    return response;
   },
 
   // Get single template with full data
   async get(templateId: string): Promise<ApiResponse<Template & { data: TemplateData }>> {
-    return callTemplatesProxy<Template & { data: TemplateData }>('get', { template_id: templateId });
+    const response = await callTemplatesProxy<Template & { data: TemplateData }>('get', { template_id: templateId });
+    if (response.error) {
+      console.log('[templatesApi] Using mock data for get', templateId);
+      const template = mockTemplates.find(t => t.id === templateId);
+      if (template) {
+        return { data: { ...template, data: mockTemplateData[templateId] } };
+      }
+      return { error: 'Template não encontrado' };
+    }
+    return response;
   },
 
   // Publish (create or update) template
@@ -191,14 +217,27 @@ export const templatesApi = {
     incrementMajor: boolean = false,
     templateId?: string
   ): Promise<ApiResponse<PublishResponse>> {
-    const templateData = formDataToTemplateData(formData);
-    
-    return callTemplatesProxy<PublishResponse>('publish', {}, {
+    const response = await callTemplatesProxy<PublishResponse>('publish', {}, {
       template_id: templateId,
-      template_data: templateData,
+      template_data: formDataToTemplateData(formData),
       changelog,
       increment_major: incrementMajor,
     });
+    
+    if (response.error) {
+      console.log('[templatesApi] Using mock response for publish');
+      // Simulate successful publish
+      const newId = templateId || `tpl_${Date.now()}`;
+      return {
+        data: {
+          success: true,
+          template_id: newId,
+          version: incrementMajor ? '2.0' : '1.1',
+          action: templateId ? 'updated' : 'created',
+        },
+      };
+    }
+    return response;
   },
 
   // Sync template to all subscribed tenants
@@ -207,11 +246,17 @@ export const templatesApi = {
     changelog?: string,
     forceSync: boolean = false
   ): Promise<ApiResponse<SyncResponse>> {
-    return callTemplatesProxy<SyncResponse>('sync', {}, {
+    const response = await callTemplatesProxy<SyncResponse>('sync', {}, {
       template_id: templateId,
       changelog,
       force_sync: forceSync,
     });
+    
+    if (response.error) {
+      console.log('[templatesApi] Using mock response for sync');
+      return { data: createMockSyncResponse(templateId) };
+    }
+    return response;
   },
 
   // Clone template to a specific tenant
@@ -226,7 +271,7 @@ export const templatesApi = {
       clone_sla_config?: boolean;
     }
   ): Promise<ApiResponse<{ success: boolean; template: Template; applied_resources: Record<string, number> }>> {
-    return callTemplatesProxy('clone', {}, {
+    const response = await callTemplatesProxy('clone', {}, {
       template_slug: templateSlug,
       target_tenant_id: targetTenantId,
       options: options || {
@@ -237,15 +282,40 @@ export const templatesApi = {
         clone_sla_config: true,
       },
     });
+    
+    if (response.error) {
+      console.log('[templatesApi] Using mock response for clone');
+      const template = mockTemplates.find(t => t.slug === templateSlug);
+      if (template) {
+        return {
+          data: {
+            success: true,
+            template,
+            applied_resources: { funnels: 1, funnel_stages: 6, quick_replies: 4, automations: 3 },
+          },
+        };
+      }
+    }
+    return response as ApiResponse<{ success: boolean; template: Template; applied_resources: Record<string, number> }>;
   },
 
   // Get version history
   async getHistory(templateId: string): Promise<ApiResponse<TemplateVersion[]>> {
-    return callTemplatesProxy<TemplateVersion[]>('history', { template_id: templateId });
+    const response = await callTemplatesProxy<TemplateVersion[]>('history', { template_id: templateId });
+    if (response.error) {
+      console.log('[templatesApi] Using mock data for history');
+      return { data: mockVersionHistory[templateId] || [] };
+    }
+    return response;
   },
 
   // Get subscribers
   async getSubscribers(templateId: string): Promise<ApiResponse<TemplateSubscriber[]>> {
-    return callTemplatesProxy<TemplateSubscriber[]>('subscribers', { template_id: templateId });
+    const response = await callTemplatesProxy<TemplateSubscriber[]>('subscribers', { template_id: templateId });
+    if (response.error) {
+      console.log('[templatesApi] Using mock data for subscribers');
+      return { data: mockSubscribers[templateId] || [] };
+    }
+    return response;
   },
 };

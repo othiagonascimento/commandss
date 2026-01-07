@@ -9,14 +9,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { 
   Save, 
   Upload, 
   RefreshCw, 
   ArrowLeft, 
-  Eye,
-  Loader2
+  Loader2,
+  Menu,
+  ChevronDown,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { templatesApi, templateDataToFormData } from '@/services/templatesApi';
 import { FunnelStageEditor } from '@/components/templates/FunnelStageEditor';
 import { PromptEditor } from '@/components/templates/PromptEditor';
@@ -29,6 +37,16 @@ import { PublishModal } from '@/components/templates/PublishModal';
 import { SyncResultsModal } from '@/components/templates/SyncResultsModal';
 import type { TemplateFormData, SyncResponse } from '@/types/templates';
 import { defaultTemplateFormData } from '@/types/templates';
+
+const TABS = [
+  { value: 'basic', label: 'Básico', shortLabel: 'Info' },
+  { value: 'funnel', label: 'Funil', shortLabel: 'Funil' },
+  { value: 'prompts', label: 'Prompts', shortLabel: 'IA' },
+  { value: 'quick-replies', label: 'Respostas', shortLabel: 'Respostas' },
+  { value: 'automations', label: 'Automações', shortLabel: 'Auto' },
+  { value: 'sla', label: 'SLA', shortLabel: 'SLA' },
+  { value: 'categories', label: 'Categorias', shortLabel: 'Cat.' },
+];
 
 export default function TemplateEditor() {
   const { id } = useParams<{ id: string }>();
@@ -105,17 +123,14 @@ export default function TemplateEditor() {
   });
 
   const handleSaveDraft = () => {
-    // Save to localStorage for now
     const formData = methods.getValues();
     localStorage.setItem(`template_draft_${id || 'new'}`, JSON.stringify(formData));
     toast.success('Rascunho salvo localmente');
   };
 
   const handlePublish = () => {
-    // Validate form before showing modal
     const formData = methods.getValues();
     
-    // Basic validations
     if (!formData.slug || !/^[a-z0-9-]+$/.test(formData.slug)) {
       toast.error('Slug inválido. Use apenas letras minúsculas, números e hífens.');
       setActiveTab('basic');
@@ -155,16 +170,18 @@ export default function TemplateEditor() {
     setShowPublishModal(true);
   };
 
+  const currentTabLabel = TABS.find(t => t.value === activeTab)?.label || 'Básico';
+
   if (isLoading) {
     return (
       <div className="flex h-screen bg-background">
         <Sidebar collapsed={!sidebarOpen} onCollapse={(c) => setSidebarOpen(!c)} mobileOpen={false} onMobileClose={() => {}} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-          <main className="flex-1 overflow-auto p-6">
-            <div className="max-w-5xl mx-auto space-y-6">
-              <Skeleton className="h-10 w-64" />
-              <Skeleton className="h-[600px] w-full" />
+          <main className="flex-1 overflow-auto p-4 sm:p-6">
+            <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-[500px] w-full" />
             </div>
           </main>
         </div>
@@ -179,25 +196,58 @@ export default function TemplateEditor() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         
-        <main className="flex-1 overflow-auto p-6">
-          <div className="max-w-5xl mx-auto space-y-6">
+        <main className="flex-1 overflow-auto">
+          <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate('/admin/templates')}>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <Button variant="ghost" size="icon" onClick={() => navigate('/admin/templates')} className="shrink-0">
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">
-                    {isNew ? 'Novo Template' : `Editar: ${template?.name || ''}`}
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate">
+                    {isNew ? 'Novo Template' : `${template?.name || 'Editar Template'}`}
                   </h1>
                   {!isNew && template?.version && (
-                    <p className="text-sm text-muted-foreground">Versão {template.version}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Versão {template.version}</p>
                   )}
                 </div>
               </div>
               
-              <div className="flex items-center gap-2">
+              {/* Action Buttons - Mobile */}
+              <div className="flex gap-2 sm:hidden">
+                <Button variant="outline" size="sm" onClick={handleSaveDraft} className="flex-1">
+                  <Save className="h-4 w-4 mr-1" />
+                  Rascunho
+                </Button>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" className="flex-1">
+                      <Menu className="h-4 w-4 mr-1" />
+                      Ações
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {!isNew && (
+                      <DropdownMenuItem 
+                        onClick={() => syncMutation.mutate({ forceSync: false })}
+                        disabled={syncMutation.isPending}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Sincronizar
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={handlePublish} disabled={publishMutation.isPending}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Publicar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Action Buttons - Desktop */}
+              <div className="hidden sm:flex items-center gap-2 justify-end">
                 <Button variant="outline" onClick={handleSaveDraft}>
                   <Save className="h-4 w-4 mr-2" />
                   Salvar Rascunho
@@ -232,17 +282,43 @@ export default function TemplateEditor() {
             {/* Form */}
             <FormProvider {...methods}>
               <Card>
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 mb-6">
-                      <TabsTrigger value="basic">Básico</TabsTrigger>
-                      <TabsTrigger value="funnel">Funil</TabsTrigger>
-                      <TabsTrigger value="prompts">Prompts</TabsTrigger>
-                      <TabsTrigger value="quick-replies">Respostas</TabsTrigger>
-                      <TabsTrigger value="automations">Automações</TabsTrigger>
-                      <TabsTrigger value="sla">SLA</TabsTrigger>
-                      <TabsTrigger value="categories">Categorias</TabsTrigger>
-                    </TabsList>
+                    {/* Mobile Tab Selector */}
+                    <div className="sm:hidden mb-4">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="w-full justify-between">
+                            {currentTabLabel}
+                            <ChevronDown className="h-4 w-4 ml-2" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-[200px]">
+                          {TABS.map((tab) => (
+                            <DropdownMenuItem
+                              key={tab.value}
+                              onClick={() => setActiveTab(tab.value)}
+                              className={activeTab === tab.value ? 'bg-muted' : ''}
+                            >
+                              {tab.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    {/* Desktop Tabs */}
+                    <ScrollArea className="hidden sm:block w-full">
+                      <TabsList className="inline-flex w-full sm:w-auto mb-6">
+                        {TABS.map((tab) => (
+                          <TabsTrigger key={tab.value} value={tab.value} className="text-xs sm:text-sm">
+                            <span className="hidden md:inline">{tab.label}</span>
+                            <span className="md:hidden">{tab.shortLabel}</span>
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
 
                     <TabsContent value="basic">
                       <TemplateBasicInfo />
