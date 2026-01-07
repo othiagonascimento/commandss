@@ -111,111 +111,109 @@ serve(async (req) => {
       });
     }
 
-    if (req.method === 'POST') {
-      const body = await req.json();
-      const { action, flagId, name, description, isEnabledGlobally, enabledTenantIds, rolloutPercentage } = body;
+    // POST requests - parse body
+    const body = await req.json().catch(() => ({}));
+    const { action, flagId, name, description, isEnabledGlobally, enabledTenantIds, rolloutPercentage } = body;
 
-      if (action === 'create') {
-        if (!name) throw new Error('name is required');
+    if (action === 'create') {
+      if (!name) throw new Error('name is required');
 
-        const { data, error } = await supabaseAdmin
-          .from('feature_flags')
-          .insert({
-            name,
-            description: description || null,
-            is_enabled_globally: isEnabledGlobally || false,
-            enabled_tenant_ids: enabledTenantIds || [],
-            rollout_percentage: rolloutPercentage || 0,
-          })
-          .select()
-          .single();
+      const { data, error } = await supabaseAdmin
+        .from('feature_flags')
+        .insert({
+          name,
+          description: description || null,
+          is_enabled_globally: isEnabledGlobally || false,
+          enabled_tenant_ids: enabledTenantIds || [],
+          rollout_percentage: rolloutPercentage || 0,
+        })
+        .select()
+        .single();
 
-        if (error) throw error;
+      if (error) throw error;
 
-        logStep('Flag created', { name });
+      logStep('Flag created', { name });
 
-        return new Response(JSON.stringify({ success: true, flag: data }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      return new Response(JSON.stringify({ success: true, flag: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'update') {
+      if (!flagId) throw new Error('flagId is required');
+
+      const updateData: Record<string, unknown> = {};
+      if (typeof isEnabledGlobally === 'boolean') updateData.is_enabled_globally = isEnabledGlobally;
+      if (enabledTenantIds !== undefined) updateData.enabled_tenant_ids = enabledTenantIds;
+      if (rolloutPercentage !== undefined) updateData.rollout_percentage = rolloutPercentage;
+      if (description !== undefined) updateData.description = description;
+
+      const { data, error } = await supabaseAdmin
+        .from('feature_flags')
+        .update(updateData)
+        .eq('id', flagId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      logStep('Flag updated', { flagId });
+
+      return new Response(JSON.stringify({ success: true, flag: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'toggle_tenant') {
+      const { tenantId } = body;
+      if (!flagId || !tenantId) throw new Error('flagId and tenantId are required');
+
+      const { data: flag } = await supabaseAdmin
+        .from('feature_flags')
+        .select('enabled_tenant_ids')
+        .eq('id', flagId)
+        .single();
+
+      const currentIds = flag?.enabled_tenant_ids || [];
+      let newIds: string[];
+
+      if (currentIds.includes(tenantId)) {
+        newIds = currentIds.filter((id: string) => id !== tenantId);
+      } else {
+        newIds = [...currentIds, tenantId];
       }
 
-      if (action === 'update') {
-        if (!flagId) throw new Error('flagId is required');
+      const { data, error } = await supabaseAdmin
+        .from('feature_flags')
+        .update({ enabled_tenant_ids: newIds })
+        .eq('id', flagId)
+        .select()
+        .single();
 
-        const updateData: Record<string, unknown> = {};
-        if (typeof isEnabledGlobally === 'boolean') updateData.is_enabled_globally = isEnabledGlobally;
-        if (enabledTenantIds !== undefined) updateData.enabled_tenant_ids = enabledTenantIds;
-        if (rolloutPercentage !== undefined) updateData.rollout_percentage = rolloutPercentage;
-        if (description !== undefined) updateData.description = description;
+      if (error) throw error;
 
-        const { data, error } = await supabaseAdmin
-          .from('feature_flags')
-          .update(updateData)
-          .eq('id', flagId)
-          .select()
-          .single();
+      logStep('Tenant toggled', { flagId, tenantId, enabled: newIds.includes(tenantId) });
 
-        if (error) throw error;
+      return new Response(JSON.stringify({ success: true, flag: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-        logStep('Flag updated', { flagId });
+    if (action === 'delete') {
+      if (!flagId) throw new Error('flagId is required');
 
-        return new Response(JSON.stringify({ success: true, flag: data }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      const { error } = await supabaseAdmin
+        .from('feature_flags')
+        .delete()
+        .eq('id', flagId);
 
-      if (action === 'toggle_tenant') {
-        // Add or remove tenant from enabled list
-        const { tenantId } = body;
-        if (!flagId || !tenantId) throw new Error('flagId and tenantId are required');
+      if (error) throw error;
 
-        const { data: flag } = await supabaseAdmin
-          .from('feature_flags')
-          .select('enabled_tenant_ids')
-          .eq('id', flagId)
-          .single();
+      logStep('Flag deleted', { flagId });
 
-        const currentIds = flag?.enabled_tenant_ids || [];
-        let newIds: string[];
-
-        if (currentIds.includes(tenantId)) {
-          newIds = currentIds.filter((id: string) => id !== tenantId);
-        } else {
-          newIds = [...currentIds, tenantId];
-        }
-
-        const { data, error } = await supabaseAdmin
-          .from('feature_flags')
-          .update({ enabled_tenant_ids: newIds })
-          .eq('id', flagId)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        logStep('Tenant toggled', { flagId, tenantId, enabled: newIds.includes(tenantId) });
-
-        return new Response(JSON.stringify({ success: true, flag: data }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (action === 'delete') {
-        if (!flagId) throw new Error('flagId is required');
-
-        const { error } = await supabaseAdmin
-          .from('feature_flags')
-          .delete()
-          .eq('id', flagId);
-
-        if (error) throw error;
-
-        logStep('Flag deleted', { flagId });
-
-        return new Response(JSON.stringify({ success: true }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     throw new Error('Invalid request');
