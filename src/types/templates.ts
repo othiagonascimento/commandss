@@ -26,16 +26,23 @@ export interface TagCategory {
 export interface QuickReply {
   id: string;
   label: string;
+  title?: string;
   trigger: string;
   message: string;
+  content?: string;
   technique: string;
   category?: string;
   context_tags?: string[];
+  tags?: string[];
   variations?: string[];
 }
 
 export interface ObjectionHandler {
-  [key: string]: string;
+  id?: string;
+  objection?: string;
+  root_cause?: string;
+  responses?: ObjectionResponse[];
+  [key: string]: string | ObjectionResponse[] | undefined;
 }
 
 export interface QualificationCriterion {
@@ -234,7 +241,7 @@ export interface EscalationRule {
   escalate_to: string;
   transition_message: string;
   max_time_without_human: number;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: 'low' | 'medium' | 'high' | 'urgent' | 'critical';
   is_active?: boolean;
 }
 
@@ -313,6 +320,10 @@ export interface AutomationFlow {
 
 export interface SLAConfig {
   first_response_minutes: number;
+  first_response_seconds?: number;
+  resolution_minutes?: number;
+  idle_timeout_minutes?: number;
+  max_ai_messages?: number;
   follow_up_hours: number;
   escalation_hours: number;
   working_hours: {
@@ -599,6 +610,7 @@ export const defaultBusinessContext: BusinessContext = {
 };
 
 export const defaultCopilotConfig: CopilotConfig = {
+  is_enabled: true,
   assistance_level: 'suggestion',
   suggestion_triggers: ['pergunta detectada', 'objeção detectada', 'inatividade 30s'],
   suggestion_format: 'options',
@@ -612,12 +624,18 @@ export const defaultCopilotConfig: CopilotConfig = {
 export const defaultInsightsConfig: InsightsConfig = {
   metrics_to_track: ['tempo_resposta', 'sentimento', 'intencao_compra', 'qualificacao'],
   automatic_alerts: [],
-  qualification_score_weights: { budget: 30, authority: 25, need: 25, timing: 20 },
+  qualification_score_weights: [
+    { criterion: 'budget', weight: 30 },
+    { criterion: 'authority', weight: 25 },
+    { criterion: 'need', weight: 25 },
+    { criterion: 'timing', weight: 20 },
+  ],
   intent_detection_enabled: true,
   sentiment_analysis_enabled: true,
   competitor_detection_enabled: false,
   auto_summary_enabled: true,
   suggested_tags_enabled: true,
+  auto_tags_enabled: false,
 };
 
 export const defaultTemplateFormData: TemplateFormData = {

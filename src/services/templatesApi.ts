@@ -152,7 +152,7 @@ export function templateDataToFormData(template: Template & { data?: TemplateDat
     prompts: {
       greeting: data.prompts?.greeting || '',
       system_prompt: data.prompts?.system_prompt || '',
-      objection_handlers: data.prompts?.objection_handlers || {},
+      objection_handlers: (data.prompts?.objection_handlers || {}) as Record<string, string>,
       qualification_criteria: data.prompts?.qualification_criteria || {},
     },
     ai_config: {

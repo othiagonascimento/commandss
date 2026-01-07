@@ -8,19 +8,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X, BookOpen, MessageSquare, Shield, Sparkles, Ban, Trash2 } from "lucide-react";
-import { SalesMethodology, QuickReply, ObjectionHandler, ClosingScript, ProhibitedPhrase } from "@/types/templates";
+import { SalesMethodology, QuickReply, EnhancedObjectionHandler, ClosingScript, ProhibitedPhrase, ObjectionResponse } from "@/types/templates";
 import { useState } from "react";
 
 interface SalesPlaybookEditorProps {
   methodologies: SalesMethodology[];
   quickReplies: QuickReply[];
-  objectionHandlers: ObjectionHandler[];
+  objectionHandlers: EnhancedObjectionHandler[];
   closingScripts: ClosingScript[];
   prohibitedPhrases: ProhibitedPhrase[];
   onChange: (data: {
     methodologies: SalesMethodology[];
     quickReplies: QuickReply[];
-    objectionHandlers: ObjectionHandler[];
+    objectionHandlers: EnhancedObjectionHandler[];
     closingScripts: ClosingScript[];
     prohibitedPhrases: ProhibitedPhrase[];
   }) => void;
@@ -40,8 +40,12 @@ export function SalesPlaybookEditor({
   const addQuickReply = () => {
     const newReply: QuickReply = {
       id: `qr_${Date.now()}`,
+      label: "Nova Resposta",
       title: "Nova Resposta",
+      trigger: "",
+      message: "",
       content: "",
+      technique: "geral",
       category: "geral",
       tags: []
     };
@@ -70,7 +74,7 @@ export function SalesPlaybookEditor({
 
   // Objection handlers
   const addObjectionHandler = () => {
-    const newHandler: ObjectionHandler = {
+    const newHandler: EnhancedObjectionHandler = {
       id: `oh_${Date.now()}`,
       objection: "",
       root_cause: "",
@@ -79,7 +83,7 @@ export function SalesPlaybookEditor({
     onChange({ methodologies, quickReplies, objectionHandlers: [...objectionHandlers, newHandler], closingScripts, prohibitedPhrases });
   };
 
-  const updateObjectionHandler = (id: string, updates: Partial<ObjectionHandler>) => {
+  const updateObjectionHandler = (id: string, updates: Partial<EnhancedObjectionHandler>) => {
     onChange({
       methodologies,
       quickReplies,
@@ -205,15 +209,15 @@ export function SalesPlaybookEditor({
                     <div className="space-y-2">
                       <Label>Título</Label>
                       <Input
-                        value={reply.title}
-                        onChange={(e) => updateQuickReply(reply.id, { title: e.target.value })}
+                        value={reply.label || reply.title || ''}
+                        onChange={(e) => updateQuickReply(reply.id, { label: e.target.value, title: e.target.value })}
                         placeholder="Nome da resposta"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Categoria</Label>
                       <Select
-                        value={reply.category}
+                        value={reply.category || 'geral'}
                         onValueChange={(value) => updateQuickReply(reply.id, { category: value })}
                       >
                         <SelectTrigger>
@@ -234,8 +238,8 @@ export function SalesPlaybookEditor({
                   <div className="space-y-2">
                     <Label>Conteúdo</Label>
                     <Textarea
-                      value={reply.content}
-                      onChange={(e) => updateQuickReply(reply.id, { content: e.target.value })}
+                      value={reply.message || reply.content || ''}
+                      onChange={(e) => updateQuickReply(reply.id, { message: e.target.value, content: e.target.value })}
                       placeholder="Texto da resposta rápida..."
                       className="min-h-[100px]"
                     />
@@ -420,7 +424,7 @@ export function SalesPlaybookEditor({
                       <Label>Tipo de Fechamento</Label>
                       <Select
                         value={script.type}
-                        onValueChange={(value: 'assumptive' | 'alternative' | 'urgency' | 'summary') =>
+                        onValueChange={(value: 'assumptive' | 'alternative' | 'urgency' | 'summary' | 'trial' | 'custom') =>
                           updateClosingScript(script.id, { type: value })
                         }
                       >
@@ -432,6 +436,8 @@ export function SalesPlaybookEditor({
                           <SelectItem value="alternative">Alternativa</SelectItem>
                           <SelectItem value="urgency">Urgência</SelectItem>
                           <SelectItem value="summary">Resumo</SelectItem>
+                          <SelectItem value="trial">Trial</SelectItem>
+                          <SelectItem value="custom">Personalizado</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -442,8 +448,8 @@ export function SalesPlaybookEditor({
                     <Textarea
                       value={script.content}
                       onChange={(e) => updateClosingScript(script.id, { content: e.target.value })}
-                      placeholder="Texto do script de fechamento..."
-                      className="min-h-[120px]"
+                      placeholder="O script de fechamento..."
+                      className="min-h-[100px]"
                     />
                   </div>
 
@@ -477,7 +483,7 @@ export function SalesPlaybookEditor({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium">Frases Proibidas</h3>
-              <p className="text-sm text-muted-foreground">Termos que a IA nunca deve usar</p>
+              <p className="text-sm text-muted-foreground">Termos que a IA não deve usar</p>
             </div>
             <Button onClick={addProhibitedPhrase} size="sm">
               <Plus className="h-4 w-4 mr-2" />
@@ -485,7 +491,7 @@ export function SalesPlaybookEditor({
             </Button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {prohibitedPhrases.map((phrase) => (
               <Card key={phrase.id}>
                 <CardContent className="pt-4 space-y-4">
@@ -494,7 +500,7 @@ export function SalesPlaybookEditor({
                       <Label>Frase Proibida</Label>
                       <Input
                         value={phrase.phrase}
-                        onChange={(e) => updateProhibitedPhrase(phrase.id, { phrase: e.target.value })}
+                        onChange={(e) => updateProhibitedPhrase(phrase.id!, { phrase: e.target.value })}
                         placeholder='Ex: "Não sei"'
                       />
                     </div>
@@ -502,15 +508,15 @@ export function SalesPlaybookEditor({
                       <Label>Motivo</Label>
                       <Input
                         value={phrase.reason}
-                        onChange={(e) => updateProhibitedPhrase(phrase.id, { reason: e.target.value })}
-                        placeholder="Por que evitar?"
+                        onChange={(e) => updateProhibitedPhrase(phrase.id!, { reason: e.target.value })}
+                        placeholder="Por que não usar?"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Alternativa</Label>
                       <Input
                         value={phrase.alternative}
-                        onChange={(e) => updateProhibitedPhrase(phrase.id, { alternative: e.target.value })}
+                        onChange={(e) => updateProhibitedPhrase(phrase.id!, { alternative: e.target.value })}
                         placeholder="O que usar no lugar?"
                       />
                     </div>
@@ -520,7 +526,7 @@ export function SalesPlaybookEditor({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeProhibitedPhrase(phrase.id)}
+                      onClick={() => removeProhibitedPhrase(phrase.id!)}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -541,28 +547,30 @@ export function SalesPlaybookEditor({
 
           <div className="pt-4">
             <Label className="mb-2 block">Sugestões Comuns</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="flex flex-wrap gap-2">
               {[
-                { phrase: "Não sei", reason: "Transmite insegurança", alternative: "Vou verificar essa informação" },
-                { phrase: "Talvez", reason: "Falta de assertividade", alternative: "Posso confirmar que..." },
-                { phrase: "Isso não é comigo", reason: "Falta de ownership", alternative: "Vou encaminhar para o setor responsável" },
-                { phrase: "Não posso fazer nada", reason: "Negativo demais", alternative: "O que posso fazer é..." }
+                { phrase: "Não sei", alternative: "Vou verificar isso para você" },
+                { phrase: "Isso não é comigo", alternative: "Deixe-me direcionar você para o setor responsável" },
+                { phrase: "Você está errado", alternative: "Entendo seu ponto, mas posso esclarecer..." },
+                { phrase: "É política da empresa", alternative: "Para garantir a melhor experiência..." }
               ].map((suggestion, i) => (
                 <Button
                   key={i}
                   variant="outline"
                   size="sm"
-                  className="justify-start text-xs h-auto py-2"
+                  className="text-xs"
                   onClick={() => {
                     const newPhrase: ProhibitedPhrase = {
                       id: `pp_${Date.now()}_${i}`,
-                      ...suggestion
+                      phrase: suggestion.phrase,
+                      reason: "Linguagem negativa",
+                      alternative: suggestion.alternative
                     };
                     onChange({ methodologies, quickReplies, objectionHandlers, closingScripts, prohibitedPhrases: [...prohibitedPhrases, newPhrase] });
                   }}
                 >
-                  <Plus className="h-3 w-3 mr-1 shrink-0" />
-                  <span className="truncate">"{suggestion.phrase}"</span>
+                  <Plus className="h-3 w-3 mr-1" />
+                  "{suggestion.phrase}"
                 </Button>
               ))}
             </div>
