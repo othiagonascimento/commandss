@@ -63,8 +63,6 @@ interface InviteLink {
 
 export default function InviteLinks() {
   const queryClient = useQueryClient();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   
   // Form state
@@ -144,22 +142,95 @@ export default function InviteLinks() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <Header onMenuClick={() => setMobileMenuOpen(true)} />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
+    <DashboardLayout>
+      <PageHeader
+        title="Links de Convite"
+        description="Gere links comerciais para trials e descontos"
+        icon={Link2}
+        actions={
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Novo Link
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Link de Convite</DialogTitle>
+                <DialogDescription>
+                  Configure as condições do link para novos clientes
+                </DialogDescription>
+              </DialogHeader>
 
-      <main
-        className={cn(
-          'transition-[margin] duration-300 p-4 lg:p-6',
-          'lg:ml-[280px]',
-          sidebarCollapsed && 'lg:ml-[72px]'
-        )}
-      >
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Plano</Label>
+                  <Select value={planType} onValueChange={setPlanType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="starter">Starter</SelectItem>
+                      <SelectItem value="pro">Pro</SelectItem>
+                      <SelectItem value="enterprise">Enterprise</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Dias de Trial</Label>
+                    <Input
+                      type="number"
+                      value={trialDays}
+                      onChange={(e) => setTrialDays(e.target.value)}
+                      min="0"
+                      max="90"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Desconto (%)</Label>
+                    <Input
+                      type="number"
+                      value={discountPercent}
+                      onChange={(e) => setDiscountPercent(e.target.value)}
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Máximo de Usos (opcional)</Label>
+                  <Input
+                    type="number"
+                    value={maxUses}
+                    onChange={(e) => setMaxUses(e.target.value)}
+                    placeholder="Ilimitado"
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => createMutation.mutate()}
+                  disabled={createMutation.isPending}
+                >
+                  {createMutation.isPending && (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  )}
+                  Criar Link
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      />
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Links de Convite</h1>
@@ -415,7 +486,6 @@ export default function InviteLinks() {
             )}
           </CardContent>
         </Card>
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }

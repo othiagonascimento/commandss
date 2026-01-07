@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -81,8 +82,6 @@ function formatCurrency(value: number): string {
 
 export default function NewContract() {
   const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<ContractFormData>({
@@ -187,37 +186,18 @@ export default function NewContract() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <Header onMenuClick={() => setMobileMenuOpen(true)} />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
-
-      <main
-        className={cn(
-          'transition-[margin] duration-300 p-4 lg:p-6',
-          'lg:ml-[280px]',
-          sidebarCollapsed && 'lg:ml-[72px]'
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/tenants')}>
-            <ArrowLeft className="w-5 h-5" />
+    <DashboardLayout>
+      <PageHeader
+        title="Novo Contrato"
+        description="Configure o plano e precificação para o novo cliente"
+        icon={FileText}
+        actions={
+          <Button variant="outline" onClick={() => navigate('/tenants')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <FileText className="w-6 h-6" />
-              Novo Contrato
-            </h1>
-            <p className="text-muted-foreground">
-              Configure o plano e precificação para o novo cliente
-            </p>
-          </div>
-        </div>
+        }
+      />
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Form */}
@@ -630,7 +610,6 @@ export default function NewContract() {
             </div>
           </div>
         </form>
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }
