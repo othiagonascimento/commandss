@@ -121,6 +121,8 @@ export default function FeatureFlags() {
         description="Controle de funcionalidades por tenant"
         icon={Flag}
         actions={
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="w-4 h-4" />
                 Nova Flag
@@ -163,6 +165,7 @@ export default function FeatureFlags() {
                   Criar
                 </Button>
               </DialogFooter>
+            </DialogContent>
           </Dialog>
         }
       />

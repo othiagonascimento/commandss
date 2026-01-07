@@ -204,30 +204,18 @@ export default function TemplateEditor() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen bg-background">
-        <Sidebar collapsed={!sidebarOpen} onCollapse={(c) => setSidebarOpen(!c)} mobileOpen={false} onMobileClose={() => {}} />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-          <main className="flex-1 overflow-auto p-4 sm:p-6">
-            <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-[500px] w-full" />
-            </div>
-          </main>
+      <DashboardLayout>
+        <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-[500px] w-full" />
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar collapsed={!sidebarOpen} onCollapse={(c) => setSidebarOpen(!c)} mobileOpen={false} onMobileClose={() => {}} />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-4 sm:space-y-6">
+    <DashboardLayout>
+      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
             {/* Header */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 sm:gap-4">
@@ -446,9 +434,6 @@ export default function TemplateEditor() {
               </Card>
             </FormProvider>
           </div>
-        </main>
-      </div>
-
       {/* Modals */}
       <PublishModal
         open={showPublishModal}
@@ -463,6 +448,6 @@ export default function TemplateEditor() {
         onOpenChange={setShowSyncModal}
         results={syncResults}
       />
-    </div>
+    </DashboardLayout>
   );
 }
