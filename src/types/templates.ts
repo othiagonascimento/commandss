@@ -99,16 +99,16 @@ export interface FAQItem {
 export interface AIAgent {
   id: string;
   name: string;
-  type: 'qualification' | 'followup' | 'closing' | 'post_sale' | 'support' | 'custom';
+  type?: 'qualification' | 'followup' | 'closing' | 'post_sale' | 'support' | 'custom';
   description: string;
   objective: string;
   prompt: string;
   temperature: number;
   allowed_actions: string[];
   transfer_rules: string[];
-  triggers: string[];
+  triggers?: string[];
   is_active: boolean;
-  icon: string;
+  icon?: string;
 }
 
 // Copilot Mode Configuration
@@ -121,26 +121,32 @@ export interface CopilotConfig {
   no_suggest_rules: string[];
   human_transition_phrases: string[];
   confidence_threshold: number;
+  is_enabled: boolean;
 }
 
 // Insights Mode Configuration
-export interface InsightAlert {
+export interface AutomaticAlert {
   id: string;
-  name: string;
   condition: string;
   action: string;
   is_active: boolean;
 }
 
+export interface QualificationWeight {
+  criterion: string;
+  weight: number;
+}
+
 export interface InsightsConfig {
   metrics_to_track: string[];
-  automatic_alerts: InsightAlert[];
-  qualification_score_weights: Record<string, number>;
+  automatic_alerts: AutomaticAlert[];
+  qualification_score_weights: QualificationWeight[];
   intent_detection_enabled: boolean;
   sentiment_analysis_enabled: boolean;
   competitor_detection_enabled: boolean;
   auto_summary_enabled: boolean;
   suggested_tags_enabled: boolean;
+  auto_tags_enabled: boolean;
 }
 
 // Sales Methodologies
@@ -160,14 +166,20 @@ export interface SalesMethodology {
 }
 
 // Enhanced Objection Handler
+export interface ObjectionResponse {
+  content: string;
+  intensity: 'soft' | 'moderate' | 'strong';
+}
+
 export interface EnhancedObjectionHandler {
   id: string;
-  objection_type: string;
+  objection: string;
+  objection_type?: string;
   root_cause: string;
-  severity: 'light' | 'moderate' | 'strong';
-  responses: string[];
-  follow_up_questions: string[];
-  avoid_phrases: string[];
+  severity?: 'light' | 'moderate' | 'strong';
+  responses: ObjectionResponse[];
+  follow_up_questions?: string[];
+  avoid_phrases?: string[];
 }
 
 // Closing Scripts
@@ -175,8 +187,9 @@ export interface ClosingScript {
   id: string;
   name: string;
   type: 'assumptive' | 'alternative' | 'urgency' | 'summary' | 'trial' | 'custom';
-  script: string;
-  best_for: string;
+  content: string;
+  script?: string;
+  best_for?: string;
   transition_phrases: string[];
 }
 
@@ -187,19 +200,28 @@ export interface Product {
   description: string;
   price_range: { min: number; max: number };
   benefits: string[];
-  features: string[];
+  features?: string[];
   common_objections: string[];
   complementary_products: string[];
   faq: FAQItem[];
-  keywords: string[];
+  keywords?: string[];
+}
+
+// Knowledge Article
+export interface KnowledgeArticle {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  tags: string[];
 }
 
 // Competitor Info
 export interface Competitor {
   id: string;
   name: string;
-  strengths: string[];
-  weaknesses: string[];
+  strengths?: string[];
+  weaknesses?: string[];
   differentiators: string[];
   response_when_mentioned: string;
 }
@@ -207,13 +229,13 @@ export interface Competitor {
 // Escalation Rules
 export interface EscalationRule {
   id: string;
-  name: string;
+  name?: string;
   condition: string;
   escalate_to: string;
   transition_message: string;
   max_time_without_human: number;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  is_active: boolean;
+  is_active?: boolean;
 }
 
 // Success Metrics / KPIs
@@ -221,12 +243,24 @@ export interface SuccessMetric {
   id: string;
   name: string;
   target_value: number;
-  unit: string;
-  measurement_period: 'daily' | 'weekly' | 'monthly';
+  unit: 'percent' | 'number' | 'seconds' | 'minutes';
+  measurement_period?: 'daily' | 'weekly' | 'monthly';
+  description?: string;
+}
+
+// Operating Hours
+export interface OperatingHours {
+  respect_business_hours: boolean;
+  start_time: string;
+  end_time: string;
+  timezone: string;
+  working_days: number[];
+  off_hours_message: string;
 }
 
 // Prohibited Phrases
 export interface ProhibitedPhrase {
+  id?: string;
   phrase: string;
   reason: string;
   alternative: string;
