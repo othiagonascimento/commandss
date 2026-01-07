@@ -1,4 +1,4 @@
-// API Service for communicating with the destination project's Edge Functions
+// API Service for communicating with the destination project's Edge Functions via proxy
 import { supabase } from '@/integrations/supabase/client';
 import type {
   Template,
@@ -10,48 +10,41 @@ import type {
   SyncResponse,
 } from '@/types/templates';
 
-const DESTINATION_BASE_URL = 'https://opvoghzpocraibchbczs.supabase.co/functions/v1';
-
 interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
 
-async function getAuthToken(): Promise<string | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
-}
-
-async function callDestinationApi<T>(
-  endpoint: string,
-  method: 'GET' | 'POST' = 'GET',
+async function callTemplatesProxy<T>(
+  action: string,
+  params?: Record<string, string>,
   body?: unknown
 ): Promise<ApiResponse<T>> {
-  const token = await getAuthToken();
-  
-  if (!token) {
-    return { error: 'Não autenticado' };
-  }
-
   try {
-    const response = await fetch(`${DESTINATION_BASE_URL}/${endpoint}`, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: method !== 'GET' ? JSON.stringify(body) : undefined,
+    // Build query string for the proxy
+    const queryParams = new URLSearchParams({ action, ...params });
+    
+    const requestBody = body 
+      ? { ...(body as object), _action: action, _params: params } 
+      : { _action: action, _params: params };
+    
+    const { data, error } = await supabase.functions.invoke('master-templates-proxy', {
+      method: 'POST',
+      body: requestBody,
     });
 
-    const data = await response.json();
+    if (error) {
+      console.error(`[templatesApi] ${action} error:`, error);
+      return { error: error.message || 'Erro na requisição' };
+    }
 
-    if (!response.ok) {
-      return { error: data.error || `Erro ${response.status}` };
+    if (data?.error) {
+      return { error: data.error };
     }
 
     return { data };
   } catch (error) {
-    console.error(`[templatesApi] ${endpoint} error:`, error);
+    console.error(`[templatesApi] ${action} error:`, error);
     return { error: error instanceof Error ? error.message : 'Erro de conexão' };
   }
 }
@@ -110,7 +103,6 @@ function formDataToTemplateData(formData: TemplateFormData): TemplateData {
 export function templateDataToFormData(template: Template & { data?: TemplateData }): TemplateFormData {
   const data = template.data;
   if (!data) {
-    // Return defaults with basic info
     return {
       slug: template.slug,
       name: template.name,
@@ -184,12 +176,12 @@ export function templateDataToFormData(template: Template & { data?: TemplateDat
 export const templatesApi = {
   // List all templates
   async list(): Promise<ApiResponse<Template[]>> {
-    return callDestinationApi<Template[]>('master-list-templates');
+    return callTemplatesProxy<Template[]>('list');
   },
 
   // Get single template with full data
   async get(templateId: string): Promise<ApiResponse<Template & { data: TemplateData }>> {
-    return callDestinationApi<Template & { data: TemplateData }>(`master-get-template?id=${templateId}`);
+    return callTemplatesProxy<Template & { data: TemplateData }>('get', { template_id: templateId });
   },
 
   // Publish (create or update) template
@@ -201,7 +193,7 @@ export const templatesApi = {
   ): Promise<ApiResponse<PublishResponse>> {
     const templateData = formDataToTemplateData(formData);
     
-    return callDestinationApi<PublishResponse>('master-publish-template', 'POST', {
+    return callTemplatesProxy<PublishResponse>('publish', {}, {
       template_id: templateId,
       template_data: templateData,
       changelog,
@@ -215,7 +207,7 @@ export const templatesApi = {
     changelog?: string,
     forceSync: boolean = false
   ): Promise<ApiResponse<SyncResponse>> {
-    return callDestinationApi<SyncResponse>('master-sync-template', 'POST', {
+    return callTemplatesProxy<SyncResponse>('sync', {}, {
       template_id: templateId,
       changelog,
       force_sync: forceSync,
@@ -234,7 +226,7 @@ export const templatesApi = {
       clone_sla_config?: boolean;
     }
   ): Promise<ApiResponse<{ success: boolean; template: Template; applied_resources: Record<string, number> }>> {
-    return callDestinationApi('master-clone-template', 'POST', {
+    return callTemplatesProxy('clone', {}, {
       template_slug: templateSlug,
       target_tenant_id: targetTenantId,
       options: options || {
@@ -249,11 +241,11 @@ export const templatesApi = {
 
   // Get version history
   async getHistory(templateId: string): Promise<ApiResponse<TemplateVersion[]>> {
-    return callDestinationApi<TemplateVersion[]>(`master-template-history?template_id=${templateId}`);
+    return callTemplatesProxy<TemplateVersion[]>('history', { template_id: templateId });
   },
 
   // Get subscribers
   async getSubscribers(templateId: string): Promise<ApiResponse<TemplateSubscriber[]>> {
-    return callDestinationApi<TemplateSubscriber[]>(`master-template-subscribers?template_id=${templateId}`);
+    return callTemplatesProxy<TemplateSubscriber[]>('subscribers', { template_id: templateId });
   },
 };
