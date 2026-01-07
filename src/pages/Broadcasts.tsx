@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Header } from '@/components/dashboard/Header';
-import { Sidebar } from '@/components/dashboard/Sidebar';
-import { cn } from '@/lib/utils';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -63,8 +62,6 @@ const TYPE_CONFIG = {
 
 export default function Broadcasts() {
   const queryClient = useQueryClient();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newBroadcast, setNewBroadcast] = useState({
     title: '',
@@ -134,34 +131,12 @@ export default function Broadcasts() {
   ) || [];
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <Header onMenuClick={() => setMobileMenuOpen(true)} />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
-
-      <main
-        className={cn(
-          'transition-[margin] duration-300 p-4 lg:p-6',
-          'lg:ml-[280px]',
-          sidebarCollapsed && 'lg:ml-[72px]'
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Megaphone className="w-6 h-6" />
-              Central de Avisos
-            </h1>
-            <p className="text-muted-foreground">
-              Envie mensagens para todos os usuários
-            </p>
-          </div>
-
+    <DashboardLayout>
+      <PageHeader
+        title="Central de Avisos"
+        description="Envie mensagens para todos os usuários"
+        icon={Megaphone}
+        actions={
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -254,93 +229,93 @@ export default function Broadcasts() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+        }
+      />
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Active Broadcasts */}
-            <div>
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                Ativos ({activeBroadcasts.length})
-              </h2>
-              <div className="grid gap-4">
-                {activeBroadcasts.map((broadcast) => {
-                  const config = TYPE_CONFIG[broadcast.type];
-                  const Icon = config.icon;
-                  return (
-                    <Card key={broadcast.id} className="border-l-4 border-l-primary">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            <Badge className={config.color}>
-                              <Icon className="w-3 h-3 mr-1" />
-                              {config.label}
-                            </Badge>
-                            <CardTitle className="text-base">{broadcast.title}</CardTitle>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => endMutation.mutate(broadcast.id)}
-                            disabled={endMutation.isPending}
-                          >
-                            <XCircle className="w-4 h-4 text-destructive" />
-                          </Button>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Active Broadcasts */}
+          <div>
+            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              Ativos ({activeBroadcasts.length})
+            </h2>
+            <div className="grid gap-4">
+              {activeBroadcasts.map((broadcast) => {
+                const config = TYPE_CONFIG[broadcast.type];
+                const Icon = config.icon;
+                return (
+                  <Card key={broadcast.id} className="border-l-4 border-l-primary">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge className={config.color}>
+                            <Icon className="w-3 h-3 mr-1" />
+                            {config.label}
+                          </Badge>
+                          <CardTitle className="text-base">{broadcast.title}</CardTitle>
                         </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {broadcast.message}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Expira: {broadcast.ends_at 
-                            ? format(new Date(broadcast.ends_at), "dd MMM 'às' HH:mm", { locale: ptBR })
-                            : 'Nunca'}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-                {activeBroadcasts.length === 0 && (
-                  <Card>
-                    <CardContent className="py-8 text-center">
-                      <Megaphone className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">Nenhum broadcast ativo</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => endMutation.mutate(broadcast.id)}
+                          disabled={endMutation.isPending}
+                        >
+                          <XCircle className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {broadcast.message}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Expira: {broadcast.ends_at 
+                          ? format(new Date(broadcast.ends_at), "dd MMM 'às' HH:mm", { locale: ptBR })
+                          : 'Nunca'}
+                      </p>
                     </CardContent>
                   </Card>
-                )}
+                );
+              })}
+              {activeBroadcasts.length === 0 && (
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <Megaphone className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">Nenhum broadcast ativo</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+
+          {/* Past Broadcasts */}
+          {pastBroadcasts.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold mb-3 text-muted-foreground">
+                Histórico ({pastBroadcasts.length})
+              </h2>
+              <div className="grid gap-2">
+                {pastBroadcasts.slice(0, 5).map((broadcast) => (
+                  <div
+                    key={broadcast.id}
+                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg text-sm"
+                  >
+                    <span>{broadcast.title}</span>
+                    <span className="text-muted-foreground">
+                      {format(new Date(broadcast.ends_at!), "dd MMM", { locale: ptBR })}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-
-            {/* Past Broadcasts */}
-            {pastBroadcasts.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-3 text-muted-foreground">
-                  Histórico ({pastBroadcasts.length})
-                </h2>
-                <div className="grid gap-2">
-                  {pastBroadcasts.slice(0, 5).map((broadcast) => (
-                    <div
-                      key={broadcast.id}
-                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg text-sm"
-                    >
-                      <span>{broadcast.title}</span>
-                      <span className="text-muted-foreground">
-                        {format(new Date(broadcast.ends_at!), "dd MMM", { locale: ptBR })}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-    </div>
+          )}
+        </div>
+      )}
+    </DashboardLayout>
   );
 }

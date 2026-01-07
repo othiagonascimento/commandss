@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Header } from '@/components/dashboard/Header';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { tenantsApi, subscriptionsApi, Tenant, SubscriptionDetail } from '@/services/masterApi';
-import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -75,8 +74,6 @@ function formatCurrency(value: number): string {
 
 export default function Subscriptions() {
   const queryClient = useQueryClient();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [planFilter, setPlanFilter] = useState<string>('all');
@@ -202,34 +199,12 @@ export default function Subscriptions() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <Header onMenuClick={() => setMobileMenuOpen(true)} />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
+    <DashboardLayout>
+      <PageHeader
+        title="Assinaturas"
+        description="Gerencie planos e cobranças dos tenants"
+        icon={CreditCard}
       />
-
-      <main
-        className={cn(
-          'transition-[margin] duration-300 p-4 lg:p-6',
-          'lg:ml-[280px]',
-          sidebarCollapsed && 'lg:ml-[72px]'
-        )}
-      >
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <CreditCard className="w-6 h-6" />
-              Assinaturas
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Gerencie planos e cobranças dos tenants
-            </p>
-          </div>
-        </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -437,7 +412,6 @@ export default function Subscriptions() {
             )}
           </CardContent>
         </Card>
-      </main>
 
       {/* Action Dialog */}
       <Dialog open={!!actionDialog.type} onOpenChange={() => setActionDialog({ type: null, tenant: null })}>
@@ -487,6 +461,6 @@ export default function Subscriptions() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardLayout>
   );
 }

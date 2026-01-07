@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Header } from '@/components/dashboard/Header';
-import { Sidebar } from '@/components/dashboard/Sidebar';
-import { cn } from '@/lib/utils';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -51,8 +50,6 @@ interface FeatureFlag {
 
 export default function FeatureFlags() {
   const queryClient = useQueryClient();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newFlag, setNewFlag] = useState({ name: '', description: '' });
 
@@ -118,36 +115,12 @@ export default function FeatureFlags() {
   });
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <Header onMenuClick={() => setMobileMenuOpen(true)} />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
-
-      <main
-        className={cn(
-          'transition-[margin] duration-300 p-4 lg:p-6',
-          'lg:ml-[280px]',
-          sidebarCollapsed && 'lg:ml-[72px]'
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Flag className="w-6 h-6" />
-              Feature Flags
-            </h1>
-            <p className="text-muted-foreground">
-              Controle de funcionalidades por tenant
-            </p>
-          </div>
-
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogTrigger asChild>
+    <DashboardLayout>
+      <PageHeader
+        title="Feature Flags"
+        description="Controle de funcionalidades por tenant"
+        icon={Flag}
+        actions={
               <Button className="gap-2">
                 <Plus className="w-4 h-4" />
                 Nova Flag
@@ -190,9 +163,9 @@ export default function FeatureFlags() {
                   Criar
                 </Button>
               </DialogFooter>
-            </DialogContent>
           </Dialog>
-        </div>
+        }
+      />
 
         {/* Flags Grid */}
         {isLoading ? (
@@ -295,7 +268,6 @@ export default function FeatureFlags() {
             )}
           </div>
         )}
-      </main>
-    </div>
+    </DashboardLayout>
   );
 }

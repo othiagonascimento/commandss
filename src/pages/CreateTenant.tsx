@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { Header } from '@/components/dashboard/Header';
-import { Sidebar } from '@/components/dashboard/Sidebar';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { tenantsApi, CreateTenantPayload } from '@/services/masterApi';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,8 +43,6 @@ function slugify(text: string): string {
 
 export default function CreateTenant() {
   const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<FormData>({
@@ -108,45 +104,30 @@ export default function CreateTenant() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background">
-      <Header onMenuClick={() => setMobileMenuOpen(true)} />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
-
-      <main
-        className={cn(
-          'transition-[margin] duration-300 p-4 lg:p-6',
-          'lg:ml-[280px]',
-          sidebarCollapsed && 'lg:ml-[72px]'
-        )}
-      >
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/tenants')}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <Building2 className="w-6 h-6" />
-              Novo Tenant
-            </h1>
-            <p className="text-muted-foreground">
-              Crie uma nova empresa no sistema
-            </p>
-          </div>
+    <DashboardLayout>
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/tenants')}>
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Building2 className="w-6 h-6" />
+            Novo Tenant
+          </h1>
+          <p className="text-muted-foreground">
+            Crie uma nova empresa no sistema
+          </p>
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+      <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
           {/* Basic Info */}
           <Card>
@@ -282,24 +263,23 @@ export default function CreateTenant() {
             </CardContent>
           </Card>
 
-          {/* Actions */}
-          <div className="flex items-center gap-4">
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Criando...
-                </>
-              ) : (
-                'Criar Tenant'
-              )}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => navigate('/tenants')}>
-              Cancelar
-            </Button>
-          </div>
-        </form>
-      </main>
-    </div>
+        {/* Actions */}
+        <div className="flex items-center gap-4">
+          <Button type="submit" disabled={createMutation.isPending}>
+            {createMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Criando...
+              </>
+            ) : (
+              'Criar Tenant'
+            )}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => navigate('/tenants')}>
+            Cancelar
+          </Button>
+        </div>
+      </form>
+    </DashboardLayout>
   );
 }
