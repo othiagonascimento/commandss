@@ -51,6 +51,7 @@ import {
   X,
   Palette,
   Lock,
+  UserPlus,
 } from 'lucide-react';
 
 interface MasterRole {
@@ -291,6 +292,92 @@ export default function MasterUsers() {
                 className="pl-9 w-64"
               />
             </div>
+
+            {activeTab === 'users' && (
+              <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    Convidar Usuário
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Convidar Novo Usuário</DialogTitle>
+                    <DialogDescription>
+                      Informe os dados do usuário para convidá-lo ao painel administrativo.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Nome Completo</Label>
+                      <Input
+                        placeholder="Ex: João Silva"
+                        value={newUserData.full_name}
+                        onChange={(e) =>
+                          setNewUserData({ ...newUserData, full_name: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        placeholder="joao@empresa.com"
+                        value={newUserData.email}
+                        onChange={(e) =>
+                          setNewUserData({ ...newUserData, email: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cargos</Label>
+                      <div className="grid gap-2 max-h-48 overflow-y-auto border rounded-lg p-3">
+                        {roles.map((role) => (
+                          <label
+                            key={role.id}
+                            className="flex items-center gap-3 p-2 rounded hover:bg-muted/50 cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={newUserData.role_ids.includes(role.id)}
+                              onCheckedChange={(checked) => {
+                                setNewUserData({
+                                  ...newUserData,
+                                  role_ids: checked
+                                    ? [...newUserData.role_ids, role.id]
+                                    : newUserData.role_ids.filter((id) => id !== role.id),
+                                });
+                              }}
+                            />
+                            <Badge
+                              variant="secondary"
+                              style={{ backgroundColor: role.color + '20', color: role.color }}
+                            >
+                              {role.display_name}
+                            </Badge>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsUserDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        // For now, show a toast - this would connect to an invite flow
+                        toast.info('Funcionalidade de convite será implementada com edge function');
+                        setIsUserDialogOpen(false);
+                      }}
+                      disabled={!newUserData.full_name || !newUserData.email}
+                    >
+                      Enviar Convite
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
 
             {activeTab === 'roles' && (
               <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
