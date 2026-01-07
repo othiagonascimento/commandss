@@ -11,6 +11,12 @@ import type {
   SyncResponse,
 } from '@/types/templates';
 import {
+  defaultTemplateFormData,
+  defaultBusinessContext,
+  defaultCopilotConfig,
+  defaultInsightsConfig,
+} from '@/types/templates';
+import {
   mockTemplates,
   mockTemplateData,
   mockVersionHistory,
@@ -114,34 +120,25 @@ function formDataToTemplateData(formData: TemplateFormData): TemplateData {
 // Transform API data to form data format
 export function templateDataToFormData(template: Template & { data?: TemplateData }): TemplateFormData {
   const data = template.data;
+  
+  // Base defaults from the default template
+  const base: TemplateFormData = {
+    ...defaultTemplateFormData,
+    slug: template.slug,
+    name: template.name,
+    description: template.description || '',
+    category: (template.category as 'universal' | 'vendas' | 'custom') || 'universal',
+    icon: template.icon || '📋',
+    is_base_template: template.is_base_template,
+    parent_template_id: template.parent_template_id,
+  };
+
   if (!data) {
-    return {
-      slug: template.slug,
-      name: template.name,
-      description: template.description || '',
-      category: (template.category as 'universal' | 'vendas' | 'custom') || 'universal',
-      icon: template.icon || '📋',
-      is_base_template: template.is_base_template,
-      parent_template_id: template.parent_template_id,
-      funnel_stages: [],
-      tag_categories: [],
-      quick_replies: [],
-      prompts: { greeting: '', system_prompt: '', objection_handlers: {}, qualification_criteria: {} },
-      ai_config: { personality: '', mode: 'copilot', temperature: 0.7, techniques: [] },
-      automations: [],
-      sla: {
-        first_response_minutes: 5,
-        follow_up_hours: 24,
-        escalation_hours: 48,
-        working_hours_start: '08:00',
-        working_hours_end: '18:00',
-        working_days: [1, 2, 3, 4, 5],
-      },
-      product_categories: [],
-    };
+    return base;
   }
 
   return {
+    ...base,
     slug: data.slug,
     name: data.name,
     description: data.description || '',
