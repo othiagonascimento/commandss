@@ -40,6 +40,7 @@ import {
   XCircle,
   ClipboardList,
   DollarSign,
+  ExternalLink,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -108,6 +109,20 @@ export default function TenantDetail() {
     },
     onError: () => {
       toast.error('Erro ao reativar assinatura.');
+    },
+  });
+
+  const customerPortalMutation = useMutation({
+    mutationFn: () => subscriptionsApi.openCustomerPortal(id!),
+    onSuccess: (result) => {
+      if (result.data?.url) {
+        window.open(result.data.url, '_blank');
+      } else {
+        toast.error('Não foi possível abrir o portal.');
+      }
+    },
+    onError: () => {
+      toast.error('Erro ao abrir portal do cliente.');
     },
   });
 
@@ -329,16 +344,46 @@ export default function TenantDetail() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Upgrade Options */}
-                  {tenant.plan_type !== 'enterprise' && (
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-success" />
-                          Upgrade
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
+                {/* Customer Portal */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4 text-primary" />
+                      Portal Stripe
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => customerPortalMutation.mutate()}
+                      disabled={customerPortalMutation.isPending || !tenant.stripe_customer_id}
+                    >
+                      {customerPortalMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                      )}
+                      Abrir Customer Portal
+                    </Button>
+                    {!tenant.stripe_customer_id && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Tenant não possui customer ID no Stripe
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Upgrade Options */}
+                {tenant.plan_type !== 'enterprise' && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-success" />
+                        Upgrade
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
                         {tenant.plan_type === 'basic' && (
                           <>
                             <Button 
