@@ -41,6 +41,10 @@ import {
   ClipboardList,
   DollarSign,
   ExternalLink,
+  Gift,
+  Handshake,
+  Crown,
+  Ban,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -140,6 +144,27 @@ export default function TenantDetail() {
     },
   });
 
+  const revokePromoMutation = useMutation({
+    mutationFn: async () => {
+      const result = await tenantsApi.update(id!, {
+        trial_enabled: false,
+        trial_days: null,
+        subscription_status: 'pending',
+        current_period_end: null,
+        config: null,
+      });
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Acesso promocional revogado.');
+      queryClient.invalidateQueries({ queryKey: ['tenant', id] });
+    },
+    onError: () => {
+      toast.error('Erro ao revogar acesso.');
+    },
+  });
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -180,8 +205,19 @@ export default function TenantDetail() {
               <Badge variant="default" className="bg-success text-success-foreground">
                 Assinatura Ativa
               </Badge>
+            ) : tenant.subscription_status === 'lifetime' ? (
+              <Badge variant="default" className="bg-amber-500 text-white">
+                <Crown className="w-3 h-3 mr-1" />
+                Vitalício
+              </Badge>
+            ) : tenant.subscription_status === 'partnership' ? (
+              <Badge variant="default" className="bg-green-600 text-white">
+                <Handshake className="w-3 h-3 mr-1" />
+                Parceria
+              </Badge>
             ) : tenant.subscription_status === 'trialing' ? (
               <Badge variant="secondary" className="bg-primary/10 text-primary">
+                <Gift className="w-3 h-3 mr-1" />
                 Em Trial
               </Badge>
             ) : tenant.subscription_status === 'past_due' ? (
@@ -370,6 +406,83 @@ export default function TenantDetail() {
                     </Badge>
                   )}
                 </div>
+
+                {/* Promotional Access Card */}
+                {(tenant.trial_enabled || tenant.subscription_status === 'trialing' || tenant.subscription_status === 'partnership' || tenant.subscription_status === 'lifetime') && (
+                  <Card className="border-primary/30 bg-primary/5">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        {tenant.subscription_status === 'lifetime' && <Crown className="w-4 h-4 text-amber-500" />}
+                        {tenant.subscription_status === 'partnership' && <Handshake className="w-4 h-4 text-green-500" />}
+                        {tenant.subscription_status === 'trialing' && <Gift className="w-4 h-4 text-primary" />}
+                        Acesso Promocional Ativo
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Tipo:</span>
+                          <p className="font-medium">
+                            {tenant.subscription_status === 'lifetime' && 'Vitalício'}
+                            {tenant.subscription_status === 'partnership' && 'Parceria'}
+                            {tenant.subscription_status === 'trialing' && 'Trial'}
+                          </p>
+                        </div>
+                        {tenant.current_period_end && (
+                          <div>
+                            <span className="text-muted-foreground">Expira em:</span>
+                            <p className="font-medium">
+                              {format(new Date(tenant.current_period_end), "dd/MM/yyyy", { locale: ptBR })}
+                            </p>
+                          </div>
+                        )}
+                        {tenant.subscription_status === 'lifetime' && (
+                          <div>
+                            <span className="text-muted-foreground">Expiração:</span>
+                            <p className="font-medium text-amber-600">Nunca expira</p>
+                          </div>
+                        )}
+                      </div>
+                      {tenant.config?.promo?.reason && (
+                        <div>
+                          <span className="text-sm text-muted-foreground">Motivo:</span>
+                          <p className="text-sm bg-background/50 rounded p-2 mt-1">{tenant.config.promo.reason}</p>
+                        </div>
+                      )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" className="w-full mt-2">
+                            <Ban className="w-4 h-4 mr-2" />
+                            Revogar Acesso Gratuito
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Revogar Acesso Promocional?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              O tenant perderá o acesso gratuito imediatamente e precisará fazer o pagamento para continuar usando o sistema.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => revokePromoMutation.mutate()}
+                              disabled={revokePromoMutation.isPending}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {revokePromoMutation.isPending ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              ) : (
+                                <Ban className="w-4 h-4 mr-2" />
+                              )}
+                              Revogar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Customer Portal */}
