@@ -16,16 +16,26 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Loader2, Building2, AlertCircle, Gift } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Textarea } from '@/components/ui/textarea';
+import { ArrowLeft, Loader2, Building2, AlertCircle, Gift, Handshake, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+
+const promoTypes = [
+  { value: 'trial', label: 'Trial Normal', description: 'Período de teste padrão' },
+  { value: 'partnership', label: 'Parceria', description: 'Acesso gratuito por parceria comercial' },
+  { value: 'lifetime', label: 'Acesso Vitalício', description: 'Sem data de expiração' },
+] as const;
 
 const createTenantSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   slug: z.string().min(2, 'Slug deve ter pelo menos 2 caracteres').regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
   plan_type: z.enum(['basic', 'pro', 'enterprise']),
-  trial_enabled: z.boolean().optional(),
-  trial_days: z.number().min(1).max(365).optional(),
+  promo_enabled: z.boolean().optional(),
+  promo_type: z.enum(['trial', 'partnership', 'lifetime']).optional(),
+  promo_days: z.number().min(1).max(365).optional(),
+  promo_reason: z.string().max(500).optional(),
   company_name: z.string().optional(),
   primary_color: z.string().optional(),
   admin_email: z.string().email('Email inválido').optional().or(z.literal('')),
@@ -52,8 +62,10 @@ export default function CreateTenant() {
     name: '',
     slug: '',
     plan_type: 'basic',
-    trial_enabled: false,
-    trial_days: 14,
+    promo_enabled: false,
+    promo_type: 'trial',
+    promo_days: 14,
+    promo_reason: '',
     company_name: '',
     primary_color: '#3b82f6',
     admin_email: '',
@@ -68,8 +80,10 @@ export default function CreateTenant() {
         slug: data.slug,
         subdomain: data.slug,
         plan_type: data.plan_type,
-        trial_enabled: data.trial_enabled,
-        trial_days: data.trial_enabled ? data.trial_days : undefined,
+        promo_enabled: data.promo_enabled,
+        promo_type: data.promo_enabled ? data.promo_type : undefined,
+        promo_days: data.promo_enabled && data.promo_type !== 'lifetime' ? data.promo_days : undefined,
+        promo_reason: data.promo_enabled ? data.promo_reason : undefined,
         branding: {
           company_name: data.company_name || data.name,
           primary_color: data.primary_color,
@@ -186,52 +200,100 @@ export default function CreateTenant() {
                 </Select>
               </div>
 
-              {/* Trial Settings */}
+              {/* Promotional Access Settings */}
               <div className="space-y-4 pt-4 border-t">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="trial_enabled" className="flex items-center gap-2">
+                    <Label htmlFor="promo_enabled" className="flex items-center gap-2">
                       <Gift className="w-4 h-4 text-primary" />
-                      Período de Teste (Trial)
+                      Acesso Promocional
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Permite usar o sistema gratuitamente por um período
+                      Trial, parceria ou acesso vitalício gratuito
                     </p>
                   </div>
                   <Switch
-                    id="trial_enabled"
-                    checked={formData.trial_enabled}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, trial_enabled: checked }))}
+                    id="promo_enabled"
+                    checked={formData.promo_enabled}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, promo_enabled: checked }))}
                   />
                 </div>
                 
-                {formData.trial_enabled && (
-                  <div className="space-y-2 pl-6 border-l-2 border-primary/20">
-                    <Label htmlFor="trial_days">Dias de Trial</Label>
-                    <div className="flex items-center gap-4">
-                      <Input
-                        id="trial_days"
-                        type="number"
-                        min={1}
-                        max={365}
-                        value={formData.trial_days}
-                        onChange={(e) => setFormData(prev => ({ ...prev, trial_days: parseInt(e.target.value) || 14 }))}
-                        className="w-24"
-                      />
-                      <span className="text-sm text-muted-foreground">dias</span>
+                {formData.promo_enabled && (
+                  <div className="space-y-4 pl-6 border-l-2 border-primary/20">
+                    {/* Promo Type Selection */}
+                    <div className="space-y-3">
+                      <Label>Tipo de Acesso</Label>
+                      <RadioGroup
+                        value={formData.promo_type}
+                        onValueChange={(v) => setFormData(prev => ({ ...prev, promo_type: v as FormData['promo_type'] }))}
+                        className="grid gap-3"
+                      >
+                        {promoTypes.map((type) => (
+                          <div key={type.value} className="flex items-center space-x-3">
+                            <RadioGroupItem value={type.value} id={type.value} />
+                            <Label htmlFor={type.value} className="flex items-center gap-2 cursor-pointer">
+                              {type.value === 'trial' && <Gift className="w-4 h-4 text-blue-500" />}
+                              {type.value === 'partnership' && <Handshake className="w-4 h-4 text-green-500" />}
+                              {type.value === 'lifetime' && <Crown className="w-4 h-4 text-amber-500" />}
+                              <div>
+                                <span className="font-medium">{type.label}</span>
+                                <span className="text-xs text-muted-foreground ml-2">{type.description}</span>
+                              </div>
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
                     </div>
-                    <div className="flex gap-2 mt-2">
-                      {[7, 14, 30].map((days) => (
-                        <Button
-                          key={days}
-                          type="button"
-                          variant={formData.trial_days === days ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setFormData(prev => ({ ...prev, trial_days: days }))}
-                        >
-                          {days} dias
-                        </Button>
-                      ))}
+
+                    {/* Duration (not for lifetime) */}
+                    {formData.promo_type !== 'lifetime' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="promo_days">Duração</Label>
+                        <div className="flex items-center gap-4">
+                          <Input
+                            id="promo_days"
+                            type="number"
+                            min={1}
+                            max={365}
+                            value={formData.promo_days}
+                            onChange={(e) => setFormData(prev => ({ ...prev, promo_days: parseInt(e.target.value) || 14 }))}
+                            className="w-24"
+                          />
+                          <span className="text-sm text-muted-foreground">dias</span>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          {[7, 14, 30, 90, 180, 365].map((days) => (
+                            <Button
+                              key={days}
+                              type="button"
+                              variant={formData.promo_days === days ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => setFormData(prev => ({ ...prev, promo_days: days }))}
+                            >
+                              {days <= 30 ? `${days}d` : days === 365 ? '1 ano' : `${days / 30}m`}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reason/Notes */}
+                    <div className="space-y-2">
+                      <Label htmlFor="promo_reason">
+                        Motivo / Observações {formData.promo_type === 'partnership' && <span className="text-destructive">*</span>}
+                      </Label>
+                      <Textarea
+                        id="promo_reason"
+                        value={formData.promo_reason}
+                        onChange={(e) => setFormData(prev => ({ ...prev, promo_reason: e.target.value }))}
+                        placeholder={
+                          formData.promo_type === 'partnership' 
+                            ? "Nome do parceiro, acordo, condições..." 
+                            : "Opcional: motivo do acesso gratuito"
+                        }
+                        rows={2}
+                      />
                     </div>
                   </div>
                 )}

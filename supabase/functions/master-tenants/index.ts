@@ -159,12 +159,38 @@ serve(async (req) => {
     if (method === 'POST') {
       const body = await req.json();
       
-      // Calculate trial end date if trial is enabled
-      const trialEnabled = body.trial_enabled === true;
-      const trialDays = body.trial_days || 14;
-      const currentPeriodEnd = trialEnabled 
-        ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString()
+      // Handle promotional access (trial, partnership, lifetime)
+      const promoEnabled = body.promo_enabled === true;
+      const promoType = body.promo_type || 'trial';
+      const promoDays = body.promo_days || 14;
+      
+      // For lifetime: no expiration. For others: calculate end date
+      const isLifetime = promoEnabled && promoType === 'lifetime';
+      const currentPeriodEnd = promoEnabled && !isLifetime
+        ? new Date(Date.now() + promoDays * 24 * 60 * 60 * 1000).toISOString()
         : null;
+      
+      // Determine subscription status
+      let subscriptionStatus = 'pending';
+      if (promoEnabled) {
+        if (isLifetime) {
+          subscriptionStatus = 'lifetime';
+        } else if (promoType === 'partnership') {
+          subscriptionStatus = 'partnership';
+        } else {
+          subscriptionStatus = 'trialing';
+        }
+      }
+      
+      // Store promo info in config JSON
+      const config = promoEnabled ? {
+        promo: {
+          type: promoType,
+          days: isLifetime ? null : promoDays,
+          reason: body.promo_reason || null,
+          granted_at: new Date().toISOString(),
+        }
+      } : null;
       
       const { data: newTenant, error } = await supabaseAdmin
         .from('tenants')
@@ -178,10 +204,11 @@ serve(async (req) => {
           contracted_users: body.contracted_users || 1,
           status: 'active',
           is_blocked: false,
-          trial_enabled: trialEnabled,
-          trial_days: trialEnabled ? trialDays : null,
-          subscription_status: trialEnabled ? 'trialing' : 'pending',
+          trial_enabled: promoEnabled,
+          trial_days: isLifetime ? -1 : (promoEnabled ? promoDays : null),
+          subscription_status: subscriptionStatus,
           current_period_end: currentPeriodEnd,
+          config: config,
         })
         .select()
         .single();

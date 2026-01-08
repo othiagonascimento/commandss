@@ -192,6 +192,13 @@ export interface TimeSeriesResponse {
   data: TimeSeriesDataPoint[];
 }
 
+export interface PromoInfo {
+  type: 'trial' | 'partnership' | 'lifetime';
+  days: number | null;
+  reason: string | null;
+  granted_at: string;
+}
+
 export interface Tenant {
   id: string;
   name: string;
@@ -212,6 +219,12 @@ export interface Tenant {
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   subscription_status?: string | null;
+  trial_enabled?: boolean;
+  trial_days?: number | null;
+  current_period_end?: string | null;
+  config?: {
+    promo?: PromoInfo;
+  } | null;
 }
 
 export interface TenantDetail extends Tenant {
@@ -238,8 +251,10 @@ export interface CreateTenantPayload {
   slug: string;
   subdomain: string;
   plan_type: string;
-  trial_enabled?: boolean;
-  trial_days?: number;
+  promo_enabled?: boolean;
+  promo_type?: 'trial' | 'partnership' | 'lifetime';
+  promo_days?: number;
+  promo_reason?: string;
   branding?: {
     company_name: string;
     logo_url?: string;
