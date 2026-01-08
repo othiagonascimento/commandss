@@ -198,6 +198,7 @@ serve(async (req) => {
           name: body.name,
           subdomain: body.subdomain || body.slug,
           plan_type: body.plan_type || 'starter',
+          plan_id: body.plan_id || null,
           contact_email: body.contact_email,
           document: body.document,
           price_per_user: body.price_per_user || 69,

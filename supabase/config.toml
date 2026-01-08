@@ -53,3 +53,12 @@ verify_jwt = false
 
 [functions.customer-portal]
 verify_jwt = false
+
+[functions.create-tenant-checkout]
+verify_jwt = false
+
+[functions.verify-domains]
+verify_jwt = false
+
+[functions.check-limits]
+verify_jwt = false
