@@ -85,6 +85,14 @@ export const subscriptionsApi = {
   
   reactivate: (tenantId: string) => 
     callMasterApi<void>('master-subscriptions', 'POST', `${tenantId}/reactivate`),
+  
+  openCustomerPortal: async (tenantId: string): Promise<ApiResponse<{ url: string }>> => {
+    const { data, error } = await supabase.functions.invoke('customer-portal', {
+      body: { tenantId },
+    });
+    if (error) return { data: null, error: error.message };
+    return { data: data as { url: string }, error: null };
+  },
 };
 
 // Users API
@@ -193,6 +201,8 @@ export interface Tenant {
   created_at: string;
   user_count?: number;
   lead_count?: number;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
 }
 
 export interface TenantDetail extends Tenant {
