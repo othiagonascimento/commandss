@@ -176,9 +176,23 @@ export default function TenantDetail() {
             <Badge className={planColors[tenant.plan_type]}>
               {tenant.plan_type}
             </Badge>
-            <Badge variant={tenant.is_active ? 'default' : 'secondary'}>
-              {tenant.is_active ? 'Ativo' : 'Inativo'}
-            </Badge>
+            {tenant.subscription_status === 'active' ? (
+              <Badge variant="default" className="bg-success text-success-foreground">
+                Assinatura Ativa
+              </Badge>
+            ) : tenant.subscription_status === 'trialing' ? (
+              <Badge variant="secondary" className="bg-primary/10 text-primary">
+                Em Trial
+              </Badge>
+            ) : tenant.subscription_status === 'past_due' ? (
+              <Badge variant="destructive">
+                Pagamento Atrasado
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-warning text-warning">
+                Aguardando Pagamento
+              </Badge>
+            )}
           </div>
           <p className="text-muted-foreground">{tenant.slug}</p>
         </div>
