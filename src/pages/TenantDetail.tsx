@@ -126,6 +126,20 @@ export default function TenantDetail() {
     },
   });
 
+  const createCheckoutMutation = useMutation({
+    mutationFn: () => subscriptionsApi.createCheckout(id!),
+    onSuccess: (result) => {
+      if (result.data?.url) {
+        window.open(result.data.url, '_blank');
+      } else {
+        toast.error('Não foi possível criar o checkout.');
+      }
+    },
+    onError: () => {
+      toast.error('Erro ao criar checkout.');
+    },
+  });
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -353,23 +367,40 @@ export default function TenantDetail() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => customerPortalMutation.mutate()}
-                      disabled={customerPortalMutation.isPending || !tenant.stripe_customer_id}
-                    >
-                      {customerPortalMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                      )}
-                      Abrir Customer Portal
-                    </Button>
-                    {!tenant.stripe_customer_id && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Tenant não possui customer ID no Stripe
-                      </p>
+                    {tenant.stripe_customer_id ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => customerPortalMutation.mutate()}
+                          disabled={customerPortalMutation.isPending}
+                        >
+                          {customerPortalMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                          )}
+                          Abrir Customer Portal
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          className="w-full"
+                          onClick={() => createCheckoutMutation.mutate()}
+                          disabled={createCheckoutMutation.isPending}
+                        >
+                          {createCheckoutMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <CreditCard className="w-4 h-4 mr-2" />
+                          )}
+                          Criar Checkout Stripe
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Tenant não possui customer ID no Stripe
+                        </p>
+                      </>
                     )}
                   </CardContent>
                 </Card>

@@ -93,6 +93,14 @@ export const subscriptionsApi = {
     if (error) return { data: null, error: error.message };
     return { data: data as { url: string }, error: null };
   },
+
+  createCheckout: async (tenantId: string): Promise<ApiResponse<{ url: string }>> => {
+    const { data, error } = await supabase.functions.invoke('create-tenant-checkout', {
+      body: { tenant_id: tenantId },
+    });
+    if (error) return { data: null, error: error.message };
+    return { data: data as { url: string }, error: null };
+  },
 };
 
 // Users API
