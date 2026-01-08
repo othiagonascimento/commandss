@@ -238,6 +238,8 @@ export interface CreateTenantPayload {
   slug: string;
   subdomain: string;
   plan_type: string;
+  trial_enabled?: boolean;
+  trial_days?: number;
   branding?: {
     company_name: string;
     logo_url?: string;
