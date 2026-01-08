@@ -18,8 +18,15 @@ function appendForm(
   if (value === undefined || value === null) return;
 
   if (Array.isArray(value)) {
-    for (const item of value) {
-      form.append(keyPrefix, String(item));
+    for (let i = 0; i < value.length; i++) {
+      const item = value[i];
+      if (typeof item === "object" && item !== null) {
+        // For arrays of objects, use indexed notation: key[0][subkey]
+        appendForm(form, item, `${keyPrefix}[${i}]`);
+      } else {
+        // For arrays of primitives
+        form.append(`${keyPrefix}[${i}]`, String(item));
+      }
     }
     return;
   }
@@ -128,7 +135,14 @@ Deno.serve(async (req) => {
     if (tenantError || !tenant) {
       throw new Error(`Tenant not found: ${tenantError?.message || "Not found"}`);
     }
-    logStep("Tenant found", { name: tenant.name, subdomain: tenant.subdomain });
+    
+    // Use tenant email or fallback to authenticated user's email
+    const customerEmail = tenant.contact_email || user.email;
+    if (!customerEmail) {
+      throw new Error("Nenhum email disponível para criar checkout. Adicione um email de contato ao tenant.");
+    }
+    
+    logStep("Tenant found", { name: tenant.name, subdomain: tenant.subdomain, email: customerEmail });
 
     // Stripe
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
@@ -164,7 +178,7 @@ Deno.serve(async (req) => {
         stripeKey,
         "GET",
         "customers",
-        { email: tenant.contact_email, limit: 1 }
+        { email: customerEmail, limit: 1 }
       );
 
       if (customers.data.length > 0) {
@@ -172,7 +186,7 @@ Deno.serve(async (req) => {
         logStep("Existing customer found", { customerId });
       } else {
         const customer = await stripeRequest<{ id: string }>(stripeKey, "POST", "customers", {
-          email: tenant.contact_email,
+          email: customerEmail,
           name: tenant.name,
           metadata: {
             document: tenant.document || "",
