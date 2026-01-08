@@ -251,6 +251,7 @@ export interface CreateTenantPayload {
   slug: string;
   subdomain: string;
   plan_type: string;
+  plan_id?: string;
   promo_enabled?: boolean;
   promo_type?: 'trial' | 'partnership' | 'lifetime';
   promo_days?: number;
