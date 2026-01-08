@@ -18,6 +18,9 @@ verify_jwt = false
 [functions.master-subscriptions]
 verify_jwt = false
 
+[functions.master-settings]
+verify_jwt = false
+
 [functions.create-subscription]
 verify_jwt = false
 

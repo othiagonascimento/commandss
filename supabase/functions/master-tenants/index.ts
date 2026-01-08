@@ -1,69 +1,156 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Mock tenants data
-const mockTenants = [
-  { id: '1', name: 'Empresa Alpha', subdomain: 'alpha', plan_type: 'professional', status: 'active', implementation_level: 3, created_at: '2024-01-15T10:00:00Z', user_count: 12, lead_count: 450 },
-  { id: '2', name: 'Beta Corp', subdomain: 'beta', plan_type: 'enterprise', status: 'active', implementation_level: 5, created_at: '2024-02-01T14:30:00Z', user_count: 45, lead_count: 2100 },
-  { id: '3', name: 'Gamma Solutions', subdomain: 'gamma', plan_type: 'starter', status: 'active', implementation_level: 2, created_at: '2024-03-10T09:15:00Z', user_count: 3, lead_count: 85 },
-  { id: '4', name: 'Delta Tech', subdomain: 'delta', plan_type: 'professional', status: 'suspended', implementation_level: 4, created_at: '2024-01-20T16:45:00Z', user_count: 8, lead_count: 320 },
-  { id: '5', name: 'Epsilon Industries', subdomain: 'epsilon', plan_type: 'enterprise', status: 'active', implementation_level: 5, created_at: '2023-12-05T11:00:00Z', user_count: 67, lead_count: 3500 },
-];
+const logStep = (step: string, details?: unknown) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[MASTER-TENANTS] ${step}${detailsStr}`);
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    { auth: { persistSession: false } }
+  );
+
   try {
+    // Verify auth
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) throw new Error('No authorization header');
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    if (userError || !userData.user) throw new Error('Invalid token');
+
+    const userId = userData.user.id;
+    logStep('User authenticated', { userId });
+
+    // Check if user has master access
+    const { data: masterUser } = await supabaseAdmin
+      .from('master_users')
+      .select('id, is_active')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single();
+
+    if (!masterUser) {
+      throw new Error('Access denied: not a master user');
+    }
+
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
     const tenantId = pathParts[1];
     const method = req.method;
 
-    console.log(`[Master Tenants] ${method} ${tenantId || 'list'}`);
+    logStep(`${method} request`, { tenantId: tenantId || 'list' });
 
     // GET /master-tenants - List all tenants
     if (method === 'GET' && !tenantId) {
       const page = parseInt(url.searchParams.get('page') || '1');
-      const limit = parseInt(url.searchParams.get('limit') || '10');
-      const status = url.searchParams.get('status');
-      const plan = url.searchParams.get('plan');
+      const limit = parseInt(url.searchParams.get('limit') || '20');
+      const search = url.searchParams.get('search');
+      const planType = url.searchParams.get('plan_type');
+      const isActive = url.searchParams.get('is_active');
 
-      let filtered = [...mockTenants];
-      if (status) filtered = filtered.filter(t => t.status === status);
-      if (plan) filtered = filtered.filter(t => t.plan_type === plan);
+      let query = supabaseAdmin
+        .from('tenants')
+        .select('*', { count: 'exact' });
+
+      if (search) {
+        query = query.or(`name.ilike.%${search}%,subdomain.ilike.%${search}%`);
+      }
+      if (planType) {
+        query = query.eq('plan_type', planType);
+      }
+      if (isActive !== null && isActive !== undefined) {
+        query = query.eq('is_blocked', isActive === 'false');
+      }
 
       const start = (page - 1) * limit;
-      const paginated = filtered.slice(start, start + limit);
+      query = query.range(start, start + limit - 1).order('created_at', { ascending: false });
+
+      const { data: tenants, error, count } = await query;
+
+      if (error) throw error;
+
+      // Map is_blocked to is_active for frontend compatibility
+      const mappedTenants = (tenants || []).map(t => ({
+        ...t,
+        is_active: !t.is_blocked,
+        slug: t.subdomain,
+      }));
 
       return new Response(
         JSON.stringify({
-          data: paginated,
-          total: filtered.length,
+          data: mappedTenants,
+          total: count || 0,
           page,
           limit,
-          total_pages: Math.ceil(filtered.length / limit)
+          total_pages: Math.ceil((count || 0) / limit)
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // GET /master-tenants/:id - Get single tenant
+    // GET /master-tenants/:id - Get single tenant with related data
     if (method === 'GET' && tenantId) {
-      const tenant = mockTenants.find(t => t.id === tenantId);
-      if (!tenant) {
-        return new Response(
-          JSON.stringify({ error: 'Tenant not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      const { data: tenant, error } = await supabaseAdmin
+        .from('tenants')
+        .select(`
+          *,
+          tenant_branding (*),
+          tenant_onboarding (*),
+          tenant_usage (*)
+        `)
+        .eq('id', tenantId)
+        .single();
+
+      if (error) throw error;
+      if (!tenant) throw new Error('Tenant not found');
+
+      // Get user count
+      const { count: userCount } = await supabaseAdmin
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId);
+
+      const response = {
+        ...tenant,
+        is_active: !tenant.is_blocked,
+        slug: tenant.subdomain,
+        user_count: userCount || 0,
+        branding: tenant.tenant_branding?.[0] || null,
+        onboarding: tenant.tenant_onboarding?.[0] || null,
+        usage: tenant.tenant_usage?.[0] ? {
+          leads: tenant.tenant_usage[0].messages_sent || 0,
+          users: tenant.tenant_usage[0].active_users || 0,
+          messages: tenant.tenant_usage[0].messages_sent || 0,
+          storage_used: tenant.tenant_usage[0].storage_used_mb || 0,
+        } : { leads: 0, users: 0, messages: 0, storage_used: 0 },
+        subscription: {
+          tenant_id: tenantId,
+          plan: tenant.plan_type,
+          status: tenant.subscription_status || 'active',
+          started_at: tenant.created_at,
+          expires_at: tenant.current_period_end,
+          billing_cycle: 'monthly',
+          amount: (tenant.price_per_user || 0) * (tenant.contracted_users || 1),
+          currency: 'BRL',
+          features: [],
+        },
+      };
+
       return new Response(
-        JSON.stringify(tenant),
+        JSON.stringify(response),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -71,17 +158,49 @@ serve(async (req) => {
     // POST /master-tenants - Create tenant
     if (method === 'POST') {
       const body = await req.json();
-      const newTenant = {
-        id: String(mockTenants.length + 1),
-        ...body,
-        status: 'active',
-        implementation_level: 1,
-        created_at: new Date().toISOString(),
-        user_count: 0,
-        lead_count: 0
-      };
+      
+      const { data: newTenant, error } = await supabaseAdmin
+        .from('tenants')
+        .insert({
+          name: body.name,
+          subdomain: body.subdomain || body.slug,
+          plan_type: body.plan_type || 'starter',
+          contact_email: body.contact_email,
+          document: body.document,
+          price_per_user: body.price_per_user || 69,
+          contracted_users: body.contracted_users || 1,
+          status: 'active',
+          is_blocked: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Create default branding
+      if (body.branding) {
+        await supabaseAdmin
+          .from('tenant_branding')
+          .insert({
+            tenant_id: newTenant.id,
+            company_name: body.branding.company_name || body.name,
+            primary_color: body.branding.primary_color || '#6366f1',
+            logo_url: body.branding.logo_url,
+          });
+      }
+
+      // Create onboarding record
+      await supabaseAdmin
+        .from('tenant_onboarding')
+        .insert({
+          tenant_id: newTenant.id,
+          status: 'pending',
+        });
+
+      logStep('Tenant created', { tenantId: newTenant.id });
+
       return new Response(
-        JSON.stringify(newTenant),
+        JSON.stringify({ ...newTenant, is_active: true, slug: newTenant.subdomain }),
         { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -89,22 +208,50 @@ serve(async (req) => {
     // PATCH /master-tenants/:id - Update tenant
     if (method === 'PATCH' && tenantId) {
       const body = await req.json();
-      const tenant = mockTenants.find(t => t.id === tenantId);
-      if (!tenant) {
-        return new Response(
-          JSON.stringify({ error: 'Tenant not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+      
+      // Map is_active to is_blocked
+      const updateData: Record<string, unknown> = { ...body };
+      if ('is_active' in updateData) {
+        updateData.is_blocked = !updateData.is_active;
+        delete updateData.is_active;
       }
-      const updated = { ...tenant, ...body };
+      if ('slug' in updateData) {
+        updateData.subdomain = updateData.slug;
+        delete updateData.slug;
+      }
+
+      const { data: updatedTenant, error } = await supabaseAdmin
+        .from('tenants')
+        .update(updateData)
+        .eq('id', tenantId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      logStep('Tenant updated', { tenantId });
+
       return new Response(
-        JSON.stringify(updated),
+        JSON.stringify({ ...updatedTenant, is_active: !updatedTenant.is_blocked, slug: updatedTenant.subdomain }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // DELETE /master-tenants/:id - Deactivate tenant
+    // DELETE /master-tenants/:id - Deactivate tenant (soft delete)
     if (method === 'DELETE' && tenantId) {
+      const { error } = await supabaseAdmin
+        .from('tenants')
+        .update({ 
+          is_blocked: true, 
+          blocked_at: new Date().toISOString(),
+          blocked_reason: 'Desativado via painel master'
+        })
+        .eq('id', tenantId);
+
+      if (error) throw error;
+
+      logStep('Tenant deactivated', { tenantId });
+
       return new Response(
         JSON.stringify({ success: true, message: 'Tenant deactivated' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -117,9 +264,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('[Master Tenants] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logStep('ERROR', { message: errorMessage });
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
