@@ -159,6 +159,13 @@ serve(async (req) => {
     if (method === 'POST') {
       const body = await req.json();
       
+      // Calculate trial end date if trial is enabled
+      const trialEnabled = body.trial_enabled === true;
+      const trialDays = body.trial_days || 14;
+      const currentPeriodEnd = trialEnabled 
+        ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString()
+        : null;
+      
       const { data: newTenant, error } = await supabaseAdmin
         .from('tenants')
         .insert({
@@ -171,6 +178,10 @@ serve(async (req) => {
           contracted_users: body.contracted_users || 1,
           status: 'active',
           is_blocked: false,
+          trial_enabled: trialEnabled,
+          trial_days: trialEnabled ? trialDays : null,
+          subscription_status: trialEnabled ? 'trialing' : 'pending',
+          current_period_end: currentPeriodEnd,
         })
         .select()
         .single();
