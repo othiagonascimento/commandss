@@ -559,6 +559,75 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          features_enabled: Json
+          id: string
+          is_active: boolean
+          is_default: boolean
+          max_ai_tokens: number
+          max_automations: number | null
+          max_channels: number
+          max_leads: number | null
+          max_messages_month: number | null
+          max_products: number | null
+          max_storage_gb: number
+          max_users: number
+          name: string
+          price_monthly: number
+          price_yearly: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          features_enabled?: Json
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          max_ai_tokens?: number
+          max_automations?: number | null
+          max_channels?: number
+          max_leads?: number | null
+          max_messages_month?: number | null
+          max_products?: number | null
+          max_storage_gb?: number
+          max_users?: number
+          name: string
+          price_monthly?: number
+          price_yearly?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          features_enabled?: Json
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          max_ai_tokens?: number
+          max_automations?: number | null
+          max_channels?: number
+          max_leads?: number | null
+          max_messages_month?: number | null
+          max_products?: number | null
+          max_storage_gb?: number
+          max_users?: number
+          name?: string
+          price_monthly?: number
+          price_yearly?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -666,6 +735,74 @@ export type Database = {
             foreignKeyName: "tenant_branding_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_domains: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dns_configured: boolean
+          domain: string
+          domain_type: string
+          expires_at: string | null
+          id: string
+          is_primary: boolean
+          last_check_at: string | null
+          last_error: string | null
+          notes: string | null
+          ssl_provisioned: boolean
+          status: string
+          tenant_id: string
+          updated_at: string
+          verification_token: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dns_configured?: boolean
+          domain: string
+          domain_type?: string
+          expires_at?: string | null
+          id?: string
+          is_primary?: boolean
+          last_check_at?: string | null
+          last_error?: string | null
+          notes?: string | null
+          ssl_provisioned?: boolean
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          verification_token?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dns_configured?: boolean
+          domain?: string
+          domain_type?: string
+          expires_at?: string | null
+          id?: string
+          is_primary?: boolean
+          last_check_at?: string | null
+          last_error?: string | null
+          notes?: string | null
+          ssl_provisioned?: boolean
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          verification_token?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -804,7 +941,9 @@ export type Database = {
           invite_link_id: string | null
           is_blocked: boolean | null
           lead_source: string | null
+          limits_override: Json | null
           name: string
+          plan_id: string | null
           plan_type: string | null
           price_per_user: number | null
           sales_rep_id: string | null
@@ -839,7 +978,9 @@ export type Database = {
           invite_link_id?: string | null
           is_blocked?: boolean | null
           lead_source?: string | null
+          limits_override?: Json | null
           name: string
+          plan_id?: string | null
           plan_type?: string | null
           price_per_user?: number | null
           sales_rep_id?: string | null
@@ -874,7 +1015,9 @@ export type Database = {
           invite_link_id?: string | null
           is_blocked?: boolean | null
           lead_source?: string | null
+          limits_override?: Json | null
           name?: string
+          plan_id?: string | null
           plan_type?: string | null
           price_per_user?: number | null
           sales_rep_id?: string | null
@@ -893,6 +1036,13 @@ export type Database = {
             columns: ["invite_link_id"]
             isOneToOne: false
             referencedRelation: "invite_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenants_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
             referencedColumns: ["id"]
           },
         ]

@@ -45,6 +45,7 @@ import {
   Handshake,
   Crown,
   Ban,
+  Globe,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -53,6 +54,7 @@ import { ImpersonateButton } from '@/components/tenant/ImpersonateButton';
 import { OnboardingChecklist } from '@/components/tenant/OnboardingChecklist';
 import { UnitEconomicsCard } from '@/components/tenant/UnitEconomicsCard';
 import { BrandingManagement } from '@/components/tenant/BrandingManagement';
+import { DomainsManagement } from '@/components/tenant/DomainsManagement';
 
 const planColors: Record<string, string> = {
   basic: 'bg-muted text-muted-foreground',
@@ -261,6 +263,10 @@ export default function TenantDetail() {
             <TabsTrigger value="onboarding" className="gap-2">
               <ClipboardList className="w-4 h-4" />
               Onboarding
+            </TabsTrigger>
+            <TabsTrigger value="domains" className="gap-2">
+              <Globe className="w-4 h-4" />
+              Domínios
             </TabsTrigger>
             <TabsTrigger value="economics" className="gap-2">
               <DollarSign className="w-4 h-4" />
@@ -708,6 +714,11 @@ export default function TenantDetail() {
           {/* Onboarding Tab */}
           <TabsContent value="onboarding">
             <OnboardingChecklist tenantId={id!} />
+          </TabsContent>
+
+          {/* Domains Tab */}
+          <TabsContent value="domains">
+            <DomainsManagement tenantId={id!} tenantSubdomain={tenant.slug || tenant.subdomain} />
           </TabsContent>
 
           {/* Unit Economics Tab */}
