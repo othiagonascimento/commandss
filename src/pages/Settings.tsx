@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Settings as SettingsIcon,
   Bell,
@@ -20,10 +22,13 @@ import {
   Key,
   Save,
   RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Settings() {
+  const queryClient = useQueryClient();
+  
   // General settings
   const [systemName, setSystemName] = useState('UOPA Master');
   const [supportEmail, setSupportEmail] = useState('suporte@uopa.com.br');
@@ -39,9 +44,72 @@ export default function Settings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState('30');
   const [ipWhitelist, setIpWhitelist] = useState('');
-  
+
+  // Load settings from database
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['master-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('master-settings', {
+        method: 'GET',
+      });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Update local state when settings load
+  useEffect(() => {
+    if (settings?.data) {
+      const g = settings.data.general || {};
+      const n = settings.data.notifications || {};
+      const s = settings.data.security || {};
+      const a = settings.data.appearance || {};
+      
+      if (g.system_name) setSystemName(g.system_name);
+      if (g.support_email) setSupportEmail(g.support_email);
+      if (g.default_language) setDefaultLanguage(g.default_language);
+      
+      if (n.email_notifications !== undefined) setEmailNotifications(n.email_notifications);
+      if (n.new_tenant_notification !== undefined) setNewTenantNotification(n.new_tenant_notification);
+      if (n.payment_notification !== undefined) setPaymentNotification(n.payment_notification);
+      if (n.error_alerts !== undefined) setErrorAlerts(n.error_alerts);
+      
+      if (s.two_factor_enabled !== undefined) setTwoFactorEnabled(s.two_factor_enabled);
+      if (s.session_timeout) setSessionTimeout(String(s.session_timeout));
+      if (s.ip_whitelist) setIpWhitelist(s.ip_whitelist);
+    }
+  }, [settings]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.functions.invoke('master-settings', {
+        method: 'PUT',
+        body: {
+          system_name: systemName,
+          support_email: supportEmail,
+          default_language: defaultLanguage,
+          email_notifications: emailNotifications,
+          new_tenant_notification: newTenantNotification,
+          payment_notification: paymentNotification,
+          error_alerts: errorAlerts,
+          two_factor_enabled: twoFactorEnabled,
+          session_timeout: sessionTimeout,
+          ip_whitelist: ipWhitelist,
+        },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Configurações salvas com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['master-settings'] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao salvar: ${err.message}`);
+    },
+  });
+
   const handleSave = () => {
-    toast.success('Configurações salvas com sucesso!');
+    saveMutation.mutate();
   };
 
   return (
