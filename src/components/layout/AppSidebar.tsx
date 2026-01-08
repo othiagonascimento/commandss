@@ -22,6 +22,7 @@ import {
   Cog,
   UserCog,
   FileText,
+  Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -166,6 +167,13 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
       icon: Cog,
       permissionCheck: () => permissions.canViewMasterUsers() || permissions.canViewFeatureFlags() || permissions.canViewSettings(),
       items: [
+        {
+          icon: Package,
+          label: 'Planos',
+          path: '/plans',
+          description: 'Gestão de planos e limites',
+          permissionCheck: permissions.canViewSettings,
+        },
         {
           icon: UserCog,
           label: 'Usuários Master',
