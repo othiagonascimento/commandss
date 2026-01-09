@@ -14,6 +14,131 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_config: {
+        Row: {
+          enable_tri_modal: boolean | null
+          enable_uopa_agent: boolean | null
+          enable_vendedor_cloning: boolean | null
+          id: string
+          is_active: boolean | null
+          max_gpt4o_calls_per_day: number | null
+          orchestration_rules: Json | null
+          personality_prompt: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          enable_tri_modal?: boolean | null
+          enable_uopa_agent?: boolean | null
+          enable_vendedor_cloning?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_gpt4o_calls_per_day?: number | null
+          orchestration_rules?: Json | null
+          personality_prompt?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          enable_tri_modal?: boolean | null
+          enable_uopa_agent?: boolean | null
+          enable_vendedor_cloning?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_gpt4o_calls_per_day?: number | null
+          orchestration_rules?: Json | null
+          personality_prompt?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_orchestration_logs: {
+        Row: {
+          ai_response: string | null
+          ai_selected: string
+          confidence_score: number | null
+          conversation_id: string | null
+          conversation_stage: string | null
+          cost_usd: number | null
+          created_at: string | null
+          decision_reason: string | null
+          has_objection: boolean | null
+          id: string
+          lead_temperature: string | null
+          message_count: number | null
+          message_id: string | null
+          objection_complexity: number | null
+          response_time_ms: number | null
+          tenant_id: string | null
+          tokens_used: number | null
+          user_message: string | null
+          user_satisfaction: number | null
+        }
+        Insert: {
+          ai_response?: string | null
+          ai_selected: string
+          confidence_score?: number | null
+          conversation_id?: string | null
+          conversation_stage?: string | null
+          cost_usd?: number | null
+          created_at?: string | null
+          decision_reason?: string | null
+          has_objection?: boolean | null
+          id?: string
+          lead_temperature?: string | null
+          message_count?: number | null
+          message_id?: string | null
+          objection_complexity?: number | null
+          response_time_ms?: number | null
+          tenant_id?: string | null
+          tokens_used?: number | null
+          user_message?: string | null
+          user_satisfaction?: number | null
+        }
+        Update: {
+          ai_response?: string | null
+          ai_selected?: string
+          confidence_score?: number | null
+          conversation_id?: string | null
+          conversation_stage?: string | null
+          cost_usd?: number | null
+          created_at?: string | null
+          decision_reason?: string | null
+          has_objection?: boolean | null
+          id?: string
+          lead_temperature?: string | null
+          message_count?: number | null
+          message_id?: string | null
+          objection_complexity?: number | null
+          response_time_ms?: number | null
+          tenant_id?: string | null
+          tokens_used?: number | null
+          user_message?: string | null
+          user_satisfaction?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_orchestration_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_orchestration_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -108,6 +233,59 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
+      }
+      conversations: {
+        Row: {
+          ai_mode: string | null
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          status: string | null
+          tenant_id: string | null
+          uopa_agent_activated_at: string | null
+          uopa_agent_activated_by: string | null
+          uopa_agent_active: boolean | null
+          uopa_agent_deactivated_at: string | null
+          uopa_agent_duration: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_mode?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          uopa_agent_activated_at?: string | null
+          uopa_agent_activated_by?: string | null
+          uopa_agent_active?: boolean | null
+          uopa_agent_deactivated_at?: string | null
+          uopa_agent_duration?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_mode?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          uopa_agent_activated_at?: string | null
+          uopa_agent_activated_by?: string | null
+          uopa_agent_active?: boolean | null
+          uopa_agent_deactivated_at?: string | null
+          uopa_agent_duration?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feature_flags: {
         Row: {
@@ -231,6 +409,86 @@ export type Database = {
           trial_days?: number | null
           updated_at?: string | null
           used_count?: number | null
+        }
+        Relationships: []
+      }
+      knowledge_base: {
+        Row: {
+          category: string | null
+          content: string | null
+          id: string
+          is_from_template: boolean | null
+          keywords: string[] | null
+          priority: number | null
+          tenant_id: string | null
+          title: string | null
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          id?: string
+          is_from_template?: boolean | null
+          keywords?: string[] | null
+          priority?: number | null
+          tenant_id?: string | null
+          title?: string | null
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          id?: string
+          is_from_template?: boolean | null
+          keywords?: string[] | null
+          priority?: number | null
+          tenant_id?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_base_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_memory: {
+        Row: {
+          communication_style: string | null
+          conversation_summary: string | null
+          id: string
+          interests: string[] | null
+          last_interaction_at: string | null
+          lead_id: string
+          metadata: Json | null
+          pain_points: string[] | null
+          tenant_id: string
+          urgency_level: string | null
+        }
+        Insert: {
+          communication_style?: string | null
+          conversation_summary?: string | null
+          id?: string
+          interests?: string[] | null
+          last_interaction_at?: string | null
+          lead_id: string
+          metadata?: Json | null
+          pain_points?: string[] | null
+          tenant_id: string
+          urgency_level?: string | null
+        }
+        Update: {
+          communication_style?: string | null
+          conversation_summary?: string | null
+          id?: string
+          interests?: string[] | null
+          last_interaction_at?: string | null
+          lead_id?: string
+          metadata?: Json | null
+          pain_points?: string[] | null
+          tenant_id?: string
+          urgency_level?: string | null
         }
         Relationships: []
       }
@@ -514,6 +772,41 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      objection_handlers: {
+        Row: {
+          id: string
+          is_from_template: boolean | null
+          objection_type: string | null
+          response_template: string | null
+          tenant_id: string | null
+          trigger_phrases: string[] | null
+        }
+        Insert: {
+          id?: string
+          is_from_template?: boolean | null
+          objection_type?: string | null
+          response_template?: string | null
+          tenant_id?: string | null
+          trigger_phrases?: string[] | null
+        }
+        Update: {
+          id?: string
+          is_from_template?: boolean | null
+          objection_type?: string | null
+          response_template?: string | null
+          tenant_id?: string | null
+          trigger_phrases?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objection_handlers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_failures: {
         Row: {
@@ -865,6 +1158,33 @@ export type Database = {
           },
         ]
       }
+      tenant_template_exclusions: {
+        Row: {
+          exclusion_type: string | null
+          id: string
+          item_key: string
+          reason: string | null
+          template_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          exclusion_type?: string | null
+          id?: string
+          item_key: string
+          reason?: string | null
+          template_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          exclusion_type?: string | null
+          id?: string
+          item_key?: string
+          reason?: string | null
+          template_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       tenant_usage: {
         Row: {
           active_users: number | null
@@ -1075,6 +1395,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendedor_cloning_profiles: {
+        Row: {
+          analyzed_conversations_count: number | null
+          avg_message_length: number | null
+          confidence_score: number | null
+          created_at: string | null
+          emoji_usage_frequency: number | null
+          example_messages: Json | null
+          favorite_emojis: string[] | null
+          id: string
+          last_analysis_at: string | null
+          preferred_techniques: string[] | null
+          response_pattern: string | null
+          signature_phrases: string[] | null
+          tenant_id: string | null
+          tone: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          analyzed_conversations_count?: number | null
+          avg_message_length?: number | null
+          confidence_score?: number | null
+          created_at?: string | null
+          emoji_usage_frequency?: number | null
+          example_messages?: Json | null
+          favorite_emojis?: string[] | null
+          id?: string
+          last_analysis_at?: string | null
+          preferred_techniques?: string[] | null
+          response_pattern?: string | null
+          signature_phrases?: string[] | null
+          tenant_id?: string | null
+          tone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          analyzed_conversations_count?: number | null
+          avg_message_length?: number | null
+          confidence_score?: number | null
+          created_at?: string | null
+          emoji_usage_frequency?: number | null
+          example_messages?: Json | null
+          favorite_emojis?: string[] | null
+          id?: string
+          last_analysis_at?: string | null
+          preferred_techniques?: string[] | null
+          response_pattern?: string | null
+          signature_phrases?: string[] | null
+          tenant_id?: string | null
+          tone?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_cloning_profiles_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
