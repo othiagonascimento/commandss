@@ -29,6 +29,9 @@ const Templates = lazy(() => import("./pages/Templates"));
 const TemplateEditor = lazy(() => import("./pages/TemplateEditor"));
 const MasterUsers = lazy(() => import("./pages/MasterUsers"));
 const Plans = lazy(() => import("./pages/Plans"));
+const ActivityLogs = lazy(() => import("./pages/ActivityLogs"));
+const TenantHealth = lazy(() => import("./pages/TenantHealth"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -91,6 +94,9 @@ const App = () => (
                 <Route path="/admin/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
                 <Route path="/admin/templates/new" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
                 <Route path="/admin/templates/:id" element={<ProtectedRoute><TemplateEditor /></ProtectedRoute>} />
+                <Route path="/activity-logs" element={<ProtectedRoute><ActivityLogs /></ProtectedRoute>} />
+                <Route path="/tenant-health" element={<ProtectedRoute><TenantHealth /></ProtectedRoute>} />
+                <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
