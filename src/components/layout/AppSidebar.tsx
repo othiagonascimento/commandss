@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -12,7 +11,7 @@ import {
   X,
   HelpCircle,
   LogOut,
-  Flag,
+  FlaskConical,
   Megaphone,
   Link2,
   Brain,
@@ -182,10 +181,11 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           permissionCheck: permissions.canViewMasterUsers,
         },
         {
-          icon: Flag,
-          label: 'Feature Flags',
+          icon: FlaskConical,
+          label: 'Recursos Beta',
           path: '/feature-flags',
-          description: 'Controle de features',
+          description: 'Ative funcionalidades experimentais para tenants específicos',
+          badge: '🧪',
           permissionCheck: permissions.canViewFeatureFlags,
         },
         {

@@ -16,6 +16,7 @@ import { Building2, Target, Users, DollarSign, Clock, Sparkles, Plus, X } from '
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import type { TemplateFormData } from '@/types/templates';
+import { HelpTooltip, SectionHelp } from '@/components/ui/help-tooltip';
 
 const EMOJI_OPTIONS = ['📋', '🚗', '🏠', '💼', '🛒', '💰', '📱', '🎯', '⚡', '🔧', '🏥', '📚', '🍔', '✈️', '🎮', '👗', '💎', '🏋️', '🎓', '🔌'];
 
@@ -42,6 +43,12 @@ export function TemplateIdentityEditor() {
 
   return (
     <div className="space-y-6">
+      <SectionHelp
+        title="Identidade do Template"
+        description="Defina o nome, categoria e contexto de negócio. Essas informações ajudam a IA a entender o segmento do cliente e adaptar suas respostas automaticamente."
+        impact="Todos os tenants que usarem este template terão a IA pré-configurada para este tipo de negócio."
+      />
+
       {/* Basic Info Card */}
       <Card>
         <CardHeader className="pb-4">
@@ -63,7 +70,14 @@ export function TemplateIdentityEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug (identificador único) *</Label>
+              <Label htmlFor="slug" className="inline-flex items-center">
+                Identificador (Slug) *
+                <HelpTooltip 
+                  title="O que é Slug?"
+                  description="Nome técnico usado em URLs e integrações. Deve ser único, sem espaços ou caracteres especiais."
+                  example="Ex: veiculos → usado em api.uopa.com/veiculos"
+                />
+              </Label>
               <Input
                 id="slug"
                 placeholder="Ex: veiculos"
@@ -71,7 +85,7 @@ export function TemplateIdentityEditor() {
                 className="font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                Letras minúsculas, números e hífens
+                Use apenas letras minúsculas, números e hífens
               </p>
             </div>
           </div>
@@ -152,6 +166,9 @@ export function TemplateIdentityEditor() {
               <Label className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
                 Tipo de Negócio
+                <HelpTooltip 
+                  description="Define para quem você vende: empresas (B2B), consumidores (B2C) ou híbrido."
+                />
               </Label>
               <Select 
                 value={businessContext?.business_type || 'B2C'} 
@@ -161,10 +178,10 @@ export function TemplateIdentityEditor() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="B2B">B2B (Empresas)</SelectItem>
-                  <SelectItem value="B2C">B2C (Consumidor)</SelectItem>
-                  <SelectItem value="D2C">D2C (Direto)</SelectItem>
-                  <SelectItem value="B2B2C">B2B2C (Híbrido)</SelectItem>
+                  <SelectItem value="B2B">B2B (Venda para Empresas)</SelectItem>
+                  <SelectItem value="B2C">B2C (Venda para Consumidor)</SelectItem>
+                  <SelectItem value="D2C">D2C (Venda Direta, sem intermediários)</SelectItem>
+                  <SelectItem value="B2B2C">B2B2C (Híbrido: vende para empresa que revende)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -184,6 +201,10 @@ export function TemplateIdentityEditor() {
               <Label className="flex items-center gap-1">
                 <DollarSign className="h-3 w-3" />
                 Ticket Médio (R$)
+                <HelpTooltip 
+                  description="Valor médio de cada venda. Ajuda a IA a calibrar argumentos."
+                  example="Ex: R$ 50.000 para carros, R$ 50 para fast-food"
+                />
               </Label>
               <Input
                 type="number"
@@ -196,6 +217,10 @@ export function TemplateIdentityEditor() {
               <Label className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 Ciclo de Vendas (dias)
+                <HelpTooltip 
+                  description="Tempo médio entre primeiro contato e fechamento da venda."
+                  example="Ex: 1 dia para e-commerce, 90 dias para imóveis"
+                />
               </Label>
               <Input
                 type="number"

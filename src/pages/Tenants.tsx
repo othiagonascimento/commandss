@@ -100,16 +100,28 @@ export default function Tenants() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Tenants"
-        description="Gerencie todas as empresas do sistema"
+        title="Empresas (Tenants)"
+        description="Gerencie todas as empresas cadastradas na plataforma"
         icon={Building2}
         actions={
           <Button onClick={() => navigate('/tenants/new')}>
             <Plus className="w-4 h-4 mr-2" />
-            Novo Tenant
+            Nova Empresa
           </Button>
         }
       />
+
+      {/* Banner Educativo */}
+      <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20 mb-6">
+        <Building2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="font-medium text-sm text-foreground">O que são Tenants?</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Tenants são as empresas que usam a plataforma Uôpa. Cada tenant tem acesso isolado, com seus próprios usuários, leads, configurações e dados. 
+            Alterações em um tenant não afetam os outros.
+          </p>
+        </div>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -159,8 +171,13 @@ export default function Tenants() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
-                    <TableHead>Slug</TableHead>
-                    <TableHead>Plano</TableHead>
+                    <TableHead>
+                      <span className="inline-flex items-center gap-1">
+                        Identificador
+                        <span className="text-muted-foreground text-xs">(slug)</span>
+                      </span>
+                    </TableHead>
+                    <TableHead>Tipo de Plano</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Criado em</TableHead>
                     <TableHead className="text-right">Ações</TableHead>

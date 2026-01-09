@@ -202,9 +202,21 @@ export default function Subscriptions() {
     <DashboardLayout>
       <PageHeader
         title="Assinaturas"
-        description="Gerencie planos e cobranças dos tenants"
+        description="Gerencie planos e cobranças das empresas"
         icon={CreditCard}
       />
+
+      {/* Banner Educativo */}
+      <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20 mb-6">
+        <CreditCard className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="font-medium text-sm text-foreground">Sobre o MRR (Receita Mensal Recorrente)</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            O MRR é a soma de todas as assinaturas ativas convertidas para valor mensal. É a principal métrica de saúde financeira do negócio. 
+            "Trial" significa período de teste gratuito antes da conversão para pagante.
+          </p>
+        </div>
+      </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -234,7 +246,7 @@ export default function Subscriptions() {
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-info" />
-                Em Trial
+                Em Período de Teste
               </CardDescription>
             </CardHeader>
             <CardContent>
