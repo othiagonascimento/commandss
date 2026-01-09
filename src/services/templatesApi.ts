@@ -30,7 +30,7 @@ interface ApiResponse<T> {
 }
 
 // Set to true to always use mock data (useful for development)
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 async function callTemplatesProxy<T>(
   action: string,

@@ -5,7 +5,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const DESTINATION_URL = 'https://opvoghzpocraibchbczs.supabase.co/functions/v1';
+// Use environment variables for destination project
+const REMOTE_SUPABASE_URL = Deno.env.get('REMOTE_SUPABASE_URL') || 'https://opvoghzpocraibchbczs.supabase.co';
+const REMOTE_SUPABASE_ANON_KEY = Deno.env.get('REMOTE_SUPABASE_ANON_KEY');
+const DESTINATION_URL = `${REMOTE_SUPABASE_URL}/functions/v1`;
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -81,6 +84,11 @@ serve(async (req) => {
 
     console.log(`[master-templates-proxy] Proxying ${action} to ${DESTINATION_URL}/${destinationEndpoint}`);
 
+    // Use the remote anon key if available, otherwise fall back to the request's auth header
+    const authorizationHeader = REMOTE_SUPABASE_ANON_KEY 
+      ? `Bearer ${REMOTE_SUPABASE_ANON_KEY}` 
+      : authHeader;
+
     // Make request to destination project
     const hasBody = Object.keys(body).length > 0 && destinationMethod !== 'GET';
     
@@ -88,7 +96,8 @@ serve(async (req) => {
       method: destinationMethod,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': authHeader,
+        'Authorization': authorizationHeader,
+        'apikey': REMOTE_SUPABASE_ANON_KEY || '',
       },
       body: hasBody ? JSON.stringify(body) : undefined,
     });

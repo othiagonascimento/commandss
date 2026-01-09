@@ -33,7 +33,6 @@ import {
   Users,
   CreditCard,
   Palette,
-  Settings,
   TrendingUp,
   TrendingDown,
   RefreshCw,
@@ -239,38 +238,61 @@ export default function TenantDetail() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview" className="gap-2">
-              <Building2 className="w-4 h-4" />
-              Visão Geral
+          {/* Mobile: Dropdown for tabs */}
+          <div className="md:hidden">
+            <select 
+              className="w-full p-2 rounded-md border bg-background text-sm"
+              onChange={(e) => {
+                const tab = document.querySelector(`[data-state="active"][value="${e.target.value}"]`) as HTMLElement;
+                tab?.click();
+              }}
+              defaultValue="overview"
+            >
+              <option value="overview">📊 Visão Geral</option>
+              <option value="users">👥 Usuários</option>
+              <option value="subscription">💳 Assinatura</option>
+              <option value="branding">🎨 Branding</option>
+              <option value="domains">🌐 Domínios</option>
+              <option value="onboarding">✅ Onboarding</option>
+              <option value="economics">💰 Unit Economics</option>
+            </select>
+          </div>
+
+          {/* Desktop: Tab list */}
+          <TabsList className="hidden md:flex flex-wrap gap-1">
+            <TabsTrigger value="overview" className="gap-1 text-xs lg:text-sm">
+              <Building2 className="w-3 h-3 lg:w-4 lg:h-4" />
+              <span className="hidden lg:inline">Visão Geral</span>
+              <span className="lg:hidden">Geral</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="gap-2">
-              <Users className="w-4 h-4" />
+            <TabsTrigger value="users" className="gap-1 text-xs lg:text-sm">
+              <Users className="w-3 h-3 lg:w-4 lg:h-4" />
               Usuários
             </TabsTrigger>
-            <TabsTrigger value="subscription" className="gap-2">
-              <CreditCard className="w-4 h-4" />
-              Assinatura
+            <TabsTrigger value="subscription" className="gap-1 text-xs lg:text-sm">
+              <CreditCard className="w-3 h-3 lg:w-4 lg:h-4" />
+              <span className="hidden lg:inline">Assinatura</span>
+              <span className="lg:hidden">$</span>
             </TabsTrigger>
-            <TabsTrigger value="branding" className="gap-2">
-              <Palette className="w-4 h-4" />
-              Branding
+            <TabsTrigger value="branding" className="gap-1 text-xs lg:text-sm">
+              <Palette className="w-3 h-3 lg:w-4 lg:h-4" />
+              <span className="hidden lg:inline">Branding</span>
+              <span className="lg:hidden">🎨</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2">
-              <Settings className="w-4 h-4" />
-              Configurações
+            <TabsTrigger value="domains" className="gap-1 text-xs lg:text-sm">
+              <Globe className="w-3 h-3 lg:w-4 lg:h-4" />
+              <span className="hidden lg:inline">Domínios</span>
+              <span className="lg:hidden">🌐</span>
             </TabsTrigger>
-            <TabsTrigger value="onboarding" className="gap-2">
-              <ClipboardList className="w-4 h-4" />
-              Onboarding
+            <TabsTrigger value="onboarding" className="gap-1 text-xs lg:text-sm">
+              <ClipboardList className="w-3 h-3 lg:w-4 lg:h-4" />
+              <span className="hidden lg:inline">Onboarding</span>
+              <span className="lg:hidden">✅</span>
             </TabsTrigger>
-            <TabsTrigger value="domains" className="gap-2">
-              <Globe className="w-4 h-4" />
-              Domínios
-            </TabsTrigger>
-            <TabsTrigger value="economics" className="gap-2">
-              <DollarSign className="w-4 h-4" />
-              Unit Economics
+            <TabsTrigger value="economics" className="gap-1 text-xs lg:text-sm">
+              <DollarSign className="w-3 h-3 lg:w-4 lg:h-4" />
+              <span className="hidden lg:inline">Economics</span>
+              <span className="lg:hidden">💰</span>
             </TabsTrigger>
           </TabsList>
 
@@ -692,23 +714,6 @@ export default function TenantDetail() {
               branding={tenant.branding}
               planType={tenant.plan_type}
             />
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configurações Avançadas</CardTitle>
-                <CardDescription>
-                  Configurações gerais e limites do tenant
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Configurações avançadas em desenvolvimento...
-                </p>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Onboarding Tab */}
