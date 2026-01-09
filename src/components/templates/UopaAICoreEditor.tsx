@@ -31,6 +31,7 @@ import {
   Ban,
   Sparkles,
   ChevronDown,
+  Cpu,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -265,7 +266,61 @@ export function UopaAICoreEditor() {
                       <SelectItem value="pt-BR-ne">Português (Nordeste)</SelectItem>
                       <SelectItem value="pt-BR-sul">Português (Sul)</SelectItem>
                     </SelectContent>
+                </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Cpu className="h-4 w-4 text-primary" />
+                Motores de Inteligência
+              </CardTitle>
+              <CardDescription>
+                Configure quais modelos de IA serão utilizados em cada camada de processamento
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Camada 1 - Operacional/Router</Label>
+                  <Select 
+                    value={uopaCore?.layer_1_model || 'gemini-1.5-flash'} 
+                    onValueChange={(value) => setValue('uopa_ai_core.layer_1_model', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
+                      <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
+                    </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Modelo rápido para roteamento e tarefas operacionais
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Camada 2 - Vendas (Elite)</Label>
+                  <Select 
+                    value={uopaCore?.layer_2_model || 'gpt-4o'} 
+                    onValueChange={(value) => setValue('uopa_ai_core.layer_2_model', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                      <SelectItem value="claude-3.5-sonnet">Claude 3.5 Sonnet</SelectItem>
+                      <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Modelo avançado para conversas de vendas complexas
+                  </p>
                 </div>
               </div>
 

@@ -357,6 +357,10 @@ export interface UopaAICoreConfig {
   communication_style: 'direct' | 'consultative' | 'educational' | 'empathetic';
   language_regionalism: string;
   
+  // AI Engine Layers
+  layer_1_model?: string;
+  layer_2_model?: string;
+  
   // Context
   business_context: BusinessContext;
   personas: CustomerPersona[];
@@ -509,6 +513,8 @@ export interface TemplateFormData {
     proactivity_level: 'low' | 'medium' | 'high';
     communication_style: 'direct' | 'consultative' | 'educational' | 'empathetic';
     language_regionalism: string;
+    layer_1_model?: string;
+    layer_2_model?: string;
     personas: CustomerPersona[];
     knowledge_base: FAQItem[];
     conversation_examples: ConversationExample[];
