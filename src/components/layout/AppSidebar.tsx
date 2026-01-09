@@ -84,6 +84,21 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           description: 'Métricas e visão geral',
           permissionCheck: permissions.canViewDashboard,
         },
+        {
+          icon: BarChart3,
+          label: 'Inteligência de Receita',
+          path: '/analytics',
+          description: 'Cohort, LTV, churn e métricas avançadas',
+          badge: 'Novo',
+          permissionCheck: permissions.canViewDashboard,
+        },
+        {
+          icon: Building2,
+          label: 'Saúde dos Tenants',
+          path: '/tenant-health',
+          description: 'Monitoramento de status e alertas',
+          permissionCheck: permissions.canViewTenants,
+        },
       ],
     },
     {
@@ -179,6 +194,13 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           path: '/master-users',
           description: 'Gestão de acessos',
           permissionCheck: permissions.canViewMasterUsers,
+        },
+        {
+          icon: FileText,
+          label: 'Logs de Atividade',
+          path: '/activity-logs',
+          description: 'Auditoria e histórico de ações',
+          permissionCheck: permissions.canViewSettings,
         },
         {
           icon: FlaskConical,
