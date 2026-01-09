@@ -38,10 +38,10 @@ interface OnboardingChecklistProps {
 
 const STATUS_CONFIG = {
   pending: { label: 'Pendente', color: 'bg-muted text-muted-foreground', icon: Circle },
-  configuring: { label: 'Configurando', color: 'bg-warning/20 text-warning', icon: Settings },
+  configuring: { label: 'Em Configuração', color: 'bg-warning/20 text-warning', icon: Settings },
   whatsapp_connected: { label: 'WhatsApp Conectado', color: 'bg-success/20 text-success', icon: MessageSquare },
-  training_done: { label: 'Treinamento Feito', color: 'bg-primary/20 text-primary', icon: GraduationCap },
-  go_live: { label: 'Go Live', color: 'bg-success text-success-foreground', icon: Rocket },
+  training_done: { label: 'Treinamento Concluído', color: 'bg-primary/20 text-primary', icon: GraduationCap },
+  go_live: { label: 'Ativo (Go Live)', color: 'bg-success text-success-foreground', icon: Rocket },
 };
 
 const CHECKLIST_ITEMS = [
@@ -130,6 +130,15 @@ export function OnboardingChecklist({ tenantId, onboarding, templates }: Onboard
 
   return (
     <div className="space-y-4">
+      {/* Texto Educativo */}
+      <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+        <p className="font-medium text-foreground mb-1">🚀 Acompanhamento de Ativação</p>
+        <p className="leading-relaxed">
+          Monitore o progresso de ativação desta empresa. Cada etapa concluída aproxima o cliente do Go Live 
+          (momento em que começa a usar a plataforma em produção).
+        </p>
+      </div>
+
       {/* Status Card */}
       <Card>
         <CardHeader className="pb-3">
@@ -140,7 +149,7 @@ export function OnboardingChecklist({ tenantId, onboarding, templates }: Onboard
               {STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]?.label}
             </Badge>
           </div>
-          <CardDescription>Progresso: {progress}% ({completedCount}/{totalCount})</CardDescription>
+          <CardDescription>Progresso: {progress}% ({completedCount}/{totalCount} etapas)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="w-full bg-muted rounded-full h-2 mb-4">

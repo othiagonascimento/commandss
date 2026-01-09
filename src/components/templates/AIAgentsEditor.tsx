@@ -157,6 +157,18 @@ export function AIAgentsEditor({ agents, onChange }: AIAgentsEditorProps) {
 
   return (
     <div className="space-y-6">
+      {/* Texto Educativo */}
+      <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 mb-4">
+        <p className="font-medium text-foreground mb-1">🤖 O que são Agentes de IA?</p>
+        <p className="leading-relaxed">
+          Agentes são IAs especializadas que atuam em momentos específicos do funil. Cada agente tem seu próprio prompt, 
+          ações permitidas e regras de transferência. Eles trabalham de forma autônoma, sem intervenção humana.
+        </p>
+        <p className="mt-2 text-primary/80">
+          <span className="font-medium">Impacto no tenant:</span> Partes do funil serão automatizadas (qualificação, follow-up, fechamento).
+        </p>
+      </div>
+
       {/* Templates de Agentes */}
       <Card>
         <CardHeader>
@@ -256,9 +268,14 @@ export function AIAgentsEditor({ agents, onChange }: AIAgentsEditorProps) {
                   {/* Temperatura */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label>Temperatura: {agent.temperature}</Label>
+                      <Label>
+                        Criatividade: {agent.temperature}
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          (antigo: Temperature)
+                        </span>
+                      </Label>
                       <span className="text-xs text-muted-foreground">
-                        {agent.temperature < 0.3 ? "Mais focado" : agent.temperature > 0.7 ? "Mais criativo" : "Balanceado"}
+                        {agent.temperature < 0.3 ? "🎯 Focado e previsível" : agent.temperature > 0.7 ? "🎨 Criativo e variado" : "⚖️ Balanceado"}
                       </span>
                     </div>
                     <Slider
@@ -268,6 +285,9 @@ export function AIAgentsEditor({ agents, onChange }: AIAgentsEditorProps) {
                       max={1}
                       step={0.1}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      0 = respostas focadas e consistentes | 1 = respostas mais criativas e variadas
+                    </p>
                   </div>
 
                   {/* Ações Permitidas */}

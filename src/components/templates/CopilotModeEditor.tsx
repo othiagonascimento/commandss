@@ -74,6 +74,18 @@ export function CopilotModeEditor({ config, onChange }: CopilotModeEditorProps) 
 
   return (
     <div className="space-y-6">
+      {/* Texto Educativo */}
+      <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 mb-4">
+        <p className="font-medium text-foreground mb-1">🤖 O que é o Copiloto?</p>
+        <p className="leading-relaxed">
+          O Copiloto é um assistente de IA que ajuda vendedores humanos em tempo real. Ele sugere respostas, 
+          mas o vendedor decide quando usar. Ideal para aumentar produtividade sem substituir o toque humano.
+        </p>
+        <p className="mt-2 text-primary/80">
+          <span className="font-medium">Impacto no tenant:</span> Vendedores receberão sugestões automáticas durante conversas.
+        </p>
+      </div>
+
       {/* Configurações Principais */}
       <Card>
         <CardHeader>
@@ -96,9 +108,9 @@ export function CopilotModeEditor({ config, onChange }: CopilotModeEditorProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="suggestion">Sugestão - Apenas sugere opções</SelectItem>
-                  <SelectItem value="draft">Rascunho - Cria texto para aprovação</SelectItem>
-                  <SelectItem value="autocomplete">Autocompletar - Completa enquanto digita</SelectItem>
+                  <SelectItem value="suggestion">Sugestão (mostra opções para escolher)</SelectItem>
+                  <SelectItem value="draft">Rascunho (escreve texto para aprovação)</SelectItem>
+                  <SelectItem value="autocomplete">Autocompletar (completa enquanto digita)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -115,7 +127,7 @@ export function CopilotModeEditor({ config, onChange }: CopilotModeEditorProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bullet">Bullet Points</SelectItem>
+                  <SelectItem value="bullet">Lista de Tópicos</SelectItem>
                   <SelectItem value="prose">Texto Corrido</SelectItem>
                 </SelectContent>
               </Select>
@@ -135,8 +147,8 @@ export function CopilotModeEditor({ config, onChange }: CopilotModeEditorProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fast">Rápida - Respostas curtas e diretas</SelectItem>
-                  <SelectItem value="elaborate">Elaborada - Respostas detalhadas</SelectItem>
+                  <SelectItem value="fast">Rápida (respostas curtas e diretas)</SelectItem>
+                  <SelectItem value="elaborate">Detalhada (respostas completas)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

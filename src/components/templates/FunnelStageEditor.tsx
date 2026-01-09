@@ -45,6 +45,18 @@ export function FunnelStageEditor() {
 
   return (
     <div className="space-y-6">
+      {/* Texto Educativo */}
+      <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 mb-4">
+        <p className="font-medium text-foreground mb-1">📊 Etapas do Funil de Vendas</p>
+        <p className="leading-relaxed">
+          O funil define a jornada do lead desde o primeiro contato até a conversão. 
+          Cada etapa representa um estágio diferente: novo lead, em negociação, proposta enviada, etc.
+        </p>
+        <p className="mt-2 text-primary/80">
+          <span className="font-medium">Impacto no tenant:</span> Define o kanban de leads e métricas de conversão entre etapas.
+        </p>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-medium">Etapas do Funil</h3>

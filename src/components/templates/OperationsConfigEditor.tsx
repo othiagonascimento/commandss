@@ -103,6 +103,18 @@ export function OperationsConfigEditor({
 
   return (
     <div className="space-y-6">
+      {/* Texto Educativo */}
+      <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 mb-4">
+        <p className="font-medium text-foreground mb-1">⚙️ Configurações Operacionais</p>
+        <p className="leading-relaxed">
+          Defina regras de negócio: tempos de resposta (SLA), quando escalar para humanos, 
+          metas de performance (KPIs) e horários de atendimento.
+        </p>
+        <p className="mt-2 text-primary/80">
+          <span className="font-medium">Impacto no tenant:</span> Define qualidade mínima de atendimento e gera alertas automáticos.
+        </p>
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="sla" className="flex-1 min-w-[80px] text-xs sm:text-sm">
@@ -115,7 +127,7 @@ export function OperationsConfigEditor({
           </TabsTrigger>
           <TabsTrigger value="metrics" className="flex-1 min-w-[80px] text-xs sm:text-sm">
             <Target className="h-4 w-4 mr-1 hidden sm:inline" />
-            KPIs
+            Metas (KPIs)
           </TabsTrigger>
           <TabsTrigger value="hours" className="flex-1 min-w-[80px] text-xs sm:text-sm">
             <Calendar className="h-4 w-4 mr-1 hidden sm:inline" />
@@ -127,7 +139,12 @@ export function OperationsConfigEditor({
         <TabsContent value="sla" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Tempo de Resposta</CardTitle>
+              <CardTitle className="text-base">
+                Tempo de Resposta (SLA)
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                SLA significa "Acordo de Nível de Serviço" - define tempos máximos aceitáveis de atendimento
+              </p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

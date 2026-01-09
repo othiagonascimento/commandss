@@ -76,6 +76,18 @@ export default function Templates() {
         }
       />
 
+      {/* Banner Educativo */}
+      <div className="flex items-start gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20 mb-6">
+        <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          <p className="font-medium text-sm text-foreground">O que são Templates de Nicho?</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Templates são configurações pré-definidas de IA, funil e automações para um segmento específico (ex: imobiliárias, veículos, e-commerce). 
+            Quando aplicado a um tenant, o template injeta automaticamente todos os prompts, fluxos e comportamentos da IA.
+          </p>
+        </div>
+      </div>
+
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">

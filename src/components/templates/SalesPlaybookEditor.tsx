@@ -168,6 +168,18 @@ export function SalesPlaybookEditor({
 
   return (
     <div className="space-y-6">
+      {/* Texto Educativo */}
+      <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 mb-4">
+        <p className="font-medium text-foreground mb-1">📖 O que é o Playbook de Vendas?</p>
+        <p className="leading-relaxed">
+          O Playbook é o manual de vendas que a IA e os vendedores consultam. Inclui respostas rápidas para situações comuns, 
+          tratamento de objeções e scripts de fechamento. Quanto mais completo, melhor a performance.
+        </p>
+        <p className="mt-2 text-primary/80">
+          <span className="font-medium">Impacto no tenant:</span> Padroniza a comunicação e aumenta taxa de conversão.
+        </p>
+      </div>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full flex flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="quick-replies" className="flex-1 min-w-[100px] text-xs sm:text-sm">
@@ -323,13 +335,13 @@ export function SalesPlaybookEditor({
                               updateObjectionHandler(handler.id, { responses: newResponses });
                             }}
                           >
-                            <SelectTrigger className="w-32">
+                            <SelectTrigger className="w-36">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="soft">Leve</SelectItem>
-                              <SelectItem value="moderate">Moderada</SelectItem>
-                              <SelectItem value="strong">Forte</SelectItem>
+                              <SelectItem value="soft">🟢 Leve</SelectItem>
+                              <SelectItem value="moderate">🟡 Moderada</SelectItem>
+                              <SelectItem value="strong">🔴 Forte</SelectItem>
                             </SelectContent>
                           </Select>
                           <Button
@@ -432,14 +444,17 @@ export function SalesPlaybookEditor({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="assumptive">Assumptivo</SelectItem>
-                          <SelectItem value="alternative">Alternativa</SelectItem>
-                          <SelectItem value="urgency">Urgência</SelectItem>
-                          <SelectItem value="summary">Resumo</SelectItem>
-                          <SelectItem value="trial">Trial</SelectItem>
+                          <SelectItem value="assumptive">Assumptivo (assume que vai comprar)</SelectItem>
+                          <SelectItem value="alternative">Alternativa (oferece duas opções)</SelectItem>
+                          <SelectItem value="urgency">Urgência (cria senso de escassez)</SelectItem>
+                          <SelectItem value="summary">Resumo (recapitula benefícios)</SelectItem>
+                          <SelectItem value="trial">Teste (oferece experiência)</SelectItem>
                           <SelectItem value="custom">Personalizado</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Cada tipo de fechamento funciona melhor em diferentes situações
+                      </p>
                     </div>
                   </div>
 
