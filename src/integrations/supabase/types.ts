@@ -16,37 +16,61 @@ export type Database = {
     Tables: {
       ai_config: {
         Row: {
+          active_mode: string | null
+          custom_prompt_addendum: string | null
           enable_tri_modal: boolean | null
           enable_uopa_agent: boolean | null
           enable_vendedor_cloning: boolean | null
           id: string
           is_active: boolean | null
+          layer_1_model: string | null
+          layer_2_model: string | null
+          layer_3_model: string | null
           max_gpt4o_calls_per_day: number | null
+          niche_category: string | null
           orchestration_rules: Json | null
           personality_prompt: string | null
+          prohibited_phrases: string[] | null
           tenant_id: string | null
+          tone_voice: string | null
         }
         Insert: {
+          active_mode?: string | null
+          custom_prompt_addendum?: string | null
           enable_tri_modal?: boolean | null
           enable_uopa_agent?: boolean | null
           enable_vendedor_cloning?: boolean | null
           id?: string
           is_active?: boolean | null
+          layer_1_model?: string | null
+          layer_2_model?: string | null
+          layer_3_model?: string | null
           max_gpt4o_calls_per_day?: number | null
+          niche_category?: string | null
           orchestration_rules?: Json | null
           personality_prompt?: string | null
+          prohibited_phrases?: string[] | null
           tenant_id?: string | null
+          tone_voice?: string | null
         }
         Update: {
+          active_mode?: string | null
+          custom_prompt_addendum?: string | null
           enable_tri_modal?: boolean | null
           enable_uopa_agent?: boolean | null
           enable_vendedor_cloning?: boolean | null
           id?: string
           is_active?: boolean | null
+          layer_1_model?: string | null
+          layer_2_model?: string | null
+          layer_3_model?: string | null
           max_gpt4o_calls_per_day?: number | null
+          niche_category?: string | null
           orchestration_rules?: Json | null
           personality_prompt?: string | null
+          prohibited_phrases?: string[] | null
           tenant_id?: string | null
+          tone_voice?: string | null
         }
         Relationships: [
           {
@@ -489,6 +513,30 @@ export type Database = {
           pain_points?: string[] | null
           tenant_id?: string
           urgency_level?: string | null
+        }
+        Relationships: []
+      }
+      master_ai_prompts: {
+        Row: {
+          content: string
+          description: string | null
+          id: string
+          prompt_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          description?: string | null
+          id?: string
+          prompt_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          description?: string | null
+          id?: string
+          prompt_type?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
