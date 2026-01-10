@@ -55,6 +55,7 @@ import {
   Ban,
   Globe,
   Settings2,
+  Brain,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -68,6 +69,7 @@ import { TenantModulesEditor } from '@/components/tenant/TenantModulesEditor';
 import { TenantLimitsEditor } from '@/components/tenant/TenantLimitsEditor';
 import { TenantUsageProgress } from '@/components/tenant/TenantUsageProgress';
 import { TenantOverridesForm } from '@/components/tenant/TenantOverridesForm';
+import { TenantAIEngineEditor } from '@/components/tenant/TenantAIEngineEditor';
 
 const planColors: Record<string, string> = {
   basic: 'bg-muted text-muted-foreground',
@@ -348,6 +350,7 @@ export default function TenantDetail() {
             >
               <option value="overview">📊 Visão Geral</option>
               <option value="resources">⚙️ Recursos e Limites</option>
+              <option value="ai-engine">🧠 Motor de IA</option>
               <option value="users">👥 Usuários</option>
               <option value="subscription">💳 Assinatura</option>
               <option value="branding">🎨 Branding</option>
@@ -368,6 +371,11 @@ export default function TenantDetail() {
               <Settings2 className="w-3 h-3 lg:w-4 lg:h-4" />
               <span className="hidden lg:inline">Recursos</span>
               <span className="lg:hidden">⚙️</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-engine" className="gap-1 text-xs lg:text-sm">
+              <Brain className="w-3 h-3 lg:w-4 lg:h-4" />
+              <span className="hidden lg:inline">Motor de IA</span>
+              <span className="lg:hidden">🧠</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-1 text-xs lg:text-sm">
               <Users className="w-3 h-3 lg:w-4 lg:h-4" />
@@ -895,6 +903,25 @@ export default function TenantDetail() {
           {/* Unit Economics Tab */}
           <TabsContent value="economics">
             <UnitEconomicsCard tenantId={id!} />
+          </TabsContent>
+
+          {/* AI Engine Tab */}
+          <TabsContent value="ai-engine">
+            {features && (
+              <TenantAIEngineEditor
+                tenantId={id!}
+                config={{
+                  ai_use_global_config: features.ai_use_global_config ?? true,
+                  ai_layer_1_model: features.ai_layer_1_model ?? null,
+                  ai_layer_1_instructions: features.ai_layer_1_instructions ?? null,
+                  ai_layer_2_model: features.ai_layer_2_model ?? null,
+                  ai_layer_2_instructions: features.ai_layer_2_instructions ?? null,
+                  ai_layer_3_model: features.ai_layer_3_model ?? null,
+                  ai_layer_3_instructions: features.ai_layer_3_instructions ?? null,
+                }}
+                isLoading={featuresLoading}
+              />
+            )}
           </TabsContent>
         </Tabs>
     </DashboardLayout>

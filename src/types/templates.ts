@@ -357,9 +357,10 @@ export interface UopaAICoreConfig {
   communication_style: 'direct' | 'consultative' | 'educational' | 'empathetic';
   language_regionalism: string;
   
-  // AI Engine Layers
+  // AI Engine Layers (3 layers)
   layer_1_model?: string;
   layer_2_model?: string;
+  layer_3_model?: string;
   
   // Context
   business_context: BusinessContext;

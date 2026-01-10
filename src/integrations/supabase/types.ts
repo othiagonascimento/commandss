@@ -1330,6 +1330,13 @@ export type Database = {
       }
       tenant_features: {
         Row: {
+          ai_layer_1_instructions: string | null
+          ai_layer_1_model: string | null
+          ai_layer_2_instructions: string | null
+          ai_layer_2_model: string | null
+          ai_layer_3_instructions: string | null
+          ai_layer_3_model: string | null
+          ai_use_global_config: boolean | null
           created_at: string | null
           id: string
           limit_ai_tokens_monthly: number | null
@@ -1355,6 +1362,13 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ai_layer_1_instructions?: string | null
+          ai_layer_1_model?: string | null
+          ai_layer_2_instructions?: string | null
+          ai_layer_2_model?: string | null
+          ai_layer_3_instructions?: string | null
+          ai_layer_3_model?: string | null
+          ai_use_global_config?: boolean | null
           created_at?: string | null
           id?: string
           limit_ai_tokens_monthly?: number | null
@@ -1380,6 +1394,13 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ai_layer_1_instructions?: string | null
+          ai_layer_1_model?: string | null
+          ai_layer_2_instructions?: string | null
+          ai_layer_2_model?: string | null
+          ai_layer_3_instructions?: string | null
+          ai_layer_3_model?: string | null
+          ai_use_global_config?: boolean | null
           created_at?: string | null
           id?: string
           limit_ai_tokens_monthly?: number | null

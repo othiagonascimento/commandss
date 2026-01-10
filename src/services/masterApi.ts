@@ -440,6 +440,14 @@ export interface TenantFeatures {
   limit_whatsapp_instances: number;
   limit_ai_tokens_monthly: number;
   limit_storage_mb: number;
+  // AI Engine Config
+  ai_use_global_config?: boolean;
+  ai_layer_1_model?: string | null;
+  ai_layer_1_instructions?: string | null;
+  ai_layer_2_model?: string | null;
+  ai_layer_2_instructions?: string | null;
+  ai_layer_3_model?: string | null;
+  ai_layer_3_instructions?: string | null;
   // Overrides
   overrides: Record<string, unknown>;
   override_reason?: string | null;
@@ -468,6 +476,15 @@ export interface TenantFeaturesPayload {
     limit_whatsapp_instances?: number;
     limit_ai_tokens_monthly?: number;
     limit_storage_mb?: number;
+  };
+  ai_config?: {
+    ai_use_global_config?: boolean;
+    ai_layer_1_model?: string | null;
+    ai_layer_1_instructions?: string | null;
+    ai_layer_2_model?: string | null;
+    ai_layer_2_instructions?: string | null;
+    ai_layer_3_model?: string | null;
+    ai_layer_3_instructions?: string | null;
   };
   overrides?: Record<string, unknown>;
   override_reason?: string;
