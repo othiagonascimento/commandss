@@ -13,9 +13,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   Infinity,
+  Database,
+  Cloud,
 } from 'lucide-react';
 import { TenantUsageDetail } from '@/services/masterApi';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface TenantUsageProgressProps {
   usage: TenantUsageDetail | null;
@@ -93,111 +96,146 @@ export function TenantUsageProgress({ usage, isLoading, onRecalculate }: TenantU
   }
 
   const hasAlerts = usage.alerts && usage.alerts.length > 0;
+  const dataSource = (usage as TenantUsageDetail & { data_source?: string }).data_source;
 
   return (
-    <Card className={cn(hasAlerts && 'border-amber-500/50')}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              {hasAlerts ? (
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
-              ) : (
-                <CheckCircle2 className="w-5 h-5 text-success" />
-              )}
-              Consumo Atual
-            </CardTitle>
-            <CardDescription>
-              Uso de recursos vs limites configurados
-              {usage.last_calculated_at && (
-                <span className="block text-xs mt-1">
-                  Última atualização: {new Date(usage.last_calculated_at).toLocaleString('pt-BR')}
-                </span>
-              )}
-            </CardDescription>
+    <TooltipProvider>
+      <Card className={cn(hasAlerts && 'border-amber-500/50')}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                {hasAlerts ? (
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5 text-success" />
+                )}
+                Consumo Atual
+                {dataSource && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="ml-2 gap-1 text-xs">
+                        {dataSource === 'remote' ? (
+                          <>
+                            <Cloud className="w-3 h-3" />
+                            Remoto
+                          </>
+                        ) : (
+                          <>
+                            <Database className="w-3 h-3" />
+                            Local
+                          </>
+                        )}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {dataSource === 'remote' 
+                        ? 'Dados obtidos do sistema remoto (fonte real)'
+                        : 'Dados obtidos do banco local (pode estar desatualizado)'
+                      }
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Uso de recursos vs limites configurados
+                {usage.last_calculated_at && (
+                  <span className="block text-xs mt-1">
+                    Última atualização: {new Date(usage.last_calculated_at).toLocaleString('pt-BR')}
+                  </span>
+                )}
+              </CardDescription>
+            </div>
+            {onRecalculate && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={onRecalculate} disabled={isLoading}>
+                    <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
+                    Recalcular
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Buscar dados atualizados do sistema
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
-          {onRecalculate && (
-            <Button variant="outline" size="sm" onClick={onRecalculate} disabled={isLoading}>
-              <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
-              Recalcular
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {usageConfig.map((config) => {
-          const used = usage.usage[config.key as keyof typeof usage.usage] || 0;
-          const limit = usage.limits[config.key as keyof typeof usage.limits] || 0;
-          const percentage = usage.percentages[config.key as keyof typeof usage.percentages] || 0;
-          const isUnlimited = limit === -1;
-          const Icon = config.icon;
-          
-          return (
-            <div key={config.key} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">{config.label}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(isUnlimited ? 0 : percentage)}
-                  {getStatusBadge(percentage, limit)}
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Progress 
-                      value={isUnlimited ? 0 : Math.min(percentage, 100)} 
-                      className="h-3"
-                    />
-                    <div 
-                      className={cn(
-                        "absolute inset-0 h-3 rounded-full transition-all",
-                        getProgressColor(percentage)
-                      )}
-                      style={{ width: `${Math.min(isUnlimited ? 0 : percentage, 100)}%` }}
-                    />
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {usageConfig.map((config) => {
+            const used = usage.usage[config.key as keyof typeof usage.usage] || 0;
+            const limit = usage.limits[config.key as keyof typeof usage.limits] || 0;
+            const percentage = usage.percentages[config.key as keyof typeof usage.percentages] || 0;
+            const isUnlimited = limit === -1;
+            const Icon = config.icon;
+            
+            return (
+              <div key={config.key} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">{config.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(isUnlimited ? 0 : percentage)}
+                    {getStatusBadge(percentage, limit)}
                   </div>
                 </div>
-                <div className="text-sm text-right min-w-[100px]">
-                  <span className="font-medium">{config.format(used)}</span>
-                  <span className="text-muted-foreground">
-                    {' / '}
-                    {isUnlimited ? (
-                      <span className="inline-flex items-center gap-1">
-                        <Infinity className="w-3 h-3" />
-                      </span>
-                    ) : (
-                      config.format(limit)
-                    )}
-                  </span>
-                  {!isUnlimited && (
-                    <span className="text-muted-foreground ml-1">
-                      ({percentage}%)
+                
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Progress 
+                        value={isUnlimited ? 0 : Math.min(percentage, 100)} 
+                        className="h-3"
+                      />
+                      <div 
+                        className={cn(
+                          "absolute inset-0 h-3 rounded-full transition-all",
+                          getProgressColor(percentage)
+                        )}
+                        style={{ width: `${Math.min(isUnlimited ? 0 : percentage, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-sm text-right min-w-[100px]">
+                    <span className="font-medium">{config.format(used)}</span>
+                    <span className="text-muted-foreground">
+                      {' / '}
+                      {isUnlimited ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Infinity className="w-3 h-3" />
+                        </span>
+                      ) : (
+                        config.format(limit)
+                      )}
                     </span>
-                  )}
+                    {!isUnlimited && (
+                      <span className="text-muted-foreground ml-1">
+                        ({percentage}%)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {/* Alerts section */}
-        {hasAlerts && (
-          <div className="pt-4 border-t">
-            <p className="text-sm font-medium text-amber-600 mb-2">Alertas Ativos:</p>
-            <div className="flex flex-wrap gap-2">
-              {usage.alerts.map((alert) => (
-                <Badge key={alert} variant="outline" className="border-amber-500 text-amber-600">
-                  {alert.replace(/_/g, ' ').replace(/percent/g, '%')}
-                </Badge>
-              ))}
+          {/* Alerts section */}
+          {hasAlerts && (
+            <div className="pt-4 border-t">
+              <p className="text-sm font-medium text-amber-600 mb-2">Alertas Ativos:</p>
+              <div className="flex flex-wrap gap-2">
+                {usage.alerts.map((alert) => (
+                  <Badge key={alert} variant="outline" className="border-amber-500 text-amber-600">
+                    {alert.replace(/_/g, ' ').replace(/percent/g, '%')}
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 }
