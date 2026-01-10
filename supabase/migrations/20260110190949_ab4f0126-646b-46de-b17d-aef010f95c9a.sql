@@ -1,0 +1,38 @@
+-- Inserir plano FREE para tenants gratuitos
+INSERT INTO public.plans (
+  name, 
+  slug, 
+  description,
+  price_monthly, 
+  price_yearly, 
+  max_users, 
+  max_channels, 
+  max_ai_tokens, 
+  max_storage_gb,
+  max_leads,
+  max_messages_month,
+  max_products,
+  max_automations,
+  features_enabled,
+  is_active,
+  is_default,
+  display_order
+) VALUES (
+  'Free',
+  'free',
+  'Plano gratuito com recursos limitados',
+  0,
+  0,
+  1,
+  1,
+  1000,
+  0.5,
+  50,
+  100,
+  10,
+  1,
+  '{"ai_agent": false, "campaigns": false, "ecommerce": false, "whitelabel": false, "api_access": false, "multi_whatsapp": false, "erp_integration": false, "automation_flows": false, "ai_transcription": false}'::jsonb,
+  true,
+  false,
+  0
+) ON CONFLICT (slug) DO NOTHING;

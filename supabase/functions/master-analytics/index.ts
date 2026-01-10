@@ -87,22 +87,25 @@ async function getRevenueData() {
   
   const planPricesById = new Map((plans || []).map((p: { id: string; price_monthly: number }) => [p.id, p.price_monthly]));
   const planPricesBySlug = new Map((plans || []).map((p: { slug: string; price_monthly: number }) => [p.slug, p.price_monthly]));
+  const planSlugById = new Map((plans || []).map((p: { id: string; slug: string }) => [p.id, p.slug]));
 
-  // Get tenants with their plan info
+  // Get tenants with their plan info - including subscription_status and trial info
   const { data: tenants, error } = await supabase
     .from('tenants')
     .select(`
       id,
       plan_type,
       plan_id,
+      subscription_status,
+      trial_enabled,
+      is_blocked,
       price_per_user,
       contracted_users,
       channel_price,
       extra_channels,
       discount_type,
       discount_value
-    `)
-    .eq('is_blocked', false);
+    `);
 
   if (error) {
     console.error('Error fetching tenants for revenue:', error);
@@ -110,27 +113,42 @@ async function getRevenueData() {
   }
 
   let totalMrr = 0;
-  const byPlan: Record<string, number> = { basic: 0, pro: 0, enterprise: 0 };
+  let payingTenants = 0;
+  let freeTenants = 0;
+  let trialTenants = 0;
+  const byPlan: Record<string, number> = { free: 0, basic: 0, pro: 0, enterprise: 0 };
+  const tenantDetails: { id: string; name?: string; mrr: number; status: string }[] = [];
 
   for (const tenant of tenants || []) {
-    let monthlyRevenue = 0;
+    // Determine plan slug
+    const planSlug = tenant.plan_id 
+      ? planSlugById.get(tenant.plan_id) 
+      : tenant.plan_type;
 
-    // Calculate base plan price from plan_id or plan_type
-    let basePlanPrice = 0;
-    if (tenant.plan_id) {
-      basePlanPrice = planPricesById.get(tenant.plan_id) || 0;
-    } else if (tenant.plan_type) {
-      basePlanPrice = planPricesBySlug.get(tenant.plan_type) || 0;
+    // Skip MRR for: blocked, trialing, pending, or free plan tenants
+    const isBlocked = tenant.is_blocked === true;
+    const isTrialing = tenant.subscription_status === 'trialing';
+    const isPending = tenant.subscription_status === 'pending';
+    const isFree = planSlug === 'free';
+
+    if (isBlocked || isTrialing || isPending || isFree) {
+      if (isTrialing) trialTenants++;
+      else if (isFree) freeTenants++;
+      
+      tenantDetails.push({
+        id: tenant.id,
+        mrr: 0,
+        status: isBlocked ? 'blocked' : isTrialing ? 'trialing' : isPending ? 'pending' : 'free'
+      });
+      continue;
     }
 
-    // Calculate user-based pricing
-    const userPrice = (tenant.price_per_user || 0) * (tenant.contracted_users || 0);
+    // Calculate MRR for paying tenants
+    // Formula: (price_per_user × contracted_users) + (channel_price × extra_channels) - discounts
+    const userRevenue = (tenant.price_per_user || 0) * (tenant.contracted_users || 1);
+    const channelRevenue = (tenant.channel_price || 0) * (tenant.extra_channels || 0);
     
-    // Calculate channel-based pricing
-    const channelPrice = (tenant.channel_price || 0) * (tenant.extra_channels || 0);
-
-    // Total before discount
-    monthlyRevenue = basePlanPrice + userPrice + channelPrice;
+    let monthlyRevenue = userRevenue + channelRevenue;
 
     // Apply discount
     if (tenant.discount_type === 'percent' && tenant.discount_value) {
@@ -140,22 +158,29 @@ async function getRevenueData() {
     }
 
     totalMrr += monthlyRevenue;
+    payingTenants++;
     
     // Track by plan type
-    const planType = tenant.plan_type || 'basic';
+    const planType = planSlug || tenant.plan_type || 'basic';
     byPlan[planType] = (byPlan[planType] || 0) + monthlyRevenue;
+
+    tenantDetails.push({
+      id: tenant.id,
+      mrr: monthlyRevenue,
+      status: 'active'
+    });
   }
 
-  // Get previous month's revenue for growth calculation
+  // Get previous month's MRR for growth calculation (simplified)
   const { data: prevMonthTenants } = await supabase
     .from('tenants')
     .select('id')
-    .lt('created_at', new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString());
+    .lt('created_at', new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString())
+    .eq('is_blocked', false);
 
   const prevMonthCount = prevMonthTenants?.length || 1;
-  const currentCount = tenants?.length || 0;
-  const growthPercentage = prevMonthCount > 0 
-    ? ((currentCount - prevMonthCount) / prevMonthCount) * 100 
+  const growthPercentage = prevMonthCount > 0 && payingTenants > 0
+    ? ((payingTenants - prevMonthCount) / prevMonthCount) * 100 
     : 0;
 
   return {
@@ -163,7 +188,13 @@ async function getRevenueData() {
     arr: totalMrr * 12,
     total: totalMrr,
     growth_percentage: Math.round(growthPercentage * 10) / 10,
-    by_plan: byPlan
+    by_plan: byPlan,
+    breakdown: {
+      paying_tenants: payingTenants,
+      free_tenants: freeTenants,
+      trial_tenants: trialTenants,
+      average_mrr: payingTenants > 0 ? Math.round(totalMrr / payingTenants) : 0
+    }
   };
 }
 
@@ -378,17 +409,32 @@ async function getTenantHealthData() {
 
 // Get billing intelligence data
 async function getBillingIntelligence() {
-  // Get tenants with subscription info
+  // Get tenants with subscription info and pricing details
   const { data: tenants } = await supabase
     .from('tenants')
     .select(`
       id,
       name,
       plan_type,
+      plan_id,
       created_at,
       is_blocked,
+      subscription_status,
+      price_per_user,
+      contracted_users,
+      channel_price,
+      extra_channels,
+      discount_type,
+      discount_value,
       subscription:billing_subscriptions(status, current_period_start)
     `);
+
+  // Get plans for slug lookup
+  const { data: plans } = await supabase
+    .from('plans')
+    .select('id, slug');
+  
+  const planSlugById = new Map((plans || []).map((p: { id: string; slug: string }) => [p.id, p.slug]));
 
   // Get churn risk - tenants without recent activity
   const thirtyDaysAgo = new Date();
@@ -401,30 +447,73 @@ async function getBillingIntelligence() {
 
   const inactiveTenantIds = new Set(inactiveUsage?.map(u => u.tenant_id) || []);
   
+  // Calculate real MRR for each tenant at risk
   const churnRisk = (tenants || [])
     .filter(t => inactiveTenantIds.has(t.id) || t.is_blocked)
     .slice(0, 5)
-    .map(t => ({
-      id: t.id,
-      name: t.name,
-      risk_score: Math.floor(Math.random() * 30) + 60,
-      risk_factors: ['Baixa atividade', 'Sem novos leads'],
-      last_activity: thirtyDaysAgo.toISOString(),
-      mrr: 150,
-      days_since_login: Math.floor(Math.random() * 20) + 7,
-    }));
+    .map(t => {
+      // Calculate this tenant's MRR
+      const planSlug = t.plan_id ? planSlugById.get(t.plan_id) : t.plan_type;
+      const isFree = planSlug === 'free';
+      const isTrialing = t.subscription_status === 'trialing';
+      
+      let tenantMrr = 0;
+      if (!isFree && !isTrialing && !t.is_blocked) {
+        tenantMrr = ((t.price_per_user || 0) * (t.contracted_users || 1)) +
+                    ((t.channel_price || 0) * (t.extra_channels || 0));
+        
+        if (t.discount_type === 'percent' && t.discount_value) {
+          tenantMrr *= (1 - t.discount_value / 100);
+        } else if (t.discount_type === 'fixed' && t.discount_value) {
+          tenantMrr = Math.max(0, tenantMrr - t.discount_value);
+        }
+      }
 
-  // Revenue breakdown by plan
-  const planCounts = (tenants || []).reduce((acc, t) => {
-    acc[t.plan_type || 'basic'] = (acc[t.plan_type || 'basic'] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+      return {
+        id: t.id,
+        name: t.name,
+        risk_score: Math.floor(Math.random() * 30) + 60,
+        risk_factors: ['Baixa atividade', 'Sem novos leads'],
+        last_activity: thirtyDaysAgo.toISOString(),
+        mrr: Math.round(tenantMrr),
+        days_since_login: Math.floor(Math.random() * 20) + 7,
+      };
+    });
 
-  const planPrices = { basic: 99, pro: 199, enterprise: 499 };
-  const revenueByPlan = Object.entries(planCounts).map(([plan, count]) => ({
+  // Revenue breakdown by plan - using real tenant pricing
+  const revenueByPlanMap: Record<string, { revenue: number; count: number }> = {};
+  
+  for (const tenant of tenants || []) {
+    const planSlug = tenant.plan_id ? planSlugById.get(tenant.plan_id) : tenant.plan_type;
+    const planKey = planSlug || 'basic';
+    const isFree = planKey === 'free';
+    const isTrialing = tenant.subscription_status === 'trialing';
+    
+    if (!revenueByPlanMap[planKey]) {
+      revenueByPlanMap[planKey] = { revenue: 0, count: 0 };
+    }
+    
+    revenueByPlanMap[planKey].count++;
+    
+    // Only count MRR for paying tenants
+    if (!isFree && !isTrialing && !tenant.is_blocked) {
+      let tenantMrr = ((tenant.price_per_user || 0) * (tenant.contracted_users || 1)) +
+                      ((tenant.channel_price || 0) * (tenant.extra_channels || 0));
+      
+      if (tenant.discount_type === 'percent' && tenant.discount_value) {
+        tenantMrr *= (1 - tenant.discount_value / 100);
+      } else if (tenant.discount_type === 'fixed' && tenant.discount_value) {
+        tenantMrr = Math.max(0, tenantMrr - tenant.discount_value);
+      }
+      
+      revenueByPlanMap[planKey].revenue += tenantMrr;
+    }
+  }
+
+  const revenueByPlan = Object.entries(revenueByPlanMap).map(([plan, data]) => ({
     plan: plan.charAt(0).toUpperCase() + plan.slice(1),
-    revenue: count * (planPrices[plan as keyof typeof planPrices] || 99),
-    count,
+    revenue: Math.round(data.revenue),
+    count: data.count,
   }));
 
   // Cohort analysis
@@ -447,10 +536,20 @@ async function getBillingIntelligence() {
     });
   }
 
-  // Key metrics
+  // Key metrics using real data
   const totalTenants = tenants?.length || 1;
   const activeTenants = tenants?.filter(t => !t.is_blocked).length || 0;
+  const payingTenants = tenants?.filter(t => {
+    const planSlug = t.plan_id ? planSlugById.get(t.plan_id) : t.plan_type;
+    return !t.is_blocked && t.subscription_status !== 'trialing' && planSlug !== 'free';
+  }).length || 0;
+  
   const churnRate = ((totalTenants - activeTenants) / totalTenants) * 100;
+  
+  // Calculate total MRR for LTV
+  const totalMrr = revenueByPlan.reduce((sum, p) => sum + p.revenue, 0);
+  const avgMrr = payingTenants > 0 ? totalMrr / payingTenants : 0;
+  const estimatedLtv = avgMrr * 24; // Assuming 24 month average lifetime
 
   return {
     cohort: cohortMonths,
@@ -461,12 +560,12 @@ async function getBillingIntelligence() {
       by_sales_rep: [],
     },
     metrics: {
-      ltv: 2400,
-      cac: 350,
-      ltv_cac_ratio: 6.9,
+      ltv: Math.round(estimatedLtv),
+      cac: 350, // Would need marketing data
+      ltv_cac_ratio: estimatedLtv > 0 ? Math.round((estimatedLtv / 350) * 10) / 10 : 0,
       churn_rate: Math.round(churnRate * 10) / 10,
       expansion_revenue: 0,
-      net_revenue_retention: 100 - churnRate,
+      net_revenue_retention: Math.round((100 - churnRate) * 10) / 10,
     },
   };
 }
