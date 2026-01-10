@@ -258,7 +258,8 @@ Retorne 3 insights principais em JSON:
 });
 
 // Helper function to gather metrics
-async function gatherMetrics(supabase: ReturnType<typeof createClient>): Promise<MetricsData> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function gatherMetrics(supabase: any): Promise<MetricsData> {
   // Get all tenants
   const { data: tenantsRaw } = await supabase
     .from('tenants')
