@@ -249,7 +249,7 @@ export default function Plans() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Cpu className="w-4 h-4 text-muted-foreground" />
-                  <span>{formatLimit(plan.max_ai_tokens)} tokens</span>
+                  <span>{formatLimit(plan.max_ai_tokens)} créditos</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <HardDrive className="w-4 h-4 text-muted-foreground" />

@@ -307,7 +307,7 @@ export default function CreateTenant() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Cpu className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span>{formatLimit(plan.max_ai_tokens)} tokens IA</span>
+                      <span>{formatLimit(plan.max_ai_tokens)} créditos IA</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <HardDrive className="w-3.5 h-3.5 text-muted-foreground" />
