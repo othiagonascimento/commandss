@@ -440,14 +440,14 @@ export default function EditTenant() {
                   <div className="space-y-2">
                     <Label>Tipo de Desconto</Label>
                     <Select
-                      value={formData.discount_type}
-                      onValueChange={(v) => setFormData({ ...formData, discount_type: v })}
+                      value={formData.discount_type || 'none'}
+                      onValueChange={(v) => setFormData({ ...formData, discount_type: v === 'none' ? '' : v })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Nenhum desconto" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         <SelectItem value="percent">Percentual (%)</SelectItem>
                         <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
                       </SelectContent>
