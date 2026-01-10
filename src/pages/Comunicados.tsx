@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
-  Megaphone, 
+  Bell, 
   Plus, 
   Loader2, 
   AlertCircle,
@@ -37,6 +38,9 @@ import {
   Info,
   Sparkles,
   XCircle,
+  Users,
+  Shield,
+  Send,
 } from 'lucide-react';
 
 interface Broadcast {
@@ -55,19 +59,27 @@ interface Broadcast {
 
 const TYPE_CONFIG = {
   info: { label: 'Informação', icon: Info, color: 'bg-primary/10 text-primary' },
-  warning: { label: 'Aviso', icon: AlertCircle, color: 'bg-warning/10 text-warning' },
-  success: { label: 'Sucesso', icon: CheckCircle2, color: 'bg-success/10 text-success' },
+  warning: { label: 'Aviso Importante', icon: AlertCircle, color: 'bg-warning/10 text-warning' },
+  success: { label: 'Novidade', icon: CheckCircle2, color: 'bg-success/10 text-success' },
   feature: { label: 'Nova Feature', icon: Sparkles, color: 'bg-secondary text-secondary-foreground' },
 };
 
-export default function Broadcasts() {
+const AUDIENCE_OPTIONS = [
+  { value: 'admins', label: 'Apenas Admins de Tenant', icon: Shield, description: 'Recomendado para atualizações técnicas' },
+  { value: 'all', label: 'Todos os Usuários', icon: Users, description: 'Use com moderação' },
+];
+
+export default function Comunicados() {
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newBroadcast, setNewBroadcast] = useState({
     title: '',
     message: '',
     type: 'info' as const,
-    endsInHours: 24,
+    endsInHours: 72,
+    audience: 'admins',
+    showAsBanner: true,
+    sendPush: false,
   });
 
   const { data: broadcasts, isLoading } = useQuery({
@@ -92,18 +104,28 @@ export default function Broadcasts() {
           message: newBroadcast.message,
           type: newBroadcast.type,
           endsAt: endsAt.toISOString(),
+          isBanner: newBroadcast.showAsBanner,
+          isPush: newBroadcast.sendPush,
         },
       });
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      toast.success('Broadcast enviado!');
+      toast.success('Comunicado enviado!');
       setCreateDialogOpen(false);
-      setNewBroadcast({ title: '', message: '', type: 'info', endsInHours: 24 });
+      setNewBroadcast({ 
+        title: '', 
+        message: '', 
+        type: 'info', 
+        endsInHours: 72,
+        audience: 'admins',
+        showAsBanner: true,
+        sendPush: false,
+      });
       queryClient.invalidateQueries({ queryKey: ['broadcasts'] });
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao enviar broadcast'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao enviar comunicado'),
   });
 
   const endMutation = useMutation({
@@ -116,10 +138,10 @@ export default function Broadcasts() {
       return data;
     },
     onSuccess: () => {
-      toast.success('Broadcast encerrado!');
+      toast.success('Comunicado encerrado!');
       queryClient.invalidateQueries({ queryKey: ['broadcasts'] });
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao encerrar broadcast'),
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Erro ao encerrar comunicado'),
   });
 
   const now = new Date();
@@ -133,42 +155,68 @@ export default function Broadcasts() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Central de Avisos"
-        description="Envie mensagens para todos os usuários"
-        icon={Megaphone}
+        title="Comunicados"
+        description="Envie avisos e atualizações para administradores de tenants"
+        icon={Bell}
         actions={
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="w-4 h-4" />
-                Novo Broadcast
+                Novo Comunicado
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle>Criar Broadcast</DialogTitle>
+                <DialogTitle>Criar Comunicado</DialogTitle>
                 <DialogDescription>
-                  Envie uma mensagem para todos os usuários
+                  Envie uma mensagem para os administradores dos tenants
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
+                {/* Audience Selection */}
+                <div className="space-y-2">
+                  <Label>Destinatários</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {AUDIENCE_OPTIONS.map((option) => (
+                      <div
+                        key={option.value}
+                        onClick={() => setNewBroadcast({ ...newBroadcast, audience: option.value })}
+                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                          newBroadcast.audience === option.value
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-muted-foreground'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <option.icon className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium">{option.label}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{option.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label>Título</Label>
                   <Input
-                    placeholder="Novidade: Chegou a Transcrição 2.0!"
+                    placeholder="Ex: Manutenção programada amanhã"
                     value={newBroadcast.title}
                     onChange={(e) => setNewBroadcast({ ...newBroadcast, title: e.target.value })}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label>Mensagem</Label>
                   <Textarea
-                    placeholder="Descreva a novidade ou aviso..."
+                    placeholder="Descreva o comunicado em detalhes..."
                     value={newBroadcast.message}
                     onChange={(e) => setNewBroadcast({ ...newBroadcast, message: e.target.value })}
-                    rows={3}
+                    rows={4}
                   />
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Tipo</Label>
@@ -194,7 +242,7 @@ export default function Broadcasts() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Duração (horas)</Label>
+                    <Label>Expiração</Label>
                     <Select
                       value={String(newBroadcast.endsInHours)}
                       onValueChange={(value) => 
@@ -205,13 +253,47 @@ export default function Broadcasts() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1 hora</SelectItem>
-                        <SelectItem value="6">6 horas</SelectItem>
                         <SelectItem value="24">24 horas</SelectItem>
                         <SelectItem value="72">3 dias</SelectItem>
                         <SelectItem value="168">1 semana</SelectItem>
+                        <SelectItem value="336">2 semanas</SelectItem>
+                        <SelectItem value="720">1 mês</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                {/* Options */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="banner">Exibir como banner</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Mostra no topo do dashboard
+                      </p>
+                    </div>
+                    <Switch
+                      id="banner"
+                      checked={newBroadcast.showAsBanner}
+                      onCheckedChange={(checked) => 
+                        setNewBroadcast({ ...newBroadcast, showAsBanner: checked })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="push">Enviar notificação push</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Notifica mesmo offline (se disponível)
+                      </p>
+                    </div>
+                    <Switch
+                      id="push"
+                      checked={newBroadcast.sendPush}
+                      onCheckedChange={(checked) => 
+                        setNewBroadcast({ ...newBroadcast, sendPush: checked })
+                      }
+                    />
                   </div>
                 </div>
               </div>
@@ -222,9 +304,14 @@ export default function Broadcasts() {
                 <Button
                   onClick={() => createMutation.mutate()}
                   disabled={!newBroadcast.title || !newBroadcast.message || createMutation.isPending}
+                  className="gap-2"
                 >
-                  {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  Enviar
+                  {createMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  Enviar Comunicado
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -252,11 +339,16 @@ export default function Broadcasts() {
                   <Card key={broadcast.id} className="border-l-4 border-l-primary">
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge className={config.color}>
                             <Icon className="w-3 h-3 mr-1" />
                             {config.label}
                           </Badge>
+                          {broadcast.is_banner && (
+                            <Badge variant="outline" className="text-xs">
+                              Banner
+                            </Badge>
+                          )}
                           <CardTitle className="text-base">{broadcast.title}</CardTitle>
                         </div>
                         <Button
@@ -273,11 +365,16 @@ export default function Broadcasts() {
                       <p className="text-sm text-muted-foreground mb-2">
                         {broadcast.message}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Expira: {broadcast.ends_at 
-                          ? format(new Date(broadcast.ends_at), "dd MMM 'às' HH:mm", { locale: ptBR })
-                          : 'Nunca'}
-                      </p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>
+                          Enviado: {format(new Date(broadcast.created_at), "dd MMM 'às' HH:mm", { locale: ptBR })}
+                        </span>
+                        <span>
+                          Expira: {broadcast.ends_at 
+                            ? format(new Date(broadcast.ends_at), "dd MMM 'às' HH:mm", { locale: ptBR })
+                            : 'Nunca'}
+                        </span>
+                      </div>
                     </CardContent>
                   </Card>
                 );
@@ -285,8 +382,11 @@ export default function Broadcasts() {
               {activeBroadcasts.length === 0 && (
                 <Card>
                   <CardContent className="py-8 text-center">
-                    <Megaphone className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-muted-foreground">Nenhum broadcast ativo</p>
+                    <Bell className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-muted-foreground">Nenhum comunicado ativo</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Crie um novo comunicado para informar seus clientes
+                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -300,17 +400,25 @@ export default function Broadcasts() {
                 Histórico ({pastBroadcasts.length})
               </h2>
               <div className="grid gap-2">
-                {pastBroadcasts.slice(0, 5).map((broadcast) => (
-                  <div
-                    key={broadcast.id}
-                    className="flex items-center justify-between p-3 bg-muted/50 rounded-lg text-sm"
-                  >
-                    <span>{broadcast.title}</span>
-                    <span className="text-muted-foreground">
-                      {format(new Date(broadcast.ends_at!), "dd MMM", { locale: ptBR })}
-                    </span>
-                  </div>
-                ))}
+                {pastBroadcasts.slice(0, 10).map((broadcast) => {
+                  const config = TYPE_CONFIG[broadcast.type];
+                  return (
+                    <div
+                      key={broadcast.id}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg text-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="text-xs">
+                          {config.label}
+                        </Badge>
+                        <span>{broadcast.title}</span>
+                      </div>
+                      <span className="text-muted-foreground">
+                        {format(new Date(broadcast.ends_at!), "dd MMM yyyy", { locale: ptBR })}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
