@@ -1,7 +1,16 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { tenantsApi, subscriptionsApi, usersApi, TenantUser } from '@/services/masterApi';
+import { 
+  tenantsApi, 
+  subscriptionsApi, 
+  usersApi, 
+  featuresApi, 
+  usageApi,
+  TenantUser,
+  TenantFeatures,
+  TenantUsageDetail,
+} from '@/services/masterApi';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +54,7 @@ import {
   Crown,
   Ban,
   Globe,
+  Settings2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -54,6 +64,10 @@ import { OnboardingChecklist } from '@/components/tenant/OnboardingChecklist';
 import { UnitEconomicsCard } from '@/components/tenant/UnitEconomicsCard';
 import { BrandingManagement } from '@/components/tenant/BrandingManagement';
 import { DomainsManagement } from '@/components/tenant/DomainsManagement';
+import { TenantModulesEditor } from '@/components/tenant/TenantModulesEditor';
+import { TenantLimitsEditor } from '@/components/tenant/TenantLimitsEditor';
+import { TenantUsageProgress } from '@/components/tenant/TenantUsageProgress';
+import { TenantOverridesForm } from '@/components/tenant/TenantOverridesForm';
 
 const planColors: Record<string, string> = {
   basic: 'bg-muted text-muted-foreground',
@@ -82,6 +96,90 @@ export default function TenantDetail() {
       return result.data?.data || [];
     },
     enabled: !!id,
+  });
+
+  // Fetch tenant features
+  const { data: features, isLoading: featuresLoading } = useQuery({
+    queryKey: ['tenant-features', id],
+    queryFn: async () => {
+      const result = await featuresApi.get(id!);
+      return result.data;
+    },
+    enabled: !!id,
+  });
+
+  // Fetch tenant usage
+  const { data: usage, isLoading: usageLoading, refetch: refetchUsage } = useQuery({
+    queryKey: ['tenant-usage', id],
+    queryFn: async () => {
+      const result = await usageApi.get(id!);
+      return result.data;
+    },
+    enabled: !!id,
+  });
+
+  // Update features mutation
+  const updateFeaturesMutation = useMutation({
+    mutationFn: async (data: { modules?: Record<string, boolean>; limits?: Record<string, number> }) => {
+      const result = await featuresApi.update(id!, data);
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Configurações salvas com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['tenant-features', id] });
+    },
+    onError: () => {
+      toast.error('Erro ao salvar configurações.');
+    },
+  });
+
+  // Apply override mutation
+  const applyOverrideMutation = useMutation({
+    mutationFn: async ({ overrides, reason }: { overrides: Record<string, unknown>; reason: string }) => {
+      const result = await featuresApi.applyOverride(id!, { overrides, reason });
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Override aplicado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['tenant-features', id] });
+    },
+    onError: () => {
+      toast.error('Erro ao aplicar override.');
+    },
+  });
+
+  // Clear override mutation
+  const clearOverrideMutation = useMutation({
+    mutationFn: async () => {
+      const result = await featuresApi.clearOverride(id!);
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Override removido com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['tenant-features', id] });
+    },
+    onError: () => {
+      toast.error('Erro ao remover override.');
+    },
+  });
+
+  // Recalculate usage mutation
+  const recalculateUsageMutation = useMutation({
+    mutationFn: async () => {
+      const result = await usageApi.recalculate(id!);
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Consumo recalculado!');
+      refetchUsage();
+    },
+    onError: () => {
+      toast.error('Erro ao recalcular consumo.');
+    },
   });
 
   const upgradeMutation = useMutation({
@@ -249,6 +347,7 @@ export default function TenantDetail() {
               defaultValue="overview"
             >
               <option value="overview">📊 Visão Geral</option>
+              <option value="resources">⚙️ Recursos e Limites</option>
               <option value="users">👥 Usuários</option>
               <option value="subscription">💳 Assinatura</option>
               <option value="branding">🎨 Branding</option>
@@ -264,6 +363,11 @@ export default function TenantDetail() {
               <Building2 className="w-3 h-3 lg:w-4 lg:h-4" />
               <span className="hidden lg:inline">Visão Geral</span>
               <span className="lg:hidden">Geral</span>
+            </TabsTrigger>
+            <TabsTrigger value="resources" className="gap-1 text-xs lg:text-sm">
+              <Settings2 className="w-3 h-3 lg:w-4 lg:h-4" />
+              <span className="hidden lg:inline">Recursos</span>
+              <span className="lg:hidden">⚙️</span>
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-1 text-xs lg:text-sm">
               <Users className="w-3 h-3 lg:w-4 lg:h-4" />
@@ -295,6 +399,68 @@ export default function TenantDetail() {
               <span className="lg:hidden">💰</span>
             </TabsTrigger>
           </TabsList>
+
+          {/* Resources & Limits Tab */}
+          <TabsContent value="resources" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Usage Progress */}
+              <TenantUsageProgress 
+                usage={usage || null} 
+                isLoading={usageLoading || recalculateUsageMutation.isPending}
+                onRecalculate={() => recalculateUsageMutation.mutate()}
+              />
+
+              {/* Modules Editor */}
+              {features && (
+                <TenantModulesEditor
+                  modules={{
+                    module_ai_agent: features.module_ai_agent,
+                    module_ai_transcription: features.module_ai_transcription,
+                    module_automation_flows: features.module_automation_flows,
+                    module_campaigns: features.module_campaigns,
+                    module_ecommerce: features.module_ecommerce,
+                    module_erp_integration: features.module_erp_integration,
+                    module_api_access: features.module_api_access,
+                    module_whitelabel: features.module_whitelabel,
+                    module_multi_whatsapp: features.module_multi_whatsapp,
+                  }}
+                  onChange={(modules) => updateFeaturesMutation.mutate({ modules })}
+                  disabled={updateFeaturesMutation.isPending}
+                />
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Limits Editor */}
+              {features && (
+                <TenantLimitsEditor
+                  limits={{
+                    limit_users: features.limit_users,
+                    limit_leads: features.limit_leads,
+                    limit_products: features.limit_products,
+                    limit_whatsapp_instances: features.limit_whatsapp_instances,
+                    limit_ai_tokens_monthly: features.limit_ai_tokens_monthly,
+                    limit_storage_mb: features.limit_storage_mb,
+                  }}
+                  onChange={(limits) => updateFeaturesMutation.mutate({ limits })}
+                  disabled={updateFeaturesMutation.isPending}
+                />
+              )}
+
+              {/* Overrides Form */}
+              {features && (
+                <TenantOverridesForm
+                  currentOverrides={features.overrides || {}}
+                  overrideReason={features.override_reason}
+                  overriddenBy={features.overridden_by}
+                  overriddenAt={features.overridden_at}
+                  onApply={(overrides, reason) => applyOverrideMutation.mutate({ overrides, reason })}
+                  onClear={() => clearOverrideMutation.mutate()}
+                  disabled={applyOverrideMutation.isPending || clearOverrideMutation.isPending}
+                />
+              )}
+            </div>
+          </TabsContent>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
