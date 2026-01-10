@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Settings as SettingsIcon,
   Bell,
@@ -23,6 +24,10 @@ import {
   Save,
   RefreshCw,
   Loader2,
+  Brain,
+  Cpu,
+  Sparkles,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -44,6 +49,71 @@ export default function Settings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState('30');
   const [ipWhitelist, setIpWhitelist] = useState('');
+
+  // AI Engine settings
+  const [aiLayer1Model, setAiLayer1Model] = useState('');
+  const [aiLayer1Instructions, setAiLayer1Instructions] = useState('');
+  const [aiLayer2Model, setAiLayer2Model] = useState('');
+  const [aiLayer2Instructions, setAiLayer2Instructions] = useState('');
+  const [aiLayer3Model, setAiLayer3Model] = useState('');
+  const [aiLayer3Instructions, setAiLayer3Instructions] = useState('');
+  const [isLoadingAiEngine, setIsLoadingAiEngine] = useState(false);
+  const [isSavingAiEngine, setIsSavingAiEngine] = useState(false);
+
+  // Load AI Engine settings
+  const { data: aiEngineSettings, isLoading: isLoadingAiSettings, refetch: refetchAiSettings } = useQuery({
+    queryKey: ['ai-engine-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('master_settings')
+        .select('*')
+        .eq('key', 'ai_global_engine')
+        .single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+  });
+
+  // Update AI state when settings load
+  useEffect(() => {
+    if (aiEngineSettings) {
+      setAiLayer1Model(aiEngineSettings.ai_layer_1_model || '');
+      setAiLayer1Instructions(aiEngineSettings.ai_layer_1_instructions || '');
+      setAiLayer2Model(aiEngineSettings.ai_layer_2_model || '');
+      setAiLayer2Instructions(aiEngineSettings.ai_layer_2_instructions || '');
+      setAiLayer3Model(aiEngineSettings.ai_layer_3_model || '');
+      setAiLayer3Instructions(aiEngineSettings.ai_layer_3_instructions || '');
+    }
+  }, [aiEngineSettings]);
+
+  // Save AI Engine settings
+  const saveAiEngineMutation = useMutation({
+    mutationFn: async () => {
+      setIsSavingAiEngine(true);
+      const { error } = await supabase
+        .from('master_settings')
+        .update({
+          ai_layer_1_model: aiLayer1Model,
+          ai_layer_1_instructions: aiLayer1Instructions,
+          ai_layer_2_model: aiLayer2Model,
+          ai_layer_2_instructions: aiLayer2Instructions,
+          ai_layer_3_model: aiLayer3Model,
+          ai_layer_3_instructions: aiLayer3Instructions,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('key', 'ai_global_engine');
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Configurações do Motor de IA salvas com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['ai-engine-settings'] });
+      setIsSavingAiEngine(false);
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao salvar Motor de IA: ${err.message}`);
+      setIsSavingAiEngine(false);
+    },
+  });
 
   // Load settings from database
   const { data: settings, isLoading } = useQuery({
@@ -128,10 +198,14 @@ export default function Settings() {
 
         {/* Tabs */}
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
             <TabsTrigger value="general" className="gap-2">
               <Globe className="w-4 h-4" />
               <span className="hidden sm:inline">Geral</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-engine" className="gap-2">
+              <Brain className="w-4 h-4" />
+              <span className="hidden sm:inline">Motor de IA</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-2">
               <Bell className="w-4 h-4" />
@@ -228,6 +302,190 @@ export default function Settings() {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+          </TabsContent>
+
+          {/* AI Engine Tab */}
+          <TabsContent value="ai-engine">
+            <div className="space-y-6">
+              {/* Header with Save Button */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-primary" />
+                    Motor de IA Global
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Configure os modelos e instruções de IA que afetam todos os tenants
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => saveAiEngineMutation.mutate()}
+                  disabled={isSavingAiEngine}
+                >
+                  {isSavingAiEngine ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Salvar Configurações
+                </Button>
+              </div>
+
+              {isLoadingAiSettings ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid gap-6">
+                  {/* Layer 1 - Router */}
+                  <Card className="border-l-4 border-l-blue-500">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                          <Cpu className="w-4 h-4 text-blue-500" />
+                        </div>
+                        <div>
+                          <span>Camada 1 - Router</span>
+                          <p className="text-sm font-normal text-muted-foreground">
+                            Modelo rápido para triagem e roteamento de mensagens
+                          </p>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="layer1Model">Modelo</Label>
+                        <Input
+                          id="layer1Model"
+                          value={aiLayer1Model}
+                          onChange={(e) => setAiLayer1Model(e.target.value)}
+                          placeholder="Ex: gpt-4o-mini, claude-3-haiku"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Recomendado: modelo leve e rápido para decisões simples
+                        </p>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="layer1Instructions">Instruções do Sistema</Label>
+                        <Textarea
+                          id="layer1Instructions"
+                          value={aiLayer1Instructions}
+                          onChange={(e) => setAiLayer1Instructions(e.target.value)}
+                          placeholder="Você é um assistente que classifica mensagens..."
+                          rows={8}
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Layer 2 - Standard */}
+                  <Card className="border-l-4 border-l-amber-500">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
+                          <Zap className="w-4 h-4 text-amber-500" />
+                        </div>
+                        <div>
+                          <span>Camada 2 - Standard</span>
+                          <p className="text-sm font-normal text-muted-foreground">
+                            Modelo balanceado para interações comuns
+                          </p>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="layer2Model">Modelo</Label>
+                        <Input
+                          id="layer2Model"
+                          value={aiLayer2Model}
+                          onChange={(e) => setAiLayer2Model(e.target.value)}
+                          placeholder="Ex: gpt-4o, claude-3-5-sonnet"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Recomendado: modelo versátil com bom custo-benefício
+                        </p>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="layer2Instructions">Instruções do Sistema</Label>
+                        <Textarea
+                          id="layer2Instructions"
+                          value={aiLayer2Instructions}
+                          onChange={(e) => setAiLayer2Instructions(e.target.value)}
+                          placeholder="Você é um vendedor experiente..."
+                          rows={8}
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Layer 3 - Elite */}
+                  <Card className="border-l-4 border-l-purple-500">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+                          <Sparkles className="w-4 h-4 text-purple-500" />
+                        </div>
+                        <div>
+                          <span>Camada 3 - Elite (Vendedor)</span>
+                          <p className="text-sm font-normal text-muted-foreground">
+                            Modelo premium para objeções complexas e fechamento
+                          </p>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="layer3Model">Modelo</Label>
+                        <Input
+                          id="layer3Model"
+                          value={aiLayer3Model}
+                          onChange={(e) => setAiLayer3Model(e.target.value)}
+                          placeholder="Ex: gpt-4o, claude-sonnet-4-5"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Recomendado: modelo mais capaz para situações críticas
+                        </p>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="layer3Instructions">Instruções do Sistema</Label>
+                        <Textarea
+                          id="layer3Instructions"
+                          value={aiLayer3Instructions}
+                          onChange={(e) => setAiLayer3Instructions(e.target.value)}
+                          placeholder="Você é um vendedor de elite..."
+                          rows={10}
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Info Box */}
+                  <Card className="bg-muted/50">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-3">
+                        <Brain className="w-5 h-5 text-primary mt-0.5" />
+                        <div>
+                          <p className="font-medium">Como funciona o Motor de IA</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            As configurações definidas aqui são aplicadas globalmente a todos os tenants. 
+                            Cada camada é acionada conforme a complexidade da conversa:
+                          </p>
+                          <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
+                            <li><strong>Router:</strong> Triagem rápida e classificação de intenção</li>
+                            <li><strong>Standard:</strong> Respostas de atendimento e vendas comuns</li>
+                            <li><strong>Elite:</strong> Objeções complexas, negociação e fechamento</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           </TabsContent>
 

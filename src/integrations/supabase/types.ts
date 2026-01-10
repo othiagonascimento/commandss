@@ -14,63 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_config: {
+      ai_agent_config: {
         Row: {
           active_mode: string | null
+          aggression_level: string | null
+          ai_model_provider: string | null
+          created_at: string | null
           custom_prompt_addendum: string | null
           enable_tri_modal: boolean | null
           enable_uopa_agent: boolean | null
           enable_vendedor_cloning: boolean | null
+          followup_interval_minutes: number | null
+          human_delay_enabled: boolean | null
           id: string
           is_active: boolean | null
           layer_1_model: string | null
           layer_2_model: string | null
           layer_3_model: string | null
+          max_delay_seconds: number | null
+          max_followups: number | null
           max_gpt4o_calls_per_day: number | null
+          min_delay_seconds: number | null
           niche_category: string | null
           orchestration_rules: Json | null
           personality_prompt: string | null
+          persuasion_level: number | null
           prohibited_phrases: string[] | null
           tenant_id: string | null
           tone_voice: string | null
+          updated_at: string | null
         }
         Insert: {
           active_mode?: string | null
+          aggression_level?: string | null
+          ai_model_provider?: string | null
+          created_at?: string | null
           custom_prompt_addendum?: string | null
           enable_tri_modal?: boolean | null
           enable_uopa_agent?: boolean | null
           enable_vendedor_cloning?: boolean | null
+          followup_interval_minutes?: number | null
+          human_delay_enabled?: boolean | null
           id?: string
           is_active?: boolean | null
           layer_1_model?: string | null
           layer_2_model?: string | null
           layer_3_model?: string | null
+          max_delay_seconds?: number | null
+          max_followups?: number | null
           max_gpt4o_calls_per_day?: number | null
+          min_delay_seconds?: number | null
           niche_category?: string | null
           orchestration_rules?: Json | null
           personality_prompt?: string | null
+          persuasion_level?: number | null
           prohibited_phrases?: string[] | null
           tenant_id?: string | null
           tone_voice?: string | null
+          updated_at?: string | null
         }
         Update: {
           active_mode?: string | null
+          aggression_level?: string | null
+          ai_model_provider?: string | null
+          created_at?: string | null
           custom_prompt_addendum?: string | null
           enable_tri_modal?: boolean | null
           enable_uopa_agent?: boolean | null
           enable_vendedor_cloning?: boolean | null
+          followup_interval_minutes?: number | null
+          human_delay_enabled?: boolean | null
           id?: string
           is_active?: boolean | null
           layer_1_model?: string | null
           layer_2_model?: string | null
           layer_3_model?: string | null
+          max_delay_seconds?: number | null
+          max_followups?: number | null
           max_gpt4o_calls_per_day?: number | null
+          min_delay_seconds?: number | null
           niche_category?: string | null
           orchestration_rules?: Json | null
           personality_prompt?: string | null
+          persuasion_level?: number | null
           prohibited_phrases?: string[] | null
           tenant_id?: string | null
           tone_voice?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -732,6 +762,12 @@ export type Database = {
       }
       master_settings: {
         Row: {
+          ai_layer_1_instructions: string | null
+          ai_layer_1_model: string | null
+          ai_layer_2_instructions: string | null
+          ai_layer_2_model: string | null
+          ai_layer_3_instructions: string | null
+          ai_layer_3_model: string | null
           category: string
           created_at: string | null
           description: string | null
@@ -742,6 +778,12 @@ export type Database = {
           value: Json
         }
         Insert: {
+          ai_layer_1_instructions?: string | null
+          ai_layer_1_model?: string | null
+          ai_layer_2_instructions?: string | null
+          ai_layer_2_model?: string | null
+          ai_layer_3_instructions?: string | null
+          ai_layer_3_model?: string | null
           category?: string
           created_at?: string | null
           description?: string | null
@@ -752,6 +794,12 @@ export type Database = {
           value?: Json
         }
         Update: {
+          ai_layer_1_instructions?: string | null
+          ai_layer_1_model?: string | null
+          ai_layer_2_instructions?: string | null
+          ai_layer_2_model?: string | null
+          ai_layer_3_instructions?: string | null
+          ai_layer_3_model?: string | null
           category?: string
           created_at?: string | null
           description?: string | null
