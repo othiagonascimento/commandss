@@ -240,11 +240,11 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
 
   // Filter items based on permissions (if super admin or no master user yet, show all)
   const filteredNavGroups = useMemo(() => {
-    // If still loading, return empty to prevent flash
+    // While permissions load, show nav to avoid blank menu on mobile
     if (permissions.isLoading) {
-      return [];
+      return navGroups;
     }
-    
+
     // If user is super admin OR no master user record exists (legacy/unregistered user), show everything
     if (permissions.isSuperAdmin() || !permissions.masterUser) {
       return navGroups;
