@@ -59,7 +59,23 @@ export function AIInsightsWidget() {
         body: { type: 'dashboard_summary' },
       });
 
-      // Check for specific error codes in response
+      console.log('[AIInsights] Response:', { data, error });
+
+      // Handle error from invoke (Supabase puts error details here for non-2xx)
+      if (error) {
+        console.error('[AIInsights] Invoke error:', error);
+        const errorMsg = error.message || String(error);
+        if (errorMsg.includes('402') || errorMsg.includes('PAYMENT_REQUIRED') || errorMsg.includes('Payment required')) {
+          setErrorCode('PAYMENT_REQUIRED');
+        } else if (errorMsg.includes('429') || errorMsg.includes('RATE_LIMITED')) {
+          setErrorCode('RATE_LIMITED');
+        } else {
+          setErrorCode('GENERIC');
+        }
+        throw new Error(errorMsg);
+      }
+
+      // Check for specific error codes in response body
       if (data?.code === 'PAYMENT_REQUIRED') {
         setErrorCode('PAYMENT_REQUIRED');
         throw new Error(data.error || 'Créditos insuficientes');
@@ -68,23 +84,19 @@ export function AIInsightsWidget() {
         setErrorCode('RATE_LIMITED');
         throw new Error(data.error || 'Limite de requisições excedido');
       }
-      if (data?.error) {
+      if (data?.error && !data?.success) {
         setErrorCode('GENERIC');
         throw new Error(data.error);
-      }
-
-      if (error) {
-        console.error('[AIInsights] Error:', error);
-        setErrorCode('GENERIC');
-        throw error;
       }
 
       setErrorCode(null);
       return data as AIInsightsResponse;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    retry: false, // Don't retry on payment/rate limit errors
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: false,
+    // Critical: Don't throw errors to React, handle them in the component
+    throwOnError: false,
   });
 
   const handleRefresh = async () => {
