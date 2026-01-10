@@ -448,13 +448,16 @@ export interface TenantFeatures {
   module_api_access: boolean;
   module_whitelabel: boolean;
   module_multi_whatsapp: boolean;
-  // Limits
+  // Limits (tenant-level)
   limit_users: number;
   limit_leads: number;
   limit_products: number;
   limit_whatsapp_instances: number;
-  limit_ai_tokens_monthly: number;
-  limit_storage_mb: number;
+  limit_ai_tokens_monthly: number; // Legacy, kept for backwards compatibility
+  limit_storage_mb: number; // Legacy, kept for backwards compatibility
+  // Per-user quotas
+  credits_per_user?: number;
+  storage_mb_per_user?: number;
   // AI Engine Config
   ai_use_global_config?: boolean;
   ai_layer_1_model?: string | null;
@@ -491,6 +494,8 @@ export interface TenantFeaturesPayload {
     limit_whatsapp_instances?: number;
     limit_ai_tokens_monthly?: number;
     limit_storage_mb?: number;
+    credits_per_user?: number;
+    storage_mb_per_user?: number;
   };
   ai_config?: {
     ai_use_global_config?: boolean;

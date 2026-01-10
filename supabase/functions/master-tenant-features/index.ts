@@ -92,8 +92,10 @@ Deno.serve(async (req) => {
           limit_leads: 1000,
           limit_products: 100,
           limit_whatsapp_instances: 1,
-          limit_ai_tokens_monthly: 100000,
-          limit_storage_mb: 500,
+          limit_ai_tokens_monthly: 500, // Legacy field, now per-user
+          limit_storage_mb: 100, // Legacy field, now per-user
+          credits_per_user: 500, // New per-user field
+          storage_mb_per_user: 100, // New per-user field
           overrides: {},
         };
         return new Response(JSON.stringify(defaultFeatures), {
@@ -131,7 +133,7 @@ Deno.serve(async (req) => {
       // Add limits if provided
       if (limits) {
         Object.entries(limits).forEach(([key, value]) => {
-          if (key.startsWith('limit_')) {
+          if (key.startsWith('limit_') || key === 'credits_per_user' || key === 'storage_mb_per_user') {
             updateData[key] = value;
           }
         });

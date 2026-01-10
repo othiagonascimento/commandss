@@ -89,22 +89,28 @@ export function UserLimitsModal({
     onSave({ limits, permissions, reason: reason || undefined });
   };
 
+  // Get per-user defaults from tenant
+  const creditsPerUser = tenantLimits?.credits_per_user ?? 500;
+  const storageMbPerUser = tenantLimits?.storage_mb_per_user ?? 100;
+
   const limitFields = [
     { 
       key: 'ai_tokens_monthly', 
-      label: 'Tokens IA/mês', 
+      label: 'Créditos IA/mês', 
       icon: Cpu,
-      tenantValue: tenantLimits?.limit_ai_tokens_monthly,
+      tenantValue: creditsPerUser, // Now uses per-user default
       usageValue: usage?.ai_tokens_month,
-      format: (v: number) => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v.toString(),
+      format: (v: number) => v.toLocaleString('pt-BR'),
+      description: 'Cota mensal de créditos de IA para este usuário',
     },
     { 
       key: 'storage_mb', 
       label: 'Storage (MB)', 
       icon: HardDrive,
-      tenantValue: tenantLimits?.limit_storage_mb,
+      tenantValue: storageMbPerUser, // Now uses per-user default
       usageValue: usage?.storage_bytes ? Math.round(usage.storage_bytes / 1048576) : 0,
       format: (v: number) => v >= 1024 ? `${(v/1024).toFixed(1)} GB` : `${v} MB`,
+      description: 'Limite de armazenamento para este usuário',
     },
     { 
       key: 'messages_monthly', 
@@ -113,6 +119,7 @@ export function UserLimitsModal({
       tenantValue: null,
       usageValue: usage?.messages_sent_month,
       format: (v: number) => v.toLocaleString(),
+      description: 'Limite de mensagens mensais',
     },
     { 
       key: 'api_calls_monthly', 
@@ -121,6 +128,7 @@ export function UserLimitsModal({
       tenantValue: null,
       usageValue: usage?.api_calls_month,
       format: (v: number) => v.toLocaleString(),
+      description: 'Limite de chamadas à API por mês',
     },
   ];
 
@@ -165,9 +173,9 @@ export function UserLimitsModal({
 
             {/* Limits section */}
             <div className="space-y-4">
-              <h4 className="font-medium">Limites de Recursos</h4>
+              <h4 className="font-medium">Limites de Recursos (Por Usuário)</h4>
               <p className="text-sm text-muted-foreground">
-                Deixe em branco para herdar o limite do tenant
+                Cada usuário tem sua própria cota. Deixe em branco para usar o padrão do tenant.
               </p>
 
               <div className="space-y-4">
@@ -188,8 +196,8 @@ export function UserLimitsModal({
                           <Label className="font-medium">{field.label}</Label>
                         </div>
                         {isInherited && field.tenantValue && (
-                          <Badge variant="outline" className="text-xs">
-                            Tenant: {field.format(field.tenantValue)}
+                          <Badge variant="outline" className="text-xs bg-primary/5 text-primary">
+                            Padrão: {field.format(field.tenantValue)}/usuário
                           </Badge>
                         )}
                       </div>
