@@ -1775,10 +1775,13 @@ export type Database = {
           discount_value: number | null
           document: string | null
           extra_channels: number | null
+          has_monthly_fee: boolean | null
           id: string
           implementation_fee: number | null
           implementation_level: number | null
+          implementation_paid_at: string | null
           implementation_paid_externally: boolean | null
+          implementation_status: string | null
           invite_link_id: string | null
           is_blocked: boolean | null
           lead_source: string | null
@@ -1812,10 +1815,13 @@ export type Database = {
           discount_value?: number | null
           document?: string | null
           extra_channels?: number | null
+          has_monthly_fee?: boolean | null
           id?: string
           implementation_fee?: number | null
           implementation_level?: number | null
+          implementation_paid_at?: string | null
           implementation_paid_externally?: boolean | null
+          implementation_status?: string | null
           invite_link_id?: string | null
           is_blocked?: boolean | null
           lead_source?: string | null
@@ -1849,10 +1855,13 @@ export type Database = {
           discount_value?: number | null
           document?: string | null
           extra_channels?: number | null
+          has_monthly_fee?: boolean | null
           id?: string
           implementation_fee?: number | null
           implementation_level?: number | null
+          implementation_paid_at?: string | null
           implementation_paid_externally?: boolean | null
+          implementation_status?: string | null
           invite_link_id?: string | null
           is_blocked?: boolean | null
           lead_source?: string | null
