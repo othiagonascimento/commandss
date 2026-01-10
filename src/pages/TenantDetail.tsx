@@ -56,6 +56,7 @@ import {
   Globe,
   Settings2,
   Brain,
+  Briefcase,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -70,6 +71,8 @@ import { TenantLimitsEditor } from '@/components/tenant/TenantLimitsEditor';
 import { TenantUsageProgress } from '@/components/tenant/TenantUsageProgress';
 import { TenantOverridesForm } from '@/components/tenant/TenantOverridesForm';
 import { TenantAIEngineEditor } from '@/components/tenant/TenantAIEngineEditor';
+import { TenantCommercialEditor } from '@/components/tenant/TenantCommercialEditor';
+import { UserManagement } from '@/components/tenant/UserManagement';
 
 const planColors: Record<string, string> = {
   basic: 'bg-muted text-muted-foreground',
@@ -374,6 +377,7 @@ export default function TenantDetail() {
               defaultValue="overview"
             >
               <option value="overview">📊 Visão Geral</option>
+              <option value="commercial">💼 Comercial</option>
               <option value="resources">⚙️ Recursos e Limites</option>
               <option value="ai-engine">🧠 Motor de IA</option>
               <option value="users">👥 Usuários</option>
@@ -391,6 +395,11 @@ export default function TenantDetail() {
               <Building2 className="w-3 h-3 lg:w-4 lg:h-4" />
               <span className="hidden lg:inline">Visão Geral</span>
               <span className="lg:hidden">Geral</span>
+            </TabsTrigger>
+            <TabsTrigger value="commercial" className="gap-1 text-xs lg:text-sm">
+              <Briefcase className="w-3 h-3 lg:w-4 lg:h-4" />
+              <span className="hidden lg:inline">Comercial</span>
+              <span className="lg:hidden">💼</span>
             </TabsTrigger>
             <TabsTrigger value="resources" className="gap-1 text-xs lg:text-sm">
               <Settings2 className="w-3 h-3 lg:w-4 lg:h-4" />
@@ -561,54 +570,20 @@ export default function TenantDetail() {
             </Card>
           </TabsContent>
 
+          {/* Commercial Tab */}
+          <TabsContent value="commercial">
+            <TenantCommercialEditor tenant={tenant} />
+          </TabsContent>
+
           {/* Users Tab */}
           <TabsContent value="users">
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Usuários do Tenant</CardTitle>
-                  <Button size="sm">
-                    Adicionar Usuário
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {users && users.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Criado em</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.map((user: TenantUser) => (
-                        <TableRow key={user.id}>
-                          <TableCell className="font-medium">{user.name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{user.role}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={user.is_active ? 'default' : 'secondary'}>
-                              {user.is_active ? 'Ativo' : 'Inativo'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {format(new Date(user.created_at), 'dd MMM yyyy', { locale: ptBR })}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <p className="text-center py-8 text-muted-foreground">
-                    Nenhum usuário encontrado.
-                  </p>
-                )}
+              <CardContent className="pt-6">
+                <UserManagement 
+                  tenantId={id!} 
+                  users={users || []} 
+                  isLoading={false}
+                />
               </CardContent>
             </Card>
           </TabsContent>
