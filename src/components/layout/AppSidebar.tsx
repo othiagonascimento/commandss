@@ -240,8 +240,13 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
 
   // Filter items based on permissions (if super admin or no master user yet, show all)
   const filteredNavGroups = useMemo(() => {
-    // If still loading or user is super admin, show everything
-    if (permissions.isLoading || permissions.isSuperAdmin() || !permissions.masterUser) {
+    // If still loading, return empty to prevent flash
+    if (permissions.isLoading) {
+      return [];
+    }
+    
+    // If user is super admin OR no master user record exists (legacy/unregistered user), show everything
+    if (permissions.isSuperAdmin() || !permissions.masterUser) {
       return navGroups;
     }
 
@@ -252,7 +257,7 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
         items: group.items.filter(item => !item.permissionCheck || item.permissionCheck()),
       }))
       .filter(group => group.items.length > 0);
-  }, [navGroups, permissions]);
+  }, [navGroups, permissions.isLoading, permissions.masterUser, permissions]);
 
   const toggleGroup = (groupId: string) => {
     setOpenGroups((prev) =>
