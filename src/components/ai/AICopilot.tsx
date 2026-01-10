@@ -69,19 +69,45 @@ export function AICopilot() {
 
     try {
       const { data, error } = await supabase.functions.invoke('master-ai-insights', {
-        body: { 
+        body: {
           type: 'copilot',
           context: input.trim(),
         },
       });
 
-      if (error) {
-        throw error;
+      if (error) throw error;
+
+      // Friendly handling for billing / rate limit
+      if (data?.code === 'PAYMENT_REQUIRED') {
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content:
+            'No momento eu não consigo gerar respostas porque o workspace está sem créditos de IA (Lovable AI). ' +
+            'Adicione créditos e tente novamente.',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+        toast.error('Créditos de IA insuficientes');
+        return;
       }
 
-      const responseContent = data?.data?.content || 
-                             data?.data?.insights?.[0]?.description ||
-                             'Desculpe, não consegui processar sua pergunta. Tente reformular.';
+      if (data?.code === 'RATE_LIMITED') {
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content:
+            'Estou recebendo muitas requisições agora e fui limitado temporariamente. Aguarde um pouco e tente novamente.',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+        return;
+      }
+
+      const responseContent =
+        data?.data?.content ||
+        data?.data?.insights?.[0]?.description ||
+        'Desculpe, não consegui processar sua pergunta. Tente reformular.';
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
