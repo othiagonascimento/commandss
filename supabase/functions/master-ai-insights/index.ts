@@ -16,16 +16,34 @@ interface TenantData {
   name: string;
   subdomain: string;
   plan_type: string | null;
+  plan_id: string | null;
   subscription_status: string | null;
   is_blocked: boolean | null;
   contracted_users: number | null;
   price_per_user: number | null;
+  channel_price: number | null;
+  extra_channels: number | null;
+  discount_type: string | null;
+  discount_value: number | null;
   created_at: string | null;
+}
+
+interface PlanData {
+  id: string;
+  name: string;
+  slug: string;
+  price_monthly: number;
 }
 
 interface MetricsData {
   tenants: TenantData[];
+  plans: PlanData[];
   subscriptions: unknown[];
+  apiUsage: {
+    totalCostBrl: number;
+    totalTokens: number;
+    byProvider: Record<string, { tokens: number; costBrl: number }>;
+  };
   summary: {
     totalTenants: number;
     activeTenants: number;
@@ -64,7 +82,11 @@ serve(async (req) => {
     // Gather data for AI analysis
     const metricsData = await gatherMetrics(supabaseAdmin);
     
-    logStep('Metrics gathered', { tenantsCount: metricsData.tenants?.length });
+    logStep('Metrics gathered', { 
+      tenantsCount: metricsData.tenants?.length,
+      mrr: metricsData.summary.estimatedMRR,
+      apiCost: metricsData.apiUsage.totalCostBrl
+    });
 
     // Build the prompt based on type
     let systemPrompt = `Você é um analista de negócios expert em SaaS multi-tenant. 
@@ -88,6 +110,11 @@ MÉTRICAS ATUAIS:
 
 DISTRIBUIÇÃO POR PLANO:
 ${Object.entries(metricsData.summary.planDistribution).map(([plan, count]) => `- ${plan}: ${count}`).join('\n')}
+
+CUSTOS DE API (mês atual):
+- Custo total: R$ ${metricsData.apiUsage.totalCostBrl.toFixed(2)}
+- Tokens consumidos: ${metricsData.apiUsage.totalTokens.toLocaleString('pt-BR')}
+- Por provedor: ${Object.entries(metricsData.apiUsage.byProvider).map(([p, d]) => `${p}: R$${d.costBrl.toFixed(2)}`).join(', ') || 'Nenhum uso registrado'}
 
 Retorne JSON no formato:
 {
@@ -144,13 +171,13 @@ Retorne JSON no formato:
         break;
 
       case 'copilot':
-        // Free-form question from user
         userPrompt = `Contexto do usuário: ${context || 'Análise geral do negócio'}
 
 DADOS DISPONÍVEIS:
 - ${metricsData.summary.totalTenants} tenants (${metricsData.summary.activeTenants} ativos)
 - MRR: R$ ${metricsData.summary.estimatedMRR.toFixed(2)}
 - Distribuição: ${Object.entries(metricsData.summary.planDistribution).map(([p, c]) => `${p}: ${c}`).join(', ')}
+- Custo de APIs: R$ ${metricsData.apiUsage.totalCostBrl.toFixed(2)}
 
 Responda de forma conversacional e útil. Se não tiver dados suficientes, seja honesto.`;
         break;
@@ -163,93 +190,187 @@ Retorne 3 insights principais em JSON:
 {"insights": [{"type": "info", "title": "...", "description": "..."}]}`;
     }
 
-    // Call Lovable AI Gateway
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    // Try different AI providers in order: OpenAI -> Anthropic -> Google
+    let aiContent = '';
+    let providerUsed = '';
+
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
+    const GOOGLE_API_KEY = Deno.env.get('GOOGLE_GENERATIVE_AI_API_KEY');
+
+    // Try OpenAI first
+    if (OPENAI_API_KEY) {
+      try {
+        logStep('Trying OpenAI');
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.7,
+            max_tokens: 1000,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          aiContent = data.choices?.[0]?.message?.content || '';
+          providerUsed = 'openai';
+          logStep('OpenAI success', { contentLength: aiContent.length });
+        } else {
+          logStep('OpenAI failed', { status: response.status });
+        }
+      } catch (e) {
+        logStep('OpenAI error', { error: e instanceof Error ? e.message : String(e) });
+      }
     }
 
-    logStep('Calling AI Gateway', { type });
-
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text().catch(() => '');
-
-      // Normalize known billing/rate-limit errors as 200 so supabase-js doesn't throw,
-      // and the client can render a friendly UI.
-      if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Rate limit exceeded. Please try again later.',
-            code: 'RATE_LIMITED',
-            upstream_status: 429,
-            upstream_body: errorText,
+    // Try Anthropic if OpenAI failed
+    if (!aiContent && ANTHROPIC_API_KEY) {
+      try {
+        logStep('Trying Anthropic');
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': ANTHROPIC_API_KEY,
+            'Content-Type': 'application/json',
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 1000,
+            system: systemPrompt,
+            messages: [
+              { role: 'user', content: userPrompt },
+            ],
           }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
+        });
 
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'Payment required. Please add credits to your Lovable workspace.',
-            code: 'PAYMENT_REQUIRED',
-            upstream_status: 402,
-            upstream_body: errorText,
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
+        if (response.ok) {
+          const data = await response.json();
+          aiContent = data.content?.[0]?.text || '';
+          providerUsed = 'anthropic';
+          logStep('Anthropic success', { contentLength: aiContent.length });
+        } else {
+          logStep('Anthropic failed', { status: response.status });
+        }
+      } catch (e) {
+        logStep('Anthropic error', { error: e instanceof Error ? e.message : String(e) });
       }
-
-      logStep('AI Gateway error', { status: aiResponse.status, error: errorText });
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
     }
 
-    const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || '';
-    
-    logStep('AI Response received', { contentLength: content.length });
+    // Try Google if others failed
+    if (!aiContent && GOOGLE_API_KEY) {
+      try {
+        logStep('Trying Google Gemini');
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_API_KEY}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 1000,
+            },
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          aiContent = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          providerUsed = 'google';
+          logStep('Google success', { contentLength: aiContent.length });
+        } else {
+          logStep('Google failed', { status: response.status });
+        }
+      } catch (e) {
+        logStep('Google error', { error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    // If no AI provider worked, return insights based on data analysis
+    if (!aiContent) {
+      logStep('No AI provider available, generating basic insights');
+      
+      const insights = [];
+      
+      // MRR insight
+      if (metricsData.summary.estimatedMRR > 0) {
+        insights.push({
+          type: 'info',
+          title: `MRR: R$ ${metricsData.summary.estimatedMRR.toFixed(2)}`,
+          description: `Com ${metricsData.summary.totalTenants} tenants ativos gerando receita mensal recorrente.`
+        });
+      }
+
+      // Tenant distribution
+      const planDist = Object.entries(metricsData.summary.planDistribution);
+      if (planDist.length > 0) {
+        const topPlan = planDist.sort((a, b) => b[1] - a[1])[0];
+        insights.push({
+          type: 'info',
+          title: `Plano mais popular: ${topPlan[0]}`,
+          description: `${topPlan[1]} tenants (${Math.round((topPlan[1] / metricsData.summary.totalTenants) * 100)}% do total) estão neste plano.`
+        });
+      }
+
+      // API costs
+      if (metricsData.apiUsage.totalCostBrl > 0) {
+        insights.push({
+          type: metricsData.apiUsage.totalCostBrl > 100 ? 'warning' : 'success',
+          title: `Custo de APIs: R$ ${metricsData.apiUsage.totalCostBrl.toFixed(2)}`,
+          description: `${metricsData.apiUsage.totalTokens.toLocaleString('pt-BR')} tokens consumidos este mês.`
+        });
+      }
+
+      // Blocked tenants warning
+      if (metricsData.summary.blockedTenants > 0) {
+        insights.push({
+          type: 'warning',
+          title: `${metricsData.summary.blockedTenants} tenants bloqueados`,
+          description: 'Verificar motivos e potencial recuperação de receita.'
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        type,
+        data: {
+          insights,
+          summary: `Sistema com ${metricsData.summary.activeTenants} tenants ativos e MRR de R$ ${metricsData.summary.estimatedMRR.toFixed(2)}.`
+        },
+        generatedAt: new Date().toISOString(),
+        provider: 'local'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Try to parse JSON from response
     let parsedResponse;
     try {
-      // Extract JSON from markdown code blocks if present
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
-      const jsonStr = jsonMatch[1]?.trim() || content;
+      const jsonMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, aiContent];
+      const jsonStr = jsonMatch[1]?.trim() || aiContent;
       parsedResponse = JSON.parse(jsonStr);
     } catch {
-      // If not valid JSON, return as text
       parsedResponse = { 
         type: 'text',
-        content,
+        content: aiContent,
         insights: [{
           type: 'info',
           title: 'Análise',
-          description: content.slice(0, 500)
+          description: aiContent.slice(0, 500)
         }]
       };
     }
@@ -259,6 +380,7 @@ Retorne 3 insights principais em JSON:
       type,
       data: parsedResponse,
       generatedAt: new Date().toISOString(),
+      provider: providerUsed
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -276,20 +398,59 @@ Retorne 3 insights principais em JSON:
 // Helper function to gather metrics
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function gatherMetrics(supabase: any): Promise<MetricsData> {
-  // Get all tenants
+  // Get all tenants with plan info
   const { data: tenantsRaw } = await supabase
     .from('tenants')
-    .select('id, name, subdomain, plan_type, subscription_status, is_blocked, contracted_users, price_per_user, created_at')
+    .select('id, name, subdomain, plan_type, plan_id, subscription_status, is_blocked, contracted_users, price_per_user, channel_price, extra_channels, discount_type, discount_value, created_at')
     .order('created_at', { ascending: false });
 
   const tenants: TenantData[] = (tenantsRaw || []) as TenantData[];
+
+  // Get plans for pricing
+  const { data: plansRaw } = await supabase
+    .from('plans')
+    .select('id, name, slug, price_monthly');
+  
+  const plans: PlanData[] = (plansRaw || []) as PlanData[];
+  const planPrices = new Map(plans.map(p => [p.id, p.price_monthly]));
+  const planSlugPrices = new Map(plans.map(p => [p.slug, p.price_monthly]));
 
   // Get billing subscriptions
   const { data: subscriptions } = await supabase
     .from('billing_subscriptions')
     .select('tenant_id, status, plan_type');
 
-  // Calculate summary
+  // Get API usage for current month
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { data: apiLogs } = await supabase
+    .from('api_usage_logs')
+    .select('provider, total_tokens, cost_brl')
+    .gte('created_at', startOfMonth.toISOString());
+
+  const apiUsage = {
+    totalCostBrl: 0,
+    totalTokens: 0,
+    byProvider: {} as Record<string, { tokens: number; costBrl: number }>
+  };
+
+  (apiLogs || []).forEach((log: { provider: string; total_tokens: number | null; cost_brl: number | null }) => {
+    const cost = log.cost_brl || 0;
+    const tokens = log.total_tokens || 0;
+    
+    apiUsage.totalCostBrl += cost;
+    apiUsage.totalTokens += tokens;
+    
+    if (!apiUsage.byProvider[log.provider]) {
+      apiUsage.byProvider[log.provider] = { tokens: 0, costBrl: 0 };
+    }
+    apiUsage.byProvider[log.provider].tokens += tokens;
+    apiUsage.byProvider[log.provider].costBrl += cost;
+  });
+
+  // Calculate summary with correct MRR
   const activeTenants = tenants?.filter(t => !t.is_blocked && t.subscription_status !== 'cancelled') || [];
   const planDistribution: Record<string, number> = {};
   
@@ -298,17 +459,45 @@ async function gatherMetrics(supabase: any): Promise<MetricsData> {
     planDistribution[plan] = (planDistribution[plan] || 0) + 1;
   });
 
-  const estimatedMRR = tenants?.reduce((sum, t) => {
-    const users = t.contracted_users || 1;
-    const pricePerUser = t.price_per_user || 69;
-    return sum + (users * pricePerUser);
-  }, 0) || 0;
+  // Calculate MRR correctly
+  let estimatedMRR = 0;
+  tenants?.forEach(t => {
+    if (t.is_blocked) return;
+    
+    // Base plan price (from plan_id or plan_type)
+    let basePlanPrice = 0;
+    if (t.plan_id) {
+      basePlanPrice = planPrices.get(t.plan_id) || 0;
+    } else if (t.plan_type) {
+      basePlanPrice = planSlugPrices.get(t.plan_type) || 0;
+    }
+    
+    // Per-user pricing
+    const userRevenue = (t.price_per_user || 0) * (t.contracted_users || 0);
+    
+    // Channel pricing
+    const channelRevenue = (t.channel_price || 0) * (t.extra_channels || 0);
+    
+    // Total before discount
+    let tenantMRR = basePlanPrice + userRevenue + channelRevenue;
+    
+    // Apply discount
+    if (t.discount_type === 'percent' && t.discount_value) {
+      tenantMRR = tenantMRR * (1 - t.discount_value / 100);
+    } else if (t.discount_type === 'fixed' && t.discount_value) {
+      tenantMRR = Math.max(0, tenantMRR - t.discount_value);
+    }
+    
+    estimatedMRR += tenantMRR;
+  });
 
   const totalUsers = tenants?.reduce((sum, t) => sum + (t.contracted_users || 1), 0) || 0;
 
   return {
     tenants: tenants || [],
+    plans: plans || [],
     subscriptions: subscriptions || [],
+    apiUsage,
     summary: {
       totalTenants: tenants?.length || 0,
       activeTenants: activeTenants.length,
