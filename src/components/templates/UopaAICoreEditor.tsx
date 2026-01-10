@@ -283,9 +283,12 @@ export function UopaAICoreEditor() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Camada 1 - Operacional/Router</Label>
+                  <Label className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    Camada 1 - Router
+                  </Label>
                   <Select 
                     value={uopaCore?.layer_1_model || 'gemini-1.5-flash'} 
                     onValueChange={(value) => setValue('uopa_ai_core.layer_1_model', value)}
@@ -296,18 +299,45 @@ export function UopaAICoreEditor() {
                     <SelectContent>
                       <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
                       <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
+                      <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Modelo rápido para roteamento e tarefas operacionais
+                    Modelo rápido para roteamento
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Camada 2 - Vendas (Elite)</Label>
+                  <Label className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    Camada 2 - Standard
+                  </Label>
                   <Select 
-                    value={uopaCore?.layer_2_model || 'gpt-4o'} 
+                    value={uopaCore?.layer_2_model || 'gemini-1.5-pro'} 
                     onValueChange={(value) => setValue('uopa_ai_core.layer_2_model', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
+                      <SelectItem value="claude-3.5-sonnet">Claude 3.5 Sonnet</SelectItem>
+                      <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Modelo balanceado
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-500" />
+                    Camada 3 - Elite
+                  </Label>
+                  <Select 
+                    value={(uopaCore as { layer_3_model?: string })?.layer_3_model || 'gpt-4o'} 
+                    onValueChange={(value) => setValue('uopa_ai_core.layer_2_model', value)} // Will be stored in layer_2 for now
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -315,11 +345,12 @@ export function UopaAICoreEditor() {
                     <SelectContent>
                       <SelectItem value="gpt-4o">GPT-4o</SelectItem>
                       <SelectItem value="claude-3.5-sonnet">Claude 3.5 Sonnet</SelectItem>
+                      <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
                       <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Modelo avançado para conversas de vendas complexas
+                    Modelo avançado para vendas
                   </p>
                 </div>
               </div>

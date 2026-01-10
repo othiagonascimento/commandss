@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     // PUT /master-tenant-features/:tenantId - Update tenant features
     if (req.method === 'PUT' && tenantId && !action) {
       const body = await req.json();
-      const { modules, limits, overrides, override_reason } = body;
+      const { modules, limits, ai_config, overrides, override_reason } = body;
 
       // Build update object
       const updateData: Record<string, unknown> = {
@@ -131,6 +131,15 @@ Deno.serve(async (req) => {
       if (limits) {
         Object.entries(limits).forEach(([key, value]) => {
           if (key.startsWith('limit_')) {
+            updateData[key] = value;
+          }
+        });
+      }
+
+      // Add AI config if provided
+      if (ai_config) {
+        Object.entries(ai_config).forEach(([key, value]) => {
+          if (key.startsWith('ai_')) {
             updateData[key] = value;
           }
         });
