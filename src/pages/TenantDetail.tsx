@@ -77,10 +77,20 @@ const planColors: Record<string, string> = {
   enterprise: 'bg-warning/10 text-warning',
 };
 
+// Helper to validate UUID format
+const isValidUUID = (str: string | undefined): boolean => {
+  if (!str) return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
 export default function TenantDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Validate that id is a valid UUID
+  const isIdValid = isValidUUID(id);
 
   const { data: tenant, isLoading } = useQuery({
     queryKey: ['tenant', id],
@@ -88,7 +98,7 @@ export default function TenantDetail() {
       const result = await tenantsApi.get(id!);
       return result.data;
     },
-    enabled: !!id,
+    enabled: isIdValid,
   });
 
   const { data: users } = useQuery({
@@ -97,7 +107,7 @@ export default function TenantDetail() {
       const result = await usersApi.list(id!);
       return result.data?.data || [];
     },
-    enabled: !!id,
+    enabled: isIdValid,
   });
 
   // Fetch tenant features
@@ -107,7 +117,7 @@ export default function TenantDetail() {
       const result = await featuresApi.get(id!);
       return result.data;
     },
-    enabled: !!id,
+    enabled: isIdValid,
   });
 
   // Fetch tenant usage
@@ -117,7 +127,7 @@ export default function TenantDetail() {
       const result = await usageApi.get(id!);
       return result.data;
     },
-    enabled: !!id,
+    enabled: isIdValid,
   });
 
   // Update features mutation
@@ -265,6 +275,21 @@ export default function TenantDetail() {
       toast.error('Erro ao revogar acesso.');
     },
   });
+
+  // Handle invalid ID (e.g., literal ":id" in URL)
+  if (!isIdValid) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <h2 className="text-xl font-semibold">ID de tenant inválido</h2>
+          <p className="text-muted-foreground mt-2">O identificador fornecido não é válido.</p>
+          <Button className="mt-4" onClick={() => navigate('/tenants')}>
+            Voltar para lista
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (isLoading) {
     return (
