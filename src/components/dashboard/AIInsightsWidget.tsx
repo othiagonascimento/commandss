@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { CreditCard, Clock } from 'lucide-react';
 
 interface Insight {
   type: 'success' | 'warning' | 'info' | 'action';
@@ -49,6 +50,7 @@ const insightColors: Record<string, string> = {
 
 export function AIInsightsWidget() {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['ai-insights', 'dashboard_summary'],
@@ -57,16 +59,32 @@ export function AIInsightsWidget() {
         body: { type: 'dashboard_summary' },
       });
 
+      // Check for specific error codes in response
+      if (data?.code === 'PAYMENT_REQUIRED') {
+        setErrorCode('PAYMENT_REQUIRED');
+        throw new Error(data.error || 'Créditos insuficientes');
+      }
+      if (data?.code === 'RATE_LIMITED') {
+        setErrorCode('RATE_LIMITED');
+        throw new Error(data.error || 'Limite de requisições excedido');
+      }
+      if (data?.error) {
+        setErrorCode('GENERIC');
+        throw new Error(data.error);
+      }
+
       if (error) {
         console.error('[AIInsights] Error:', error);
+        setErrorCode('GENERIC');
         throw error;
       }
 
+      setErrorCode(null);
       return data as AIInsightsResponse;
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
-    retry: 1,
+    retry: false, // Don't retry on payment/rate limit errors
   });
 
   const handleRefresh = async () => {
@@ -101,24 +119,62 @@ export function AIInsightsWidget() {
   }
 
   if (error) {
+    const isPaymentError = errorCode === 'PAYMENT_REQUIRED';
+    const isRateLimitError = errorCode === 'RATE_LIMITED';
+    
     return (
-      <Card className="col-span-2 border-destructive/30">
+      <Card className={cn(
+        "col-span-2",
+        isPaymentError ? "border-warning/30 bg-warning/5" : "border-muted"
+      )}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-destructive" />
+            <Sparkles className={cn("h-5 w-5", isPaymentError ? "text-warning" : "text-muted-foreground")} />
             AI Insights
+            {isPaymentError && <Badge variant="outline" className="text-warning border-warning/30">Créditos</Badge>}
+            {isRateLimitError && <Badge variant="outline" className="text-muted-foreground">Limite</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-6">
-            <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground mb-4">
-              Erro ao carregar insights. Tente novamente.
-            </p>
-            <Button variant="outline" size="sm" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Tentar novamente
-            </Button>
+            {isPaymentError ? (
+              <>
+                <CreditCard className="h-10 w-10 text-warning mx-auto mb-3" />
+                <p className="font-medium mb-1">Créditos de IA Insuficientes</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Adicione créditos ao seu workspace Lovable para usar os insights de IA.
+                </p>
+                <Button variant="outline" size="sm" asChild>
+                  <a href="https://lovable.dev/settings/workspace" target="_blank" rel="noopener noreferrer">
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Adicionar Créditos
+                  </a>
+                </Button>
+              </>
+            ) : isRateLimitError ? (
+              <>
+                <Clock className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="font-medium mb-1">Limite de Requisições</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Muitas requisições em pouco tempo. Aguarde um momento e tente novamente.
+                </p>
+                <Button variant="outline" size="sm" onClick={handleRefresh}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Tentar novamente
+                </Button>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground mb-4">
+                  Não foi possível carregar insights. Tente novamente mais tarde.
+                </p>
+                <Button variant="outline" size="sm" onClick={handleRefresh}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Tentar novamente
+                </Button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
