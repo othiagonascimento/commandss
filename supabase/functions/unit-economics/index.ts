@@ -11,9 +11,9 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[UNIT-ECONOMICS] ${step}${detailsStr}`);
 };
 
-// Cost assumptions (R$) - adjust based on real costs
-const COSTS = {
-  AI_TOKEN_COST_PER_1K: 0.002, // R$ 0.002 per 1K tokens (Gemini)
+// Default cost assumptions (R$) - will be overridden by api_cost_config if available
+const DEFAULT_COSTS = {
+  AI_TOKEN_COST_PER_1K: 0.002, // R$ 0.002 per 1K tokens (fallback)
   STORAGE_COST_PER_GB: 0.50, // R$ 0.50 per GB/month
   INFRA_BASE_COST: 5.00, // R$ 5 base infra per tenant
   MESSAGE_COST: 0.001, // R$ 0.001 per message
@@ -115,10 +115,10 @@ serve(async (req) => {
         const monthlyRevenue = userRevenue + channelRevenue;
 
         // Cost calculation
-        const aiCost = ((usage.ai_tokens_used || 0) / 1000) * COSTS.AI_TOKEN_COST_PER_1K;
-        const storageCost = ((usage.storage_used_mb || 0) / 1024) * COSTS.STORAGE_COST_PER_GB;
-        const messageCost = (usage.messages_sent || 0) * COSTS.MESSAGE_COST;
-        const totalCost = COSTS.INFRA_BASE_COST + aiCost + storageCost + messageCost;
+        const aiCost = ((usage.ai_tokens_used || 0) / 1000) * DEFAULT_COSTS.AI_TOKEN_COST_PER_1K;
+        const storageCost = ((usage.storage_used_mb || 0) / 1024) * DEFAULT_COSTS.STORAGE_COST_PER_GB;
+        const messageCost = (usage.messages_sent || 0) * DEFAULT_COSTS.MESSAGE_COST;
+        const totalCost = DEFAULT_COSTS.INFRA_BASE_COST + aiCost + storageCost + messageCost;
 
         // Margin
         const margin = monthlyRevenue - totalCost;
@@ -138,7 +138,7 @@ serve(async (req) => {
             total: monthlyRevenue,
           },
           costs: {
-            infra: COSTS.INFRA_BASE_COST,
+            infra: DEFAULT_COSTS.INFRA_BASE_COST,
             ai: aiCost,
             storage: storageCost,
             messages: messageCost,
@@ -175,7 +175,7 @@ serve(async (req) => {
         economics,
         summary,
         period: { start: periodStart.toISOString(), end: periodEnd.toISOString() },
-        costAssumptions: COSTS,
+        costAssumptions: DEFAULT_COSTS,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
