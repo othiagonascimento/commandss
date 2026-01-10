@@ -1001,6 +1001,75 @@ export type Database = {
           },
         ]
       }
+      scheduled_tasks: {
+        Row: {
+          action_payload: Json
+          action_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          error_message: string | null
+          id: string
+          last_run_at: string | null
+          max_runs: number | null
+          name: string
+          next_run_at: string | null
+          repeat_config: Json | null
+          repeat_type: string | null
+          run_count: number | null
+          scheduled_at: string
+          status: string
+          target_filter: Json | null
+          target_ids: string[] | null
+          target_type: string
+          updated_at: string
+        }
+        Insert: {
+          action_payload?: Json
+          action_type: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          last_run_at?: string | null
+          max_runs?: number | null
+          name: string
+          next_run_at?: string | null
+          repeat_config?: Json | null
+          repeat_type?: string | null
+          run_count?: number | null
+          scheduled_at: string
+          status?: string
+          target_filter?: Json | null
+          target_ids?: string[] | null
+          target_type: string
+          updated_at?: string
+        }
+        Update: {
+          action_payload?: Json
+          action_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          last_run_at?: string | null
+          max_runs?: number | null
+          name?: string
+          next_run_at?: string | null
+          repeat_config?: Json | null
+          repeat_type?: string | null
+          run_count?: number | null
+          scheduled_at?: string
+          status?: string
+          target_filter?: Json | null
+          target_ids?: string[] | null
+          target_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tenant_branding: {
         Row: {
           accent_color: string | null
