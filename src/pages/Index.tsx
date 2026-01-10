@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UsageAlertsWidget } from '@/components/dashboard/UsageAlertsWidget';
 import { 
   Building2, 
   Users, 
@@ -386,8 +387,11 @@ export default function Index() {
           />
         </div>
 
-        {/* Plans Distribution & Status */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Usage Alerts & Plans Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Usage Alerts Widget */}
+          <UsageAlertsWidget />
+
           <Card>
             <CardHeader>
               <CardTitle>Distribuição por Plano</CardTitle>

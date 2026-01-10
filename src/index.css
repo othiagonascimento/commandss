@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* UÔPA CRM Dashboard - Clean & Friendly Design
-   Light theme focused on clarity and understanding
+   Supports both light and dark themes
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -63,12 +63,69 @@
     --sidebar-accent-foreground: 262 83% 40%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 262 83% 58%;
+
+    /* Chart Colors */
+    --chart-1: 262 83% 58%;
+    --chart-2: 199 89% 48%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 0 84% 60%;
   }
 
   .dark {
-    /* Keep light mode even in dark class for consistency */
-    --background: 220 20% 97%;
-    --foreground: 224 30% 18%;
+    /* Dark Theme */
+    --background: 224 30% 10%;
+    --foreground: 220 20% 95%;
+
+    --card: 224 30% 13%;
+    --card-foreground: 220 20% 95%;
+
+    --popover: 224 30% 13%;
+    --popover-foreground: 220 20% 95%;
+
+    --primary: 262 83% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 224 25% 18%;
+    --secondary-foreground: 220 20% 90%;
+
+    --muted: 224 25% 18%;
+    --muted-foreground: 220 10% 60%;
+
+    --accent: 262 83% 65%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 224 25% 20%;
+    --input: 224 25% 20%;
+    --ring: 262 83% 65%;
+
+    --sidebar-background: 224 30% 11%;
+    --sidebar-foreground: 220 20% 70%;
+    --sidebar-primary: 262 83% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 262 50% 20%;
+    --sidebar-accent-foreground: 262 83% 75%;
+    --sidebar-border: 224 25% 18%;
+    --sidebar-ring: 262 83% 65%;
+
+    /* Chart Colors for Dark Mode */
+    --chart-1: 262 83% 65%;
+    --chart-2: 199 89% 55%;
+    --chart-3: 142 71% 50%;
+    --chart-4: 38 92% 55%;
+    --chart-5: 0 72% 55%;
   }
 }
 
