@@ -78,13 +78,55 @@ Deno.serve(async (req) => {
         console.log('[master-usage] Features not found, using defaults:', featuresError.message);
       }
 
-      // Get user count from local profiles
+      // Get user count from local profiles (this is the Master database)
       const { count: localUserCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenantId);
 
-      // Try to get real data from remote Supabase if configured
+      // Get local tenant_usage for any stored data
+      const { data: localUsage } = await supabase
+        .from('tenant_usage')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .single();
+
+      // Get tenant config for WhatsApp count
+      const { data: tenantConfig } = await supabase
+        .from('tenants')
+        .select('extra_channels, config')
+        .eq('id', tenantId)
+        .single();
+
+      // Count leads from local conversations
+      const { count: localLeadsCount } = await supabase
+        .from('conversations')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .not('lead_id', 'is', null);
+
+      // Count products from local knowledge_base
+      const { count: localProductsCount } = await supabase
+        .from('knowledge_base')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('category', 'product');
+
+      // Sum AI tokens from user_usage
+      const { data: localUserUsageData } = await supabase
+        .from('user_usage')
+        .select('ai_tokens_month, storage_bytes')
+        .eq('tenant_id', tenantId);
+
+      let localAiTokens = 0;
+      let localStorageMb = 0;
+      if (localUserUsageData && localUserUsageData.length > 0) {
+        localAiTokens = localUserUsageData.reduce((sum, u) => sum + (u.ai_tokens_month || 0), 0);
+        const totalBytes = localUserUsageData.reduce((sum, u) => sum + (u.storage_bytes || 0), 0);
+        localStorageMb = Math.round(totalBytes / 1048576);
+      }
+
+      // Try to get additional data from remote Supabase if configured
       let remoteUserCount = 0;
       let remoteLeadsCount = 0;
       let remoteProductsCount = 0;
@@ -92,17 +134,24 @@ Deno.serve(async (req) => {
       let remoteStorageMb = 0;
       let remoteAiTokens = 0;
       let remoteMessagesSent = 0;
+      let useRemoteData = false;
 
       if (remoteSupabase) {
         console.log('[master-usage] Fetching real data from remote Supabase...');
         
         try {
           // Count users from remote profiles
-          const { count: usersCount } = await remoteSupabase
+          const { count: usersCount, error: usersError } = await remoteSupabase
             .from('profiles')
             .select('*', { count: 'exact', head: true })
             .eq('tenant_id', tenantId);
-          remoteUserCount = usersCount || 0;
+          
+          if (!usersError) {
+            remoteUserCount = usersCount || 0;
+            useRemoteData = true;
+          } else {
+            console.log('[master-usage] Remote users error:', usersError.message);
+          }
 
           // Count leads from remote leads table (or conversations with lead_id)
           const { count: leadsCount } = await remoteSupabase
@@ -121,15 +170,14 @@ Deno.serve(async (req) => {
           remoteProductsCount = productsCount || 0;
 
           // Count WhatsApp instances - check tenant config or count from a dedicated table
-          // For now, check if tenant has any WhatsApp activity
-          const { data: tenantConfig } = await remoteSupabase
+          const { data: remoteTenantConfig } = await remoteSupabase
             .from('tenants')
             .select('config, extra_channels')
             .eq('id', tenantId)
             .single();
           
           // Base WhatsApp + extra channels
-          remoteWhatsappCount = 1 + (tenantConfig?.extra_channels || 0);
+          remoteWhatsappCount = 1 + (remoteTenantConfig?.extra_channels || 0);
 
           // Sum AI tokens from user_usage
           const { data: userUsageData } = await remoteSupabase
@@ -140,7 +188,7 @@ Deno.serve(async (req) => {
           if (userUsageData && userUsageData.length > 0) {
             remoteAiTokens = userUsageData.reduce((sum, u) => sum + (u.ai_tokens_month || 0), 0);
             const totalBytes = userUsageData.reduce((sum, u) => sum + (u.storage_bytes || 0), 0);
-            remoteStorageMb = Math.round(totalBytes / 1048576); // Convert bytes to MB
+            remoteStorageMb = Math.round(totalBytes / 1048576);
           }
 
           // Count messages from api_usage_logs
@@ -166,15 +214,18 @@ Deno.serve(async (req) => {
           });
         } catch (remoteError) {
           console.error('[master-usage] Error fetching remote data:', remoteError);
+          useRemoteData = false;
         }
       }
 
-      // Also get local tenant_usage for fallback
-      const { data: localUsage } = await supabase
-        .from('tenant_usage')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .single();
+      console.log('[master-usage] Local data:', {
+        users: localUserCount,
+        leads: localLeadsCount,
+        products: localProductsCount,
+        whatsapp: 1 + (tenantConfig?.extra_channels || 0),
+        ai_tokens: localAiTokens,
+        storage_mb: localStorageMb,
+      });
 
       // Build response with usage vs limits
       const defaultLimits = {
@@ -188,17 +239,53 @@ Deno.serve(async (req) => {
 
       const limits = features || defaultLimits;
       
-      // Use remote data if available, otherwise fall back to local
+      // Use remote data if available AND it has more data, otherwise use local
+      // Priority: use the source that has actual data (non-zero values)
+      const whatsappCount = 1 + (tenantConfig?.extra_channels || 0);
+      
       const currentUsage = {
-        users_count: remoteSupabase ? remoteUserCount : (localUserCount || localUsage?.users_count || 0),
-        leads_count: remoteSupabase ? remoteLeadsCount : (localUsage?.leads_count || 0),
-        products_count: remoteSupabase ? remoteProductsCount : (localUsage?.products_count || 0),
-        whatsapp_instances_count: remoteSupabase ? remoteWhatsappCount : (localUsage?.whatsapp_instances_count || 0),
-        ai_tokens_used: remoteSupabase ? remoteAiTokens : (localUsage?.ai_tokens_used || 0),
-        storage_used_mb: remoteSupabase ? remoteStorageMb : (localUsage?.storage_used_mb || 0),
-        messages_sent: remoteSupabase ? remoteMessagesSent : (localUsage?.messages_sent || 0),
-        active_users: remoteUserCount || localUserCount || localUsage?.active_users || 0,
+        users_count: Math.max(
+          useRemoteData ? remoteUserCount : 0,
+          localUserCount || 0,
+          localUsage?.users_count || 0
+        ),
+        leads_count: Math.max(
+          useRemoteData ? remoteLeadsCount : 0,
+          localLeadsCount || 0,
+          localUsage?.leads_count || 0
+        ),
+        products_count: Math.max(
+          useRemoteData ? remoteProductsCount : 0,
+          localProductsCount || 0,
+          localUsage?.products_count || 0
+        ),
+        whatsapp_instances_count: Math.max(
+          useRemoteData ? remoteWhatsappCount : whatsappCount,
+          whatsappCount,
+          localUsage?.whatsapp_instances_count || 0
+        ),
+        ai_tokens_used: Math.max(
+          useRemoteData ? remoteAiTokens : 0,
+          localAiTokens,
+          localUsage?.ai_tokens_used || 0
+        ),
+        storage_used_mb: Math.max(
+          useRemoteData ? remoteStorageMb : 0,
+          localStorageMb,
+          localUsage?.storage_used_mb || 0
+        ),
+        messages_sent: Math.max(
+          useRemoteData ? remoteMessagesSent : 0,
+          localUsage?.messages_sent || 0
+        ),
+        active_users: Math.max(
+          useRemoteData ? remoteUserCount : 0,
+          localUserCount || 0,
+          localUsage?.active_users || 0
+        ),
       };
+
+      console.log('[master-usage] Final usage:', currentUsage);
 
       // Apply overrides to limits if they exist
       const effectiveLimits = { ...limits };
