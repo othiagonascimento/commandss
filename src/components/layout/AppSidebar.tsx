@@ -250,6 +250,11 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
       return navGroups;
     }
 
+    // If master user exists but has no roles/permissions configured yet, don't hide the whole menu
+    if ((permissions.userRoles?.length ?? 0) === 0 && (permissions.userPermissions?.length ?? 0) === 0) {
+      return navGroups;
+    }
+
     return navGroups
       .filter(group => !group.permissionCheck || group.permissionCheck())
       .map(group => ({
@@ -257,7 +262,7 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
         items: group.items.filter(item => !item.permissionCheck || item.permissionCheck()),
       }))
       .filter(group => group.items.length > 0);
-  }, [navGroups, permissions.isLoading, permissions.masterUser, permissions]);
+  }, [navGroups, permissions.isLoading, permissions.masterUser, permissions.userRoles, permissions.userPermissions, permissions]);
 
   const toggleGroup = (groupId: string) => {
     setOpenGroups((prev) =>
