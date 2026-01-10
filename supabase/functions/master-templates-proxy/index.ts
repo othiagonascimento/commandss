@@ -49,7 +49,7 @@ serve(async (req) => {
       case 'list': {
         // Get all niche_templates from remote database
         const { data, error } = await remoteSupabase
-          .from('niche_templates')
+          .from('master_niche_templates')
           .select('*')
           .order('created_at', { ascending: false });
 
@@ -75,7 +75,7 @@ serve(async (req) => {
         }
 
         const { data, error } = await remoteSupabase
-          .from('niche_templates')
+          .from('master_niche_templates')
           .select('*')
           .eq('id', templateId)
           .single();
@@ -103,7 +103,7 @@ serve(async (req) => {
         }
 
         const { data, error } = await remoteSupabase
-          .from('niche_templates')
+          .from('master_niche_templates')
           .update({ ...updateData, updated_at: new Date().toISOString() })
           .eq('id', template_id)
           .select()
@@ -133,7 +133,7 @@ serve(async (req) => {
         }
 
         const { data, error } = await remoteSupabase
-          .from('niche_templates')
+          .from('master_niche_templates')
           .select('*')
           .eq('id', templateId)
           .single();
@@ -167,7 +167,7 @@ serve(async (req) => {
 
         // Get source template
         const { data: source, error: sourceError } = await remoteSupabase
-          .from('niche_templates')
+          .from('master_niche_templates')
           .select('*')
           .eq('id', source_id)
           .single();
@@ -181,7 +181,7 @@ serve(async (req) => {
 
         // Create clone
         const { data: clone, error: cloneError } = await remoteSupabase
-          .from('niche_templates')
+          .from('master_niche_templates')
           .insert({
             name: new_name,
             slug: new_slug,
