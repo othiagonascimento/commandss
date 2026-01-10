@@ -32,6 +32,8 @@ const Plans = lazy(() => import("./pages/Plans"));
 const ActivityLogs = lazy(() => import("./pages/ActivityLogs"));
 const TenantHealth = lazy(() => import("./pages/TenantHealth"));
 const Analytics = lazy(() => import("./pages/Analytics"));
+const QuickCreateTenant = lazy(() => import("./pages/QuickCreateTenant"));
+const ScheduledTasks = lazy(() => import("./pages/ScheduledTasks"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -97,6 +99,8 @@ const App = () => (
                 <Route path="/activity-logs" element={<ProtectedRoute><ActivityLogs /></ProtectedRoute>} />
                 <Route path="/tenant-health" element={<ProtectedRoute><TenantHealth /></ProtectedRoute>} />
                 <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+                <Route path="/tenants/quick-create" element={<ProtectedRoute><QuickCreateTenant /></ProtectedRoute>} />
+                <Route path="/scheduled-tasks" element={<ProtectedRoute><ScheduledTasks /></ProtectedRoute>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

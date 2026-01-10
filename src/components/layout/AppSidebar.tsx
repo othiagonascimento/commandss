@@ -21,6 +21,8 @@ import {
   Cog,
   UserCog,
   FileText,
+  Zap,
+  Clock,
   Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -131,6 +133,14 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           permissionCheck: permissions.canViewTenants,
         },
         {
+          icon: Zap,
+          label: 'Criação Rápida',
+          path: '/tenants/quick-create',
+          description: 'Wizard simplificado',
+          badge: 'Novo',
+          permissionCheck: permissions.canViewTenants,
+        },
+        {
           icon: Users,
           label: 'Usuários',
           path: '/users',
@@ -200,6 +210,13 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           label: 'Logs de Atividade',
           path: '/activity-logs',
           description: 'Auditoria e histórico de ações',
+          permissionCheck: permissions.canViewSettings,
+        },
+        {
+          icon: Clock,
+          label: 'Tarefas Agendadas',
+          path: '/scheduled-tasks',
+          description: 'Ações automáticas programadas',
           permissionCheck: permissions.canViewSettings,
         },
         {
