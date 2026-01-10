@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { HelpTooltip } from '@/components/ui/help-tooltip';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Users, 
   Target, 
@@ -14,6 +15,7 @@ import {
   HardDrive,
   Infinity,
   Settings2,
+  AlertTriangle,
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 
@@ -75,12 +77,12 @@ const limitConfig: LimitConfig[] = [
   },
   {
     key: 'limit_ai_tokens_monthly',
-    label: 'Tokens IA/mês',
-    description: 'Limite de tokens de IA por mês',
+    label: 'Cota Mensal de Créditos',
+    description: 'Cota de créditos de IA por mês (500 créditos ≈ 1.25M tokens)',
     icon: Cpu,
-    unit: 'tokens',
-    presets: [100000, 500000, 1000000, 5000000],
-    formatValue: (v: number) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : `${(v/1000).toFixed(0)}k`,
+    unit: 'créditos',
+    presets: [100, 250, 500, 1000, 2500],
+    formatValue: (v: number) => v.toLocaleString('pt-BR'),
   },
   {
     key: 'limit_storage_mb',
@@ -125,6 +127,28 @@ export function TenantLimitsEditor({ limits, onChange, disabled }: TenantLimitsE
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Credits System Explanation */}
+        <Alert className="bg-amber-500/10 border-amber-500/30">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertTitle className="text-amber-600 dark:text-amber-400">Guia de Configuração (Sistema de Créditos)</AlertTitle>
+          <AlertDescription className="text-sm space-y-2 mt-2">
+            <p>O sistema converte automaticamente Créditos em Tokens. <strong>Não insira valores em milhões.</strong></p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li><strong>Valor Padrão:</strong> Digite <code className="bg-muted px-1 rounded">500</code> (Custo base R$ 5,00)</li>
+              <li><strong>Equivalência:</strong> 500 Créditos ≈ <strong>1.250.000 Tokens</strong> (Modelo Standard)</li>
+            </ul>
+            <div className="mt-2 pt-2 border-t border-amber-500/20">
+              <p className="font-medium">Peso de Consumo (Regra 1 vs 10):</p>
+              <ul className="list-disc pl-4 mt-1 space-y-1">
+                <li><strong>1 Crédito</strong> = 1 Interação Standard (GPT-4o-mini)</li>
+                <li><strong>10 Créditos</strong> = 1 Interação Elite (Claude 3.5 Sonnet / GPT-4o)</li>
+              </ul>
+              <p className="text-amber-600/80 dark:text-amber-400/80 text-xs mt-2 italic">
+                ⚠️ Atenção: O sistema desconta 10x mais rápido se o usuário usar modelos Elite.
+              </p>
+            </div>
+          </AlertDescription>
+        </Alert>
         {limitConfig.map((config) => {
           const Icon = config.icon;
           const currentValue = localLimits[config.key as keyof typeof limits];

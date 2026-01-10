@@ -28,7 +28,7 @@ const usageConfig = [
   { key: 'leads', label: 'Leads', icon: Target, format: (v: number) => v.toLocaleString() },
   { key: 'products', label: 'Produtos', icon: Package, format: (v: number) => v.toLocaleString() },
   { key: 'whatsapp_instances', label: 'WhatsApp', icon: Smartphone, format: (v: number) => v.toLocaleString() },
-  { key: 'ai_tokens', label: 'Tokens IA', icon: Cpu, format: (v: number) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : v.toLocaleString() },
+  { key: 'ai_tokens', label: 'Créditos IA', icon: Cpu, format: (v: number) => v.toLocaleString('pt-BR') },
   { key: 'storage_mb', label: 'Storage', icon: HardDrive, format: (v: number) => v >= 1024 ? `${(v/1024).toFixed(1)} GB` : `${v} MB` },
 ] as const;
 
