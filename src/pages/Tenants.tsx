@@ -35,7 +35,6 @@ import {
 import { 
   Search, 
   Plus, 
-  Eye, 
   Edit, 
   Power, 
   Loader2,
@@ -246,15 +245,7 @@ export default function Tenants() {
                             variant="ghost"
                             size="icon"
                             onClick={() => navigate(`/tenants/${tenant.id}`)}
-                            title="Visualizar"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/tenants/${tenant.id}/edit`)}
-                            title="Editar"
+                            title="Gerenciar tenant"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
