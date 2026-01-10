@@ -130,7 +130,82 @@ export const brandingApi = {
     callMasterApi<BrandingData>('master-branding', 'PUT', tenantId, data),
 };
 
+// ============================================
+// NEW: Tenant Features API
+// ============================================
+export const featuresApi = {
+  get: (tenantId: string) => 
+    callMasterApi<TenantFeatures>('master-tenant-features', 'GET', tenantId),
+  
+  update: (tenantId: string, data: TenantFeaturesPayload) => 
+    callMasterApi<TenantFeatures>('master-tenant-features', 'PUT', tenantId, data),
+  
+  applyOverride: (tenantId: string, override: OverridePayload) =>
+    callMasterApi<TenantFeatures>('master-tenant-features', 'POST', `${tenantId}/override`, override),
+  
+  clearOverride: (tenantId: string) =>
+    callMasterApi<TenantFeatures>('master-tenant-features', 'DELETE', `${tenantId}/override`),
+};
+
+// ============================================
+// NEW: User Limits API
+// ============================================
+export const userLimitsApi = {
+  list: (tenantId: string) =>
+    callMasterApi<UserLimitsListResponse>('master-user-limits', 'GET', tenantId),
+  
+  get: (tenantId: string, userId: string) => 
+    callMasterApi<UserLimitsDetail>('master-user-limits', 'GET', `${tenantId}/${userId}`),
+  
+  update: (tenantId: string, userId: string, data: UserLimitsPayload) =>
+    callMasterApi<UserLimits>('master-user-limits', 'PUT', `${tenantId}/${userId}`, data),
+  
+  remove: (tenantId: string, userId: string) =>
+    callMasterApi<{ success: boolean }>('master-user-limits', 'DELETE', `${tenantId}/${userId}`),
+};
+
+// ============================================
+// NEW: Billing Subscriptions API
+// ============================================
+export const billingApi = {
+  get: (tenantId: string) =>
+    callMasterApi<BillingSubscription>('master-billing', 'GET', tenantId),
+  
+  getOverview: () =>
+    callMasterApi<BillingOverview>('master-billing', 'GET', 'overview'),
+  
+  update: (tenantId: string, data: BillingUpdatePayload) =>
+    callMasterApi<BillingSubscription>('master-billing', 'PUT', tenantId, data),
+  
+  activate: (tenantId: string) =>
+    callMasterApi<BillingSubscription>('master-billing', 'POST', `${tenantId}/activate`),
+  
+  cancel: (tenantId: string) =>
+    callMasterApi<BillingSubscription>('master-billing', 'POST', `${tenantId}/cancel`),
+};
+
+// ============================================
+// NEW: Usage API
+// ============================================
+export const usageApi = {
+  get: (tenantId: string) =>
+    callMasterApi<TenantUsageDetail>('master-usage', 'GET', tenantId),
+  
+  getUsers: (tenantId: string) =>
+    callMasterApi<UserUsageListResponse>('master-usage', 'GET', `${tenantId}/users`),
+  
+  getAlerts: (threshold?: number) =>
+    callMasterApi<UsageAlertsResponse>('master-usage', 'GET', `alerts${threshold ? `?threshold=${threshold}` : ''}`),
+  
+  recalculate: (tenantId: string) =>
+    callMasterApi<{ success: boolean; usage: unknown }>('master-usage', 'POST', `${tenantId}/recalculate`),
+};
+
+// ============================================
 // Types
+// ============================================
+
+// Existing types
 export interface AnalyticsOverview {
   tenants: {
     total: number;
@@ -338,4 +413,225 @@ export interface BrandingPayload {
   email_header_html?: string;
   footer_text?: string;
   custom_css?: string;
+}
+
+// ============================================
+// NEW Types for Integration
+// ============================================
+
+// Tenant Features Types
+export interface TenantFeatures {
+  id?: string;
+  tenant_id: string;
+  // Modules
+  module_ai_agent: boolean;
+  module_ai_transcription: boolean;
+  module_automation_flows: boolean;
+  module_campaigns: boolean;
+  module_ecommerce: boolean;
+  module_erp_integration: boolean;
+  module_api_access: boolean;
+  module_whitelabel: boolean;
+  module_multi_whatsapp: boolean;
+  // Limits
+  limit_users: number;
+  limit_leads: number;
+  limit_products: number;
+  limit_whatsapp_instances: number;
+  limit_ai_tokens_monthly: number;
+  limit_storage_mb: number;
+  // Overrides
+  overrides: Record<string, unknown>;
+  override_reason?: string | null;
+  overridden_by?: string | null;
+  overridden_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TenantFeaturesPayload {
+  modules?: {
+    module_ai_agent?: boolean;
+    module_ai_transcription?: boolean;
+    module_automation_flows?: boolean;
+    module_campaigns?: boolean;
+    module_ecommerce?: boolean;
+    module_erp_integration?: boolean;
+    module_api_access?: boolean;
+    module_whitelabel?: boolean;
+    module_multi_whatsapp?: boolean;
+  };
+  limits?: {
+    limit_users?: number;
+    limit_leads?: number;
+    limit_products?: number;
+    limit_whatsapp_instances?: number;
+    limit_ai_tokens_monthly?: number;
+    limit_storage_mb?: number;
+  };
+  overrides?: Record<string, unknown>;
+  override_reason?: string;
+}
+
+export interface OverridePayload {
+  overrides: Record<string, unknown>;
+  reason: string;
+}
+
+// User Limits Types
+export interface UserLimits {
+  id?: string;
+  user_id: string;
+  tenant_id: string;
+  // Limits (null = inherit from tenant)
+  ai_tokens_monthly: number | null;
+  storage_mb: number | null;
+  messages_monthly: number | null;
+  api_calls_monthly: number | null;
+  // Permissions (null = inherit from tenant)
+  can_use_ai: boolean | null;
+  can_transcribe: boolean | null;
+  can_use_api: boolean | null;
+  can_send_campaigns: boolean | null;
+  can_manage_automations: boolean | null;
+  // Metadata
+  configured_by?: string | null;
+  configured_at?: string | null;
+  reason?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UserUsage {
+  id?: string;
+  user_id: string;
+  tenant_id: string;
+  ai_tokens_month: number;
+  ai_tokens_total: number;
+  storage_bytes: number;
+  transcription_seconds_month: number;
+  messages_sent_month: number;
+  api_calls_month: number;
+  billing_period_start?: string;
+  last_updated_at?: string;
+}
+
+export interface UserLimitsDetail {
+  limits: UserLimits;
+  usage: UserUsage;
+  tenant_limits: TenantFeatures;
+  has_custom_limits: boolean;
+}
+
+export interface UserLimitsListResponse {
+  data: (UserLimits & { profiles?: { id: string; full_name: string; role: string } })[];
+  total: number;
+}
+
+export interface UserLimitsPayload {
+  limits?: {
+    ai_tokens_monthly?: number | null;
+    storage_mb?: number | null;
+    messages_monthly?: number | null;
+    api_calls_monthly?: number | null;
+  };
+  permissions?: {
+    can_use_ai?: boolean | null;
+    can_transcribe?: boolean | null;
+    can_use_api?: boolean | null;
+    can_send_campaigns?: boolean | null;
+    can_manage_automations?: boolean | null;
+  };
+  reason?: string;
+}
+
+// Billing Types
+export interface BillingSubscription {
+  id?: string;
+  tenant_id: string;
+  plan_type: 'basic' | 'pro' | 'enterprise';
+  status: 'active' | 'trialing' | 'past_due' | 'unpaid' | 'canceled' | 'incomplete';
+  current_period_start: string;
+  current_period_end: string;
+  trial_ends_at?: string | null;
+  cancelled_at?: string | null;
+  external_subscription_id?: string | null;
+  metadata: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface BillingOverview {
+  data: (BillingSubscription & { tenants?: { id: string; name: string; subdomain: string } })[];
+  stats: {
+    total: number;
+    active: number;
+    trialing: number;
+    past_due: number;
+    cancelled: number;
+    by_plan: {
+      basic: number;
+      pro: number;
+      enterprise: number;
+    };
+  };
+}
+
+export interface BillingUpdatePayload {
+  plan_type?: 'basic' | 'pro' | 'enterprise';
+  status?: 'active' | 'trialing' | 'past_due' | 'unpaid' | 'canceled' | 'incomplete';
+  current_period_end?: string;
+  trial_ends_at?: string | null;
+  external_subscription_id?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+// Usage Types
+export interface TenantUsageDetail {
+  usage: {
+    users: number;
+    leads: number;
+    products: number;
+    whatsapp_instances: number;
+    ai_tokens: number;
+    storage_mb: number;
+    messages: number;
+    active_users: number;
+  };
+  limits: {
+    users: number;
+    leads: number;
+    products: number;
+    whatsapp_instances: number;
+    ai_tokens: number;
+    storage_mb: number;
+  };
+  percentages: {
+    users: number;
+    leads: number;
+    products: number;
+    whatsapp_instances: number;
+    ai_tokens: number;
+    storage_mb: number;
+  };
+  alerts: string[];
+  last_calculated_at: string | null;
+}
+
+export interface UserUsageListResponse {
+  data: (UserUsage & { 
+    profiles?: { id: string; full_name: string; role: string };
+    user_limits?: UserLimits;
+  })[];
+  total: number;
+}
+
+export interface UsageAlertsResponse {
+  data: {
+    id: string;
+    name: string;
+    subdomain: string;
+    alerts: string[];
+  }[];
+  total: number;
 }

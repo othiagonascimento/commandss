@@ -213,6 +213,59 @@ export type Database = {
           },
         ]
       }
+      billing_subscriptions: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          external_subscription_id: string | null
+          id: string
+          metadata: Json | null
+          plan_type: string | null
+          status: string | null
+          tenant_id: string
+          trial_ends_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          external_subscription_id?: string | null
+          id?: string
+          metadata?: Json | null
+          plan_type?: string | null
+          status?: string | null
+          tenant_id: string
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          external_subscription_id?: string | null
+          id?: string
+          metadata?: Json | null
+          plan_type?: string | null
+          status?: string | null
+          tenant_id?: string
+          trial_ends_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       broadcasts: {
         Row: {
           created_at: string | null
@@ -1218,6 +1271,92 @@ export type Database = {
           },
         ]
       }
+      tenant_features: {
+        Row: {
+          created_at: string | null
+          id: string
+          limit_ai_tokens_monthly: number | null
+          limit_leads: number | null
+          limit_products: number | null
+          limit_storage_mb: number | null
+          limit_users: number | null
+          limit_whatsapp_instances: number | null
+          module_ai_agent: boolean | null
+          module_ai_transcription: boolean | null
+          module_api_access: boolean | null
+          module_automation_flows: boolean | null
+          module_campaigns: boolean | null
+          module_ecommerce: boolean | null
+          module_erp_integration: boolean | null
+          module_multi_whatsapp: boolean | null
+          module_whitelabel: boolean | null
+          overridden_at: string | null
+          overridden_by: string | null
+          override_reason: string | null
+          overrides: Json | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          limit_ai_tokens_monthly?: number | null
+          limit_leads?: number | null
+          limit_products?: number | null
+          limit_storage_mb?: number | null
+          limit_users?: number | null
+          limit_whatsapp_instances?: number | null
+          module_ai_agent?: boolean | null
+          module_ai_transcription?: boolean | null
+          module_api_access?: boolean | null
+          module_automation_flows?: boolean | null
+          module_campaigns?: boolean | null
+          module_ecommerce?: boolean | null
+          module_erp_integration?: boolean | null
+          module_multi_whatsapp?: boolean | null
+          module_whitelabel?: boolean | null
+          overridden_at?: string | null
+          overridden_by?: string | null
+          override_reason?: string | null
+          overrides?: Json | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          limit_ai_tokens_monthly?: number | null
+          limit_leads?: number | null
+          limit_products?: number | null
+          limit_storage_mb?: number | null
+          limit_users?: number | null
+          limit_whatsapp_instances?: number | null
+          module_ai_agent?: boolean | null
+          module_ai_transcription?: boolean | null
+          module_api_access?: boolean | null
+          module_automation_flows?: boolean | null
+          module_campaigns?: boolean | null
+          module_ecommerce?: boolean | null
+          module_erp_integration?: boolean | null
+          module_multi_whatsapp?: boolean | null
+          module_whitelabel?: boolean | null
+          overridden_at?: string | null
+          overridden_by?: string | null
+          override_reason?: string | null
+          overrides?: Json | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_features_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_onboarding: {
         Row: {
           assigned_implementer_id: string | null
@@ -1307,43 +1446,64 @@ export type Database = {
           active_users: number | null
           ai_tokens_used: number | null
           api_calls: number | null
+          campaign_messages_month: number | null
           created_at: string | null
           estimated_cost_brl: number | null
           id: string
+          last_calculated_at: string | null
+          leads_count: number | null
           messages_sent: number | null
           period_end: string
           period_start: string
+          products_count: number | null
           storage_used_mb: number | null
           tenant_id: string
+          transcription_seconds_month: number | null
           updated_at: string | null
+          users_count: number | null
+          whatsapp_instances_count: number | null
         }
         Insert: {
           active_users?: number | null
           ai_tokens_used?: number | null
           api_calls?: number | null
+          campaign_messages_month?: number | null
           created_at?: string | null
           estimated_cost_brl?: number | null
           id?: string
+          last_calculated_at?: string | null
+          leads_count?: number | null
           messages_sent?: number | null
           period_end: string
           period_start: string
+          products_count?: number | null
           storage_used_mb?: number | null
           tenant_id: string
+          transcription_seconds_month?: number | null
           updated_at?: string | null
+          users_count?: number | null
+          whatsapp_instances_count?: number | null
         }
         Update: {
           active_users?: number | null
           ai_tokens_used?: number | null
           api_calls?: number | null
+          campaign_messages_month?: number | null
           created_at?: string | null
           estimated_cost_brl?: number | null
           id?: string
+          last_calculated_at?: string | null
+          leads_count?: number | null
           messages_sent?: number | null
           period_end?: string
           period_start?: string
+          products_count?: number | null
           storage_used_mb?: number | null
           tenant_id?: string
+          transcription_seconds_month?: number | null
           updated_at?: string | null
+          users_count?: number | null
+          whatsapp_instances_count?: number | null
         }
         Relationships: [
           {
@@ -1484,6 +1644,81 @@ export type Database = {
           },
         ]
       }
+      user_limits: {
+        Row: {
+          ai_tokens_monthly: number | null
+          api_calls_monthly: number | null
+          can_manage_automations: boolean | null
+          can_send_campaigns: boolean | null
+          can_transcribe: boolean | null
+          can_use_ai: boolean | null
+          can_use_api: boolean | null
+          configured_at: string | null
+          configured_by: string | null
+          created_at: string | null
+          id: string
+          messages_monthly: number | null
+          reason: string | null
+          storage_mb: number | null
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_tokens_monthly?: number | null
+          api_calls_monthly?: number | null
+          can_manage_automations?: boolean | null
+          can_send_campaigns?: boolean | null
+          can_transcribe?: boolean | null
+          can_use_ai?: boolean | null
+          can_use_api?: boolean | null
+          configured_at?: string | null
+          configured_by?: string | null
+          created_at?: string | null
+          id?: string
+          messages_monthly?: number | null
+          reason?: string | null
+          storage_mb?: number | null
+          tenant_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_tokens_monthly?: number | null
+          api_calls_monthly?: number | null
+          can_manage_automations?: boolean | null
+          can_send_campaigns?: boolean | null
+          can_transcribe?: boolean | null
+          can_use_ai?: boolean | null
+          can_use_api?: boolean | null
+          configured_at?: string | null
+          configured_by?: string | null
+          created_at?: string | null
+          id?: string
+          messages_monthly?: number | null
+          reason?: string | null
+          storage_mb?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_limits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_limits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           granted_at: string | null
@@ -1515,6 +1750,63 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_usage: {
+        Row: {
+          ai_tokens_month: number | null
+          ai_tokens_total: number | null
+          api_calls_month: number | null
+          billing_period_start: string | null
+          id: string
+          last_updated_at: string | null
+          messages_sent_month: number | null
+          storage_bytes: number | null
+          tenant_id: string
+          transcription_seconds_month: number | null
+          user_id: string
+        }
+        Insert: {
+          ai_tokens_month?: number | null
+          ai_tokens_total?: number | null
+          api_calls_month?: number | null
+          billing_period_start?: string | null
+          id?: string
+          last_updated_at?: string | null
+          messages_sent_month?: number | null
+          storage_bytes?: number | null
+          tenant_id: string
+          transcription_seconds_month?: number | null
+          user_id: string
+        }
+        Update: {
+          ai_tokens_month?: number | null
+          ai_tokens_total?: number | null
+          api_calls_month?: number | null
+          billing_period_start?: string | null
+          id?: string
+          last_updated_at?: string | null
+          messages_sent_month?: number | null
+          storage_bytes?: number | null
+          tenant_id?: string
+          transcription_seconds_month?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_usage_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1692,6 +1984,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_tenant_usage: {
+        Args: { _tenant_id: string }
+        Returns: undefined
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1715,6 +2011,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_user_ai_tokens: {
+        Args: { _tokens: number; _user_id: string }
+        Returns: undefined
+      }
+      increment_user_storage: {
+        Args: { _bytes: number; _user_id: string }
+        Returns: undefined
+      }
       log_audit: {
         Args: {
           _action: string
@@ -1729,6 +2033,7 @@ export type Database = {
         }
         Returns: string
       }
+      reset_monthly_usage: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "manager" | "viewer"

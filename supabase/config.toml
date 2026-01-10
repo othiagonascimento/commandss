@@ -62,3 +62,15 @@ verify_jwt = false
 
 [functions.check-limits]
 verify_jwt = false
+
+[functions.master-tenant-features]
+verify_jwt = false
+
+[functions.master-user-limits]
+verify_jwt = false
+
+[functions.master-billing]
+verify_jwt = false
+
+[functions.master-usage]
+verify_jwt = false
