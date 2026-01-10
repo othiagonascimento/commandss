@@ -42,6 +42,7 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -60,6 +61,7 @@ export default function Tenants() {
   const [planFilter, setPlanFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [tenantToToggle, setTenantToToggle] = useState<Tenant | null>(null);
+  const [tenantToDelete, setTenantToDelete] = useState<Tenant | null>(null);
   const limit = 20;
 
   const { data, isLoading, error } = useQuery({
@@ -90,6 +92,20 @@ export default function Tenants() {
     },
     onError: (error) => {
       toast.error('Erro ao alterar status: ' + (error as Error).message);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return tenantsApi.deletePermanently(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      toast.success('Tenant excluído permanentemente');
+      setTenantToDelete(null);
+    },
+    onError: (error) => {
+      toast.error('Erro ao excluir: ' + (error as Error).message);
     },
   });
 
@@ -202,11 +218,12 @@ export default function Tenants() {
                         {format(new Date(tenant.created_at), 'dd MMM yyyy', { locale: ptBR })}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => navigate(`/tenants/${tenant.id}`)}
+                            title="Visualizar"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -214,16 +231,27 @@ export default function Tenants() {
                             variant="ghost"
                             size="icon"
                             onClick={() => navigate(`/tenants/${tenant.id}/edit`)}
+                            title="Editar"
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className={tenant.is_active ? 'text-destructive' : 'text-success'}
+                            className={tenant.is_active ? 'text-orange-500 hover:text-orange-600' : 'text-green-500 hover:text-green-600'}
                             onClick={() => setTenantToToggle(tenant)}
+                            title={tenant.is_active ? 'Desativar' : 'Ativar'}
                           >
                             <Power className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setTenantToDelete(tenant)}
+                            title="Excluir permanentemente"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -265,7 +293,7 @@ export default function Tenants() {
           )}
         </div>
 
-      {/* Confirm Dialog */}
+      {/* Toggle Status Dialog */}
       <AlertDialog open={!!tenantToToggle} onOpenChange={() => setTenantToToggle(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -290,11 +318,54 @@ export default function Tenants() {
                   });
                 }
               }}
-              className={tenantToToggle?.is_active ? 'bg-destructive hover:bg-destructive/90' : ''}
+              className={tenantToToggle?.is_active ? 'bg-orange-500 hover:bg-orange-600' : ''}
             >
               {toggleStatusMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : tenantToToggle?.is_active ? 'Desativar' : 'Ativar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Permanently Dialog */}
+      <AlertDialog open={!!tenantToDelete} onOpenChange={() => setTenantToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              Excluir Permanentemente?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                O tenant <strong className="text-foreground">"{tenantToDelete?.name}"</strong> será removido permanentemente do sistema.
+              </p>
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                <p className="text-destructive font-medium text-sm">
+                  ⚠️ Esta ação é irreversível!
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Todos os dados associados (usuários, configurações, logs, etc.) serão excluídos permanentemente.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (tenantToDelete) {
+                  deleteMutation.mutate(tenantToDelete.id);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Excluir Definitivamente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

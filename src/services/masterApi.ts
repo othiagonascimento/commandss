@@ -67,6 +67,9 @@ export const tenantsApi = {
   
   deactivate: (id: string) => 
     callMasterApi<void>('master-tenants', 'DELETE', id),
+  
+  deletePermanently: (id: string) => 
+    callMasterApi<void>('master-tenants', 'DELETE', `${id}?permanent=true`),
 };
 
 // Subscriptions API

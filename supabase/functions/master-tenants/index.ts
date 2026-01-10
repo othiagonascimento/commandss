@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -276,25 +277,117 @@ serve(async (req) => {
       );
     }
 
-    // DELETE /master-tenants/:id - Deactivate tenant (soft delete)
+    // DELETE /master-tenants/:id - Deactivate (soft) or Delete (permanent)
     if (method === 'DELETE' && tenantId) {
-      const { error } = await supabaseAdmin
-        .from('tenants')
-        .update({ 
-          is_blocked: true, 
-          blocked_at: new Date().toISOString(),
-          blocked_reason: 'Desativado via painel master'
-        })
-        .eq('id', tenantId);
+      const permanent = url.searchParams.get('permanent') === 'true';
 
-      if (error) throw error;
+      if (permanent) {
+        logStep('Permanent delete requested', { tenantId });
 
-      logStep('Tenant deactivated', { tenantId });
+        // Check for associated users
+        const { count: userCount } = await supabaseAdmin
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId);
 
-      return new Response(
-        JSON.stringify({ success: true, message: 'Tenant deactivated' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        if (userCount && userCount > 0) {
+          // Delete user_limits first
+          await supabaseAdmin
+            .from('user_limits')
+            .delete()
+            .eq('tenant_id', tenantId);
+
+          // Delete user_usage
+          await supabaseAdmin
+            .from('user_usage')
+            .delete()
+            .eq('tenant_id', tenantId);
+
+          // Delete user_roles
+          await supabaseAdmin
+            .from('user_roles')
+            .delete()
+            .eq('tenant_id', tenantId);
+
+          // Delete profiles
+          await supabaseAdmin
+            .from('profiles')
+            .delete()
+            .eq('tenant_id', tenantId);
+        }
+
+        // Delete related records
+        await supabaseAdmin.from('tenant_branding').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('tenant_onboarding').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('tenant_usage').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('tenant_features').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('tenant_domains').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('billing_subscriptions').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('ai_agent_config').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('knowledge_base').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('objection_handlers').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('audit_logs').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('api_usage_logs').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('conversations').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('credit_transactions').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('payment_failures').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('impersonate_sessions').delete().eq('target_tenant_id', tenantId);
+        await supabaseAdmin.from('vendedor_cloning_profiles').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('ai_orchestration_logs').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('lead_memory').delete().eq('tenant_id', tenantId);
+
+        // Delete webhooks and their logs
+        const { data: webhooks } = await supabaseAdmin
+          .from('webhooks')
+          .select('id')
+          .eq('tenant_id', tenantId);
+        
+        if (webhooks && webhooks.length > 0) {
+          const webhookIds = webhooks.map(w => w.id);
+          await supabaseAdmin
+            .from('webhook_logs')
+            .delete()
+            .in('webhook_id', webhookIds);
+          await supabaseAdmin
+            .from('webhooks')
+            .delete()
+            .eq('tenant_id', tenantId);
+        }
+
+        // Finally delete the tenant
+        const { error } = await supabaseAdmin
+          .from('tenants')
+          .delete()
+          .eq('id', tenantId);
+
+        if (error) throw error;
+
+        logStep('Tenant permanently deleted', { tenantId });
+
+        return new Response(
+          JSON.stringify({ success: true, message: 'Tenant permanently deleted' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        // Soft delete (deactivate)
+        const { error } = await supabaseAdmin
+          .from('tenants')
+          .update({ 
+            is_blocked: true, 
+            blocked_at: new Date().toISOString(),
+            blocked_reason: 'Desativado via painel master'
+          })
+          .eq('id', tenantId);
+
+        if (error) throw error;
+
+        logStep('Tenant deactivated', { tenantId });
+
+        return new Response(
+          JSON.stringify({ success: true, message: 'Tenant deactivated' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     return new Response(
