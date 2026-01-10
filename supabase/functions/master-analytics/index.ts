@@ -80,19 +80,27 @@ async function getOverviewData() {
 
 // Get real revenue data
 async function getRevenueData() {
+  // Get plans first for pricing lookup
+  const { data: plans } = await supabase
+    .from('plans')
+    .select('id, slug, price_monthly');
+  
+  const planPricesById = new Map((plans || []).map((p: { id: string; price_monthly: number }) => [p.id, p.price_monthly]));
+  const planPricesBySlug = new Map((plans || []).map((p: { slug: string; price_monthly: number }) => [p.slug, p.price_monthly]));
+
   // Get tenants with their plan info
   const { data: tenants, error } = await supabase
     .from('tenants')
     .select(`
       id,
       plan_type,
+      plan_id,
       price_per_user,
       contracted_users,
       channel_price,
       extra_channels,
       discount_type,
-      discount_value,
-      plan:plans(price_monthly, price_yearly)
+      discount_value
     `)
     .eq('is_blocked', false);
 
@@ -107,9 +115,13 @@ async function getRevenueData() {
   for (const tenant of tenants || []) {
     let monthlyRevenue = 0;
 
-    // Calculate base plan price
-    const planData = tenant.plan as { price_monthly?: number } | null;
-    const basePlanPrice = planData?.price_monthly || 0;
+    // Calculate base plan price from plan_id or plan_type
+    let basePlanPrice = 0;
+    if (tenant.plan_id) {
+      basePlanPrice = planPricesById.get(tenant.plan_id) || 0;
+    } else if (tenant.plan_type) {
+      basePlanPrice = planPricesBySlug.get(tenant.plan_type) || 0;
+    }
 
     // Calculate user-based pricing
     const userPrice = (tenant.price_per_user || 0) * (tenant.contracted_users || 0);
