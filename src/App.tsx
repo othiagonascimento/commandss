@@ -34,6 +34,7 @@ const TenantHealth = lazy(() => import("./pages/TenantHealth"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const QuickCreateTenant = lazy(() => import("./pages/QuickCreateTenant"));
 const ScheduledTasks = lazy(() => import("./pages/ScheduledTasks"));
+const EditTenant = lazy(() => import("./pages/EditTenant"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -85,6 +86,7 @@ const App = () => (
                 <Route path="/tenants/new" element={<ProtectedRoute><CreateTenant /></ProtectedRoute>} />
                 <Route path="/tenants/contract" element={<ProtectedRoute><NewContract /></ProtectedRoute>} />
                 <Route path="/tenants/:id" element={<ProtectedRoute><TenantDetail /></ProtectedRoute>} />
+                <Route path="/tenants/:id/edit" element={<ProtectedRoute><EditTenant /></ProtectedRoute>} />
                 <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
                 <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
