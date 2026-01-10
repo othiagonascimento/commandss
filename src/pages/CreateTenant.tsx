@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Loader2, Building2, AlertCircle, Gift, Handshake, Crown, Check, Users, Database, Cpu, HardDrive } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2, AlertCircle, Gift, Handshake, Crown, Check, Users, Database, Cpu, HardDrive, Brain, Mail, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,14 @@ interface Plan {
   features_enabled: string[];
 }
 
+interface NicheTemplate {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  is_active: boolean;
+}
+
 const promoTypes = [
   { value: 'trial', label: 'Trial Normal', description: 'Período de teste padrão' },
   { value: 'partnership', label: 'Parceria', description: 'Acesso gratuito por parceria comercial' },
@@ -41,7 +49,9 @@ const promoTypes = [
 const createTenantSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   slug: z.string().min(2, 'Slug deve ter pelo menos 2 caracteres').regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
+  contact_email: z.string().email('Email inválido').optional().or(z.literal('')),
   plan_id: z.string().uuid('Selecione um plano'),
+  template_id: z.string().optional(),
   promo_enabled: z.boolean().optional(),
   promo_type: z.enum(['trial', 'partnership', 'lifetime']).optional(),
   promo_days: z.number().min(1).max(365).optional(),
@@ -88,12 +98,27 @@ export default function CreateTenant() {
     },
   });
 
-  const defaultPlanId = plans?.find(p => p.slug === 'basic')?.id || '';
+  // Fetch niche templates
+  const { data: templates, isLoading: templatesLoading } = useQuery({
+    queryKey: ['niche-templates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('niche_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (error) throw error;
+      return data as NicheTemplate[];
+    },
+  });
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
     slug: '',
+    contact_email: '',
     plan_id: '',
+    template_id: '',
     promo_enabled: false,
     promo_type: 'trial',
     promo_days: 14,
@@ -112,6 +137,7 @@ export default function CreateTenant() {
   }
 
   const selectedPlan = plans?.find(p => p.id === formData.plan_id);
+  const selectedTemplate = templates?.find(t => t.id === formData.template_id);
 
   const createMutation = useMutation({
     mutationFn: async (data: FormData) => {

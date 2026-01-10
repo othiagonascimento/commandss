@@ -18,12 +18,10 @@ import NotFound from "./pages/NotFound";
 const Tenants = lazy(() => import("./pages/Tenants"));
 const TenantDetail = lazy(() => import("./pages/TenantDetail"));
 const CreateTenant = lazy(() => import("./pages/CreateTenant"));
-const NewContract = lazy(() => import("./pages/NewContract"));
-const Users = lazy(() => import("./pages/Users"));
 const Subscriptions = lazy(() => import("./pages/Subscriptions"));
 const Settings = lazy(() => import("./pages/Settings"));
 const FeatureFlags = lazy(() => import("./pages/FeatureFlags"));
-const Broadcasts = lazy(() => import("./pages/Broadcasts"));
+const Comunicados = lazy(() => import("./pages/Comunicados"));
 const InviteLinks = lazy(() => import("./pages/InviteLinks"));
 const Templates = lazy(() => import("./pages/Templates"));
 const TemplateEditor = lazy(() => import("./pages/TemplateEditor"));
@@ -32,9 +30,9 @@ const Plans = lazy(() => import("./pages/Plans"));
 const ActivityLogs = lazy(() => import("./pages/ActivityLogs"));
 const TenantHealth = lazy(() => import("./pages/TenantHealth"));
 const Analytics = lazy(() => import("./pages/Analytics"));
-const QuickCreateTenant = lazy(() => import("./pages/QuickCreateTenant"));
 const ScheduledTasks = lazy(() => import("./pages/ScheduledTasks"));
 const EditTenant = lazy(() => import("./pages/EditTenant"));
+const Rankings = lazy(() => import("./pages/Rankings"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -84,14 +82,13 @@ const App = () => (
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/tenants" element={<ProtectedRoute><Tenants /></ProtectedRoute>} />
                 <Route path="/tenants/new" element={<ProtectedRoute><CreateTenant /></ProtectedRoute>} />
-                <Route path="/tenants/contract" element={<ProtectedRoute><NewContract /></ProtectedRoute>} />
                 <Route path="/tenants/:id" element={<ProtectedRoute><TenantDetail /></ProtectedRoute>} />
                 <Route path="/tenants/:id/edit" element={<ProtectedRoute><EditTenant /></ProtectedRoute>} />
-                <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+                <Route path="/rankings" element={<ProtectedRoute><Rankings /></ProtectedRoute>} />
                 <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/feature-flags" element={<ProtectedRoute><FeatureFlags /></ProtectedRoute>} />
-                <Route path="/broadcasts" element={<ProtectedRoute><Broadcasts /></ProtectedRoute>} />
+                <Route path="/comunicados" element={<ProtectedRoute><Comunicados /></ProtectedRoute>} />
                 <Route path="/invite-links" element={<ProtectedRoute><InviteLinks /></ProtectedRoute>} />
                 <Route path="/master-users" element={<ProtectedRoute><MasterUsers /></ProtectedRoute>} />
                 <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
@@ -101,7 +98,6 @@ const App = () => (
                 <Route path="/activity-logs" element={<ProtectedRoute><ActivityLogs /></ProtectedRoute>} />
                 <Route path="/tenant-health" element={<ProtectedRoute><TenantHealth /></ProtectedRoute>} />
                 <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-                <Route path="/tenants/quick-create" element={<ProtectedRoute><QuickCreateTenant /></ProtectedRoute>} />
                 <Route path="/scheduled-tasks" element={<ProtectedRoute><ScheduledTasks /></ProtectedRoute>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
