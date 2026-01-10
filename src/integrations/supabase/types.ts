@@ -20,6 +20,9 @@ export type Database = {
           aggression_level: string | null
           ai_model_provider: string | null
           created_at: string | null
+          custom_layer_1_model: string | null
+          custom_layer_2_model: string | null
+          custom_layer_3_model: string | null
           custom_prompt_addendum: string | null
           enable_tri_modal: boolean | null
           enable_uopa_agent: boolean | null
@@ -49,6 +52,9 @@ export type Database = {
           aggression_level?: string | null
           ai_model_provider?: string | null
           created_at?: string | null
+          custom_layer_1_model?: string | null
+          custom_layer_2_model?: string | null
+          custom_layer_3_model?: string | null
           custom_prompt_addendum?: string | null
           enable_tri_modal?: boolean | null
           enable_uopa_agent?: boolean | null
@@ -78,6 +84,9 @@ export type Database = {
           aggression_level?: string | null
           ai_model_provider?: string | null
           created_at?: string | null
+          custom_layer_1_model?: string | null
+          custom_layer_2_model?: string | null
+          custom_layer_3_model?: string | null
           custom_prompt_addendum?: string | null
           enable_tri_modal?: boolean | null
           enable_uopa_agent?: boolean | null
