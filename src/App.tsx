@@ -33,6 +33,7 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const ScheduledTasks = lazy(() => import("./pages/ScheduledTasks"));
 const EditTenant = lazy(() => import("./pages/EditTenant"));
 const Rankings = lazy(() => import("./pages/Rankings"));
+const Simulator = lazy(() => import("./pages/Simulator"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -99,6 +100,7 @@ const App = () => (
                 <Route path="/tenant-health" element={<ProtectedRoute><TenantHealth /></ProtectedRoute>} />
                 <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
                 <Route path="/scheduled-tasks" element={<ProtectedRoute><ScheduledTasks /></ProtectedRoute>} />
+                <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

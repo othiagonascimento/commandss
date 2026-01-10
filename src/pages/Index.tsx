@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UsageAlertsWidget } from '@/components/dashboard/UsageAlertsWidget';
+import { AIInsightsWidget } from '@/components/dashboard/AIInsightsWidget';
 import { 
   Building2, 
   Users, 
@@ -385,6 +386,11 @@ export default function Index() {
             icon={Activity}
             loading={isLoading}
           />
+        </div>
+
+        {/* AI Insights Widget - Full Width */}
+        <div className="mb-6">
+          <AIInsightsWidget />
         </div>
 
         {/* Usage Alerts & Plans Distribution */}
