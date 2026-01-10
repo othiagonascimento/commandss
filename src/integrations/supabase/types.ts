@@ -1504,6 +1504,7 @@ export type Database = {
           ai_layer_3_model: string | null
           ai_use_global_config: boolean | null
           created_at: string | null
+          credits_per_user: number | null
           id: string
           limit_ai_tokens_monthly: number | null
           limit_leads: number | null
@@ -1524,6 +1525,7 @@ export type Database = {
           overridden_by: string | null
           override_reason: string | null
           overrides: Json | null
+          storage_mb_per_user: number | null
           tenant_id: string
           updated_at: string | null
         }
@@ -1536,6 +1538,7 @@ export type Database = {
           ai_layer_3_model?: string | null
           ai_use_global_config?: boolean | null
           created_at?: string | null
+          credits_per_user?: number | null
           id?: string
           limit_ai_tokens_monthly?: number | null
           limit_leads?: number | null
@@ -1556,6 +1559,7 @@ export type Database = {
           overridden_by?: string | null
           override_reason?: string | null
           overrides?: Json | null
+          storage_mb_per_user?: number | null
           tenant_id: string
           updated_at?: string | null
         }
@@ -1568,6 +1572,7 @@ export type Database = {
           ai_layer_3_model?: string | null
           ai_use_global_config?: boolean | null
           created_at?: string | null
+          credits_per_user?: number | null
           id?: string
           limit_ai_tokens_monthly?: number | null
           limit_leads?: number | null
@@ -1588,6 +1593,7 @@ export type Database = {
           overridden_by?: string | null
           override_reason?: string | null
           overrides?: Json | null
+          storage_mb_per_user?: number | null
           tenant_id?: string
           updated_at?: string | null
         }
@@ -1893,6 +1899,54 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_education_progress: {
+        Row: {
+          ai_activations_count: number | null
+          education_dismissed_at: string | null
+          education_started_at: string | null
+          id: string
+          pain_points_triggered: string[] | null
+          seen_tips: string[] | null
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ai_activations_count?: number | null
+          education_dismissed_at?: string | null
+          education_started_at?: string | null
+          id?: string
+          pain_points_triggered?: string[] | null
+          seen_tips?: string[] | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ai_activations_count?: number | null
+          education_dismissed_at?: string | null
+          education_started_at?: string | null
+          id?: string
+          pain_points_triggered?: string[] | null
+          seen_tips?: string[] | null
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_education_progress_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_education_progress_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
