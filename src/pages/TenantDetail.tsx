@@ -140,9 +140,11 @@ export default function TenantDetail() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Configurações salvas com sucesso!');
-      queryClient.invalidateQueries({ queryKey: ['tenant-features', id] });
+      // Force invalidate and refetch to ensure UI updates immediately
+      await queryClient.invalidateQueries({ queryKey: ['tenant-features', id] });
+      await queryClient.refetchQueries({ queryKey: ['tenant-features', id] });
     },
     onError: () => {
       toast.error('Erro ao salvar configurações.');
@@ -483,9 +485,12 @@ export default function TenantDetail() {
                     limit_whatsapp_instances: features.limit_whatsapp_instances,
                     limit_ai_tokens_monthly: features.limit_ai_tokens_monthly,
                     limit_storage_mb: features.limit_storage_mb,
+                    credits_per_user: features.credits_per_user,
+                    storage_mb_per_user: features.storage_mb_per_user,
                   }}
                   onChange={(limits) => updateFeaturesMutation.mutate({ limits })}
                   disabled={updateFeaturesMutation.isPending}
+                  usersCount={users?.length || 0}
                 />
               )}
 
