@@ -59,34 +59,34 @@ export function AIInsightsWidget() {
         body: { type: 'dashboard_summary' },
       });
 
-      console.log('[AIInsights] Response:', { data, error });
-
-      // Handle error from invoke (Supabase puts error details here for non-2xx)
+      // supabase-js will only populate `error` for non-2xx responses.
+      // We normalize 402/429 to 200 in the edge function, but keep this as a safety net.
       if (error) {
-        console.error('[AIInsights] Invoke error:', error);
         const errorMsg = error.message || String(error);
         if (errorMsg.includes('402') || errorMsg.includes('PAYMENT_REQUIRED') || errorMsg.includes('Payment required')) {
           setErrorCode('PAYMENT_REQUIRED');
-        } else if (errorMsg.includes('429') || errorMsg.includes('RATE_LIMITED')) {
-          setErrorCode('RATE_LIMITED');
-        } else {
-          setErrorCode('GENERIC');
+          return null;
         }
-        throw new Error(errorMsg);
+        if (errorMsg.includes('429') || errorMsg.includes('RATE_LIMITED')) {
+          setErrorCode('RATE_LIMITED');
+          return null;
+        }
+        setErrorCode('GENERIC');
+        return null;
       }
 
-      // Check for specific error codes in response body
+      // Edge function normalized errors
       if (data?.code === 'PAYMENT_REQUIRED') {
         setErrorCode('PAYMENT_REQUIRED');
-        throw new Error(data.error || 'Créditos insuficientes');
+        return null;
       }
       if (data?.code === 'RATE_LIMITED') {
         setErrorCode('RATE_LIMITED');
-        throw new Error(data.error || 'Limite de requisições excedido');
+        return null;
       }
-      if (data?.error && !data?.success) {
+      if (data?.error && data?.success === false) {
         setErrorCode('GENERIC');
-        throw new Error(data.error);
+        return null;
       }
 
       setErrorCode(null);
@@ -95,8 +95,6 @@ export function AIInsightsWidget() {
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     retry: false,
-    // Critical: Don't throw errors to React, handle them in the component
-    throwOnError: false,
   });
 
   const handleRefresh = async () => {
@@ -130,7 +128,7 @@ export function AIInsightsWidget() {
     );
   }
 
-  if (error) {
+  if (error || errorCode) {
     const isPaymentError = errorCode === 'PAYMENT_REQUIRED';
     const isRateLimitError = errorCode === 'RATE_LIMITED';
     

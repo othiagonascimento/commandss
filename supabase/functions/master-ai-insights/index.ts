@@ -189,26 +189,42 @@ Retorne 3 insights principais em JSON:
     });
 
     if (!aiResponse.ok) {
+      const errorText = await aiResponse.text().catch(() => '');
+
+      // Normalize known billing/rate-limit errors as 200 so supabase-js doesn't throw,
+      // and the client can render a friendly UI.
       if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ 
-          error: 'Rate limit exceeded. Please try again later.',
-          code: 'RATE_LIMITED' 
-        }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Rate limit exceeded. Please try again later.',
+            code: 'RATE_LIMITED',
+            upstream_status: 429,
+            upstream_body: errorText,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
+
       if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ 
-          error: 'Payment required. Please add credits to your Lovable workspace.',
-          code: 'PAYMENT_REQUIRED' 
-        }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Payment required. Please add credits to your Lovable workspace.',
+            code: 'PAYMENT_REQUIRED',
+            upstream_status: 402,
+            upstream_body: errorText,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
-      
-      const errorText = await aiResponse.text();
+
       logStep('AI Gateway error', { status: aiResponse.status, error: errorText });
       throw new Error(`AI Gateway error: ${aiResponse.status}`);
     }
