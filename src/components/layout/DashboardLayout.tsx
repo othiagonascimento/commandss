@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/dashboard/Header';
 import { AppSidebar } from '@/components/layout/AppSidebar';
+import { AICopilot } from '@/components/ai/AICopilot';
 import { cn } from '@/lib/utils';
 
 interface DashboardLayoutProps {
@@ -45,6 +46,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </div>
       </main>
+      
+      {/* AI Copilot - Floating Assistant */}
+      <AICopilot />
     </div>
   );
 }

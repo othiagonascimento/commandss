@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.master-usage]
 verify_jwt = false
+
+[functions.master-ai-insights]
+verify_jwt = false
