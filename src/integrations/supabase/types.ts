@@ -202,6 +202,131 @@ export type Database = {
           },
         ]
       }
+      api_cost_config: {
+        Row: {
+          audio_cost_per_minute_usd: number | null
+          created_at: string | null
+          display_name: string | null
+          id: string
+          image_cost_per_unit_usd: number | null
+          input_cost_per_1m_usd: number | null
+          is_active: boolean | null
+          markup_percent: number | null
+          model: string
+          operation: string
+          output_cost_per_1m_usd: number | null
+          provider: string
+          updated_at: string | null
+          usd_to_brl_rate: number | null
+        }
+        Insert: {
+          audio_cost_per_minute_usd?: number | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          image_cost_per_unit_usd?: number | null
+          input_cost_per_1m_usd?: number | null
+          is_active?: boolean | null
+          markup_percent?: number | null
+          model: string
+          operation?: string
+          output_cost_per_1m_usd?: number | null
+          provider: string
+          updated_at?: string | null
+          usd_to_brl_rate?: number | null
+        }
+        Update: {
+          audio_cost_per_minute_usd?: number | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          image_cost_per_unit_usd?: number | null
+          input_cost_per_1m_usd?: number | null
+          is_active?: boolean | null
+          markup_percent?: number | null
+          model?: string
+          operation?: string
+          output_cost_per_1m_usd?: number | null
+          provider?: string
+          updated_at?: string | null
+          usd_to_brl_rate?: number | null
+        }
+        Relationships: []
+      }
+      api_usage_logs: {
+        Row: {
+          audio_seconds: number | null
+          cost_brl: number | null
+          cost_usd: number | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          image_count: number | null
+          input_tokens: number | null
+          latency_ms: number | null
+          metadata: Json | null
+          model: string
+          operation: string
+          output_tokens: number | null
+          provider: string
+          request_id: string | null
+          success: boolean | null
+          tenant_id: string
+          total_tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          audio_seconds?: number | null
+          cost_brl?: number | null
+          cost_usd?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          image_count?: number | null
+          input_tokens?: number | null
+          latency_ms?: number | null
+          metadata?: Json | null
+          model: string
+          operation?: string
+          output_tokens?: number | null
+          provider: string
+          request_id?: string | null
+          success?: boolean | null
+          tenant_id: string
+          total_tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          audio_seconds?: number | null
+          cost_brl?: number | null
+          cost_usd?: number | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          image_count?: number | null
+          input_tokens?: number | null
+          latency_ms?: number | null
+          metadata?: Json | null
+          model?: string
+          operation?: string
+          output_tokens?: number | null
+          provider?: string
+          request_id?: string | null
+          success?: boolean | null
+          tenant_id?: string
+          total_tokens?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string

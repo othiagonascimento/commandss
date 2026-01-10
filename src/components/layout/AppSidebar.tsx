@@ -186,6 +186,13 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
       permissionCheck: () => permissions.canViewMasterUsers() || permissions.canViewFeatureFlags() || permissions.canViewSettings(),
       items: [
         {
+          icon: Calculator,
+          label: 'Custos de API',
+          path: '/api-costs',
+          description: 'Configurar custos por modelo de IA',
+          permissionCheck: permissions.canViewSettings,
+        },
+        {
           icon: Package,
           label: 'Planos',
           path: '/plans',
