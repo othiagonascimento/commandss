@@ -89,7 +89,7 @@ async function getRevenueData() {
   const planPricesBySlug = new Map((plans || []).map((p: { slug: string; price_monthly: number }) => [p.slug, p.price_monthly]));
   const planSlugById = new Map((plans || []).map((p: { id: string; slug: string }) => [p.id, p.slug]));
 
-  // Get tenants with their plan info - including subscription_status and trial info
+  // Get tenants with their plan info - including subscription_status, trial info, and pricing
   const { data: tenants, error } = await supabase
     .from('tenants')
     .select(`
@@ -104,7 +104,10 @@ async function getRevenueData() {
       channel_price,
       extra_channels,
       discount_type,
-      discount_value
+      discount_value,
+      has_monthly_fee,
+      implementation_fee,
+      implementation_status
     `);
 
   if (error) {
@@ -116,8 +119,13 @@ async function getRevenueData() {
   let payingTenants = 0;
   let freeTenants = 0;
   let trialTenants = 0;
+  let lifetimeTenants = 0;
+  let pendingTenants = 0;
   const byPlan: Record<string, number> = { free: 0, basic: 0, pro: 0, enterprise: 0 };
   const tenantDetails: { id: string; name?: string; mrr: number; status: string }[] = [];
+
+  // Status that do NOT generate MRR
+  const nonPayingStatuses = ['pending', 'trialing', 'canceled', 'lifetime', 'free'];
 
   for (const tenant of tenants || []) {
     // Determine plan slug
@@ -125,20 +133,25 @@ async function getRevenueData() {
       ? planSlugById.get(tenant.plan_id) 
       : tenant.plan_type;
 
-    // Skip MRR for: blocked, trialing, pending, or free plan tenants
     const isBlocked = tenant.is_blocked === true;
     const isTrialing = tenant.subscription_status === 'trialing';
     const isPending = tenant.subscription_status === 'pending';
+    const isLifetime = tenant.subscription_status === 'lifetime';
+    const isCanceled = tenant.subscription_status === 'canceled';
     const isFree = planSlug === 'free';
+    const hasNoMonthlyFee = tenant.has_monthly_fee === false;
 
-    if (isBlocked || isTrialing || isPending || isFree) {
+    // Skip MRR for: blocked, trialing, pending, lifetime, canceled, free plan, or no monthly fee
+    if (isBlocked || isTrialing || isPending || isLifetime || isCanceled || isFree || hasNoMonthlyFee) {
       if (isTrialing) trialTenants++;
+      else if (isLifetime || hasNoMonthlyFee) lifetimeTenants++;
+      else if (isPending) pendingTenants++;
       else if (isFree) freeTenants++;
       
       tenantDetails.push({
         id: tenant.id,
         mrr: 0,
-        status: isBlocked ? 'blocked' : isTrialing ? 'trialing' : isPending ? 'pending' : 'free'
+        status: isBlocked ? 'blocked' : isTrialing ? 'trialing' : isPending ? 'pending' : (isLifetime || hasNoMonthlyFee) ? 'lifetime' : isCanceled ? 'canceled' : 'free'
       });
       continue;
     }
@@ -183,6 +196,25 @@ async function getRevenueData() {
     ? ((payingTenants - prevMonthCount) / prevMonthCount) * 100 
     : 0;
 
+  // Get implementation revenue for this month
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  
+  const implementationRevenue = (tenants || [])
+    .filter(t => t.implementation_status === 'paid')
+    .reduce((sum, t) => sum + (t.implementation_fee || 0), 0);
+
+  // Get credits revenue from credit_transactions
+  const { data: creditTransactions } = await supabase
+    .from('credit_transactions')
+    .select('price_brl')
+    .eq('transaction_type', 'purchase')
+    .eq('status', 'completed')
+    .gte('created_at', monthStart.toISOString());
+
+  const creditsRevenue = (creditTransactions || []).reduce((sum, t) => sum + (t.price_brl || 0), 0);
+
   return {
     mrr: totalMrr,
     arr: totalMrr * 12,
@@ -193,8 +225,14 @@ async function getRevenueData() {
       paying_tenants: payingTenants,
       free_tenants: freeTenants,
       trial_tenants: trialTenants,
+      lifetime_tenants: lifetimeTenants,
+      pending_tenants: pendingTenants,
       average_mrr: payingTenants > 0 ? Math.round(totalMrr / payingTenants) : 0
-    }
+    },
+    // Separate revenue streams
+    implementation_revenue: implementationRevenue,
+    credits_revenue: creditsRevenue,
+    total_revenue_month: totalMrr + creditsRevenue, // MRR + credits (implementation is one-time, tracked separately)
   };
 }
 

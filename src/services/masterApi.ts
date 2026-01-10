@@ -235,6 +235,18 @@ export interface RevenueData {
   arr: number;
   total: number;
   growth_percentage: number;
+  by_plan?: Record<string, number>;
+  breakdown?: {
+    paying_tenants: number;
+    free_tenants: number;
+    trial_tenants: number;
+    lifetime_tenants: number;
+    pending_tenants: number;
+    average_mrr: number;
+  };
+  implementation_revenue?: number;
+  credits_revenue?: number;
+  total_revenue_month?: number;
 }
 
 export interface TenantMetrics {
