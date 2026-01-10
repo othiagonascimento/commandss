@@ -99,13 +99,36 @@ export default function Tenants() {
     mutationFn: async (id: string) => {
       return tenantsApi.deletePermanently(id);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenants'] });
-      toast.success('Tenant excluído permanentemente');
+    onMutate: async (id) => {
+      // Close dialog immediately and show processing toast
       setTenantToDelete(null);
+      toast.loading('Excluindo tenant...', { id: `delete-${id}` });
+      
+      // Optimistically remove from cache
+      await queryClient.cancelQueries({ queryKey: ['tenants'] });
+      const previousData = queryClient.getQueryData(['tenants', page, search, planFilter]);
+      
+      queryClient.setQueryData(['tenants', page, search, planFilter], (old: typeof data) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: old.data.filter((t: Tenant) => t.id !== id),
+          total: old.total - 1,
+        };
+      });
+      
+      return { previousData };
     },
-    onError: (error) => {
-      toast.error('Erro ao excluir: ' + (error as Error).message);
+    onSuccess: (_, id) => {
+      toast.success('Tenant excluído permanentemente', { id: `delete-${id}` });
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+    },
+    onError: (error, id, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(['tenants', page, search, planFilter], context.previousData);
+      }
+      toast.error('Erro ao excluir: ' + (error as Error).message, { id: `delete-${id}` });
     },
   });
 
