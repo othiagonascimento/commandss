@@ -35,6 +35,8 @@ const EditTenant = lazy(() => import("./pages/EditTenant"));
 const Rankings = lazy(() => import("./pages/Rankings"));
 const Simulator = lazy(() => import("./pages/Simulator"));
 const APICosts = lazy(() => import("./pages/APICosts"));
+const CadastroLoja = lazy(() => import("./pages/CadastroLoja"));
+const AdminCadastros = lazy(() => import("./pages/AdminCadastros"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -103,6 +105,9 @@ const App = () => (
                 <Route path="/scheduled-tasks" element={<ProtectedRoute><ScheduledTasks /></ProtectedRoute>} />
                 <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
                 <Route path="/api-costs" element={<ProtectedRoute><APICosts /></ProtectedRoute>} />
+                <Route path="/admin/cadastros" element={<ProtectedRoute><AdminCadastros /></ProtectedRoute>} />
+                {/* Public onboarding route */}
+                <Route path="/cadastro-loja" element={<CadastroLoja />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
