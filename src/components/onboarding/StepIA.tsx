@@ -25,16 +25,23 @@ const PERSONALITY_SUGGESTIONS = [
 ];
 
 export function StepIA({ formData, updateFormData }: StepIAProps) {
+  const workingHours = formData.working_hours ?? {
+    weekdays: { start: "08:00", end: "18:00" },
+    saturday: { start: "09:00", end: "13:00" },
+    sunday: { start: "", end: "", enabled: false },
+  };
+
   const updateWorkingHours = (
     period: "weekdays" | "saturday" | "sunday",
     field: "start" | "end" | "enabled",
     value: string | boolean
   ) => {
+    const currentPeriod = workingHours[period] ?? { start: "", end: "", enabled: false };
     updateFormData({
       working_hours: {
-        ...formData.working_hours,
+        ...workingHours,
         [period]: {
-          ...formData.working_hours[period],
+          ...currentPeriod,
           [field]: value,
         },
       },
@@ -44,9 +51,10 @@ export function StepIA({ formData, updateFormData }: StepIAProps) {
   const applyPreset = (preset: typeof HOUR_PRESETS[0]) => {
     updateFormData({
       working_hours: {
-        ...formData.working_hours,
+        ...workingHours,
         weekdays: preset.weekdays,
         saturday: preset.saturday,
+        sunday: workingHours.sunday ?? { start: "", end: "", enabled: false },
       },
     });
   };
@@ -137,14 +145,14 @@ export function StepIA({ formData, updateFormData }: StepIAProps) {
               <div className="flex items-center gap-2">
                 <input
                   type="time"
-                  value={formData.working_hours.weekdays.start}
+                  value={workingHours.weekdays?.start ?? "08:00"}
                   onChange={(e) => updateWorkingHours("weekdays", "start", e.target.value)}
                   className="flex-1 h-11 px-3 rounded-lg border border-border bg-background text-center text-base"
                 />
                 <span className="text-muted-foreground text-sm">até</span>
                 <input
                   type="time"
-                  value={formData.working_hours.weekdays.end}
+                  value={workingHours.weekdays?.end ?? "18:00"}
                   onChange={(e) => updateWorkingHours("weekdays", "end", e.target.value)}
                   className="flex-1 h-11 px-3 rounded-lg border border-border bg-background text-center text-base"
                 />
@@ -157,14 +165,14 @@ export function StepIA({ formData, updateFormData }: StepIAProps) {
               <div className="flex items-center gap-2">
                 <input
                   type="time"
-                  value={formData.working_hours.saturday.start}
+                  value={workingHours.saturday?.start ?? "09:00"}
                   onChange={(e) => updateWorkingHours("saturday", "start", e.target.value)}
                   className="flex-1 h-11 px-3 rounded-lg border border-border bg-background text-center text-base"
                 />
                 <span className="text-muted-foreground text-sm">até</span>
                 <input
                   type="time"
-                  value={formData.working_hours.saturday.end}
+                  value={workingHours.saturday?.end ?? "13:00"}
                   onChange={(e) => updateWorkingHours("saturday", "end", e.target.value)}
                   className="flex-1 h-11 px-3 rounded-lg border border-border bg-background text-center text-base"
                 />
@@ -176,22 +184,22 @@ export function StepIA({ formData, updateFormData }: StepIAProps) {
               <div className="flex items-center justify-between mb-3">
                 <p className="font-medium text-sm">Domingo</p>
                 <Switch
-                  checked={formData.working_hours.sunday.enabled}
+                  checked={formData.working_hours?.sunday?.enabled ?? false}
                   onCheckedChange={(checked) => updateWorkingHours("sunday", "enabled", checked)}
                 />
               </div>
-              {formData.working_hours.sunday.enabled && (
+              {formData.working_hours?.sunday?.enabled && (
                 <div className="flex items-center gap-2">
                   <input
                     type="time"
-                    value={formData.working_hours.sunday.start}
+                    value={formData.working_hours?.sunday?.start ?? ""}
                     onChange={(e) => updateWorkingHours("sunday", "start", e.target.value)}
                     className="flex-1 h-11 px-3 rounded-lg border border-border bg-background text-center text-base"
                   />
                   <span className="text-muted-foreground text-sm">até</span>
                   <input
                     type="time"
-                    value={formData.working_hours.sunday.end}
+                    value={formData.working_hours?.sunday?.end ?? ""}
                     onChange={(e) => updateWorkingHours("sunday", "end", e.target.value)}
                     className="flex-1 h-11 px-3 rounded-lg border border-border bg-background text-center text-base"
                   />
