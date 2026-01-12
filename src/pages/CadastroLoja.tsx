@@ -5,10 +5,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Building2, User, BarChart3, Palette, Brain, GitBranch, 
-  CheckCircle2, ArrowLeft, ArrowRight, Sparkles
+  CheckCircle2, ArrowLeft, ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import uopaLogo from "@/assets/uopa-logo-color.png";
 
 // Step components
 import { StepIdentidade } from "@/components/onboarding/StepIdentidade";
@@ -164,13 +165,11 @@ export default function CadastroLoja() {
       <header className="border-b border-border/50 bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="font-semibold text-foreground">Uôpa CRM</h1>
-              <p className="text-xs text-muted-foreground">Cadastro de Nova Loja</p>
-            </div>
+            <img 
+              src={uopaLogo} 
+              alt="Uôpa CRM" 
+              className="h-10 w-auto"
+            />
           </div>
           
           {/* Step indicator */}
