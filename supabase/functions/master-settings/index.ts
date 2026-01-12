@@ -4,6 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -12,8 +14,11 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 serve(async (req) => {
+  logStep('Request received', { method: req.method, url: req.url, origin: req.headers.get('origin') });
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    logStep('CORS preflight handled');
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   const supabaseAdmin = createClient(
