@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -13,9 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Brain, Cpu, Globe, Loader2, Save, Sparkles, Zap } from 'lucide-react';
+import { Brain, Cpu, Globe, Loader2, Save, Sparkles, Zap, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { featuresApi } from '@/services/masterApi';
+import { useGroupedModels } from '@/hooks/useAvailableModels';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AIEngineConfig {
   ai_use_global_config: boolean;
@@ -33,25 +35,6 @@ interface TenantAIEngineEditorProps {
   isLoading?: boolean;
 }
 
-const AI_MODELS = {
-  router: [
-    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', provider: 'Google' },
-    { value: 'claude-3-haiku', label: 'Claude 3 Haiku', provider: 'Anthropic' },
-    { value: 'gpt-4o-mini', label: 'GPT-4o Mini', provider: 'OpenAI' },
-  ],
-  standard: [
-    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', provider: 'Google' },
-    { value: 'claude-3.5-sonnet', label: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
-    { value: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI' },
-  ],
-  elite: [
-    { value: 'gpt-4o', label: 'GPT-4o', provider: 'OpenAI' },
-    { value: 'claude-3.5-sonnet', label: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
-    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', provider: 'Google' },
-    { value: 'claude-3-opus', label: 'Claude 3 Opus', provider: 'Anthropic' },
-  ],
-};
-
 const LAYER_CONFIG = [
   {
     key: 'layer_1',
@@ -60,8 +43,7 @@ const LAYER_CONFIG = [
     icon: Zap,
     color: 'text-blue-500',
     bgColor: 'bg-blue-500/10',
-    models: AI_MODELS.router,
-    defaultModel: 'gemini-1.5-flash',
+    category: 'router' as const,
   },
   {
     key: 'layer_2',
@@ -70,8 +52,7 @@ const LAYER_CONFIG = [
     icon: Cpu,
     color: 'text-amber-500',
     bgColor: 'bg-amber-500/10',
-    models: AI_MODELS.standard,
-    defaultModel: 'gemini-1.5-pro',
+    category: 'standard' as const,
   },
   {
     key: 'layer_3',
@@ -80,23 +61,52 @@ const LAYER_CONFIG = [
     icon: Sparkles,
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
-    models: AI_MODELS.elite,
-    defaultModel: 'gpt-4o',
+    category: 'elite' as const,
   },
 ];
 
 export function TenantAIEngineEditor({ tenantId, config, isLoading }: TenantAIEngineEditorProps) {
   const queryClient = useQueryClient();
+  const { grouped: modelsByCategory, isLoading: isLoadingModels } = useGroupedModels();
   
   const [localConfig, setLocalConfig] = useState<AIEngineConfig>({
     ai_use_global_config: config?.ai_use_global_config ?? true,
-    ai_layer_1_model: config?.ai_layer_1_model || 'gemini-1.5-flash',
+    ai_layer_1_model: config?.ai_layer_1_model || '',
     ai_layer_1_instructions: config?.ai_layer_1_instructions || '',
-    ai_layer_2_model: config?.ai_layer_2_model || 'gemini-1.5-pro',
+    ai_layer_2_model: config?.ai_layer_2_model || '',
     ai_layer_2_instructions: config?.ai_layer_2_instructions || '',
-    ai_layer_3_model: config?.ai_layer_3_model || 'gpt-4o',
+    ai_layer_3_model: config?.ai_layer_3_model || '',
     ai_layer_3_instructions: config?.ai_layer_3_instructions || '',
   });
+
+  // Fetch global AI settings to show what would be inherited
+  const { data: globalSettings } = useQuery({
+    queryKey: ['global-ai-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('master_settings')
+        .select('ai_layer_1_model, ai_layer_2_model, ai_layer_3_model, ai_layer_1_instructions, ai_layer_2_instructions, ai_layer_3_instructions')
+        .eq('key', 'ai_global_engine')
+        .single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+  });
+
+  // Update local state when config prop changes
+  useEffect(() => {
+    if (config) {
+      setLocalConfig({
+        ai_use_global_config: config.ai_use_global_config ?? true,
+        ai_layer_1_model: config.ai_layer_1_model || '',
+        ai_layer_1_instructions: config.ai_layer_1_instructions || '',
+        ai_layer_2_model: config.ai_layer_2_model || '',
+        ai_layer_2_instructions: config.ai_layer_2_instructions || '',
+        ai_layer_3_model: config.ai_layer_3_model || '',
+        ai_layer_3_instructions: config.ai_layer_3_instructions || '',
+      });
+    }
+  }, [config]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<AIEngineConfig>) => {
@@ -126,7 +136,14 @@ export function TenantAIEngineEditor({ tenantId, config, isLoading }: TenantAIEn
     setLocalConfig(prev => ({ ...prev, [key]: value }));
   };
 
-  if (isLoading) {
+  const getModelDisplayName = (modelId: string | null) => {
+    if (!modelId) return 'Não definido';
+    const allModels = [...modelsByCategory.router, ...modelsByCategory.standard, ...modelsByCategory.elite];
+    const found = allModels.find(m => m.model_id === modelId);
+    return found ? `${found.display_name} (${found.provider})` : modelId;
+  };
+
+  if (isLoading || isLoadingModels) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
@@ -195,14 +212,43 @@ export function TenantAIEngineEditor({ tenantId, config, isLoading }: TenantAIEn
         </CardContent>
       </Card>
 
+      {/* Global Config Preview when using global */}
+      {localConfig.ai_use_global_config && globalSettings && (
+        <Card className="border-dashed border-green-500/50 bg-green-500/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Info className="h-4 w-4 text-green-600" />
+              Configuração Global Herdada
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 text-sm">
+              <div className="flex items-center justify-between p-2 rounded bg-background">
+                <span className="text-muted-foreground">Camada 1 (Router):</span>
+                <span className="font-medium">{getModelDisplayName(globalSettings.ai_layer_1_model)}</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded bg-background">
+                <span className="text-muted-foreground">Camada 2 (Standard):</span>
+                <span className="font-medium">{getModelDisplayName(globalSettings.ai_layer_2_model)}</span>
+              </div>
+              <div className="flex items-center justify-between p-2 rounded bg-background">
+                <span className="text-muted-foreground">Camada 3 (Elite):</span>
+                <span className="font-medium">{getModelDisplayName(globalSettings.ai_layer_3_model)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Layer Cards */}
       <div className={`space-y-4 ${localConfig.ai_use_global_config ? 'opacity-50 pointer-events-none' : ''}`}>
         {LAYER_CONFIG.map((layer) => {
           const Icon = layer.icon;
           const modelKey = `ai_${layer.key}_model` as keyof AIEngineConfig;
           const instructionsKey = `ai_${layer.key}_instructions` as keyof AIEngineConfig;
-          const currentModel = (localConfig[modelKey] as string) || layer.defaultModel;
+          const currentModel = (localConfig[modelKey] as string) || '';
           const currentInstructions = (localConfig[instructionsKey] as string) || '';
+          const models = modelsByCategory[layer.category];
 
           return (
             <Card key={layer.key}>
@@ -228,13 +274,13 @@ export function TenantAIEngineEditor({ tenantId, config, isLoading }: TenantAIEn
                     disabled={localConfig.ai_use_global_config}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione um modelo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {layer.models.map((model) => (
-                        <SelectItem key={model.value} value={model.value}>
+                      {models.map((model) => (
+                        <SelectItem key={model.id} value={model.model_id}>
                           <div className="flex items-center gap-2">
-                            <span>{model.label}</span>
+                            <span>{model.display_name}</span>
                             <span className="text-xs text-muted-foreground">({model.provider})</span>
                           </div>
                         </SelectItem>

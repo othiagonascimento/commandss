@@ -55,9 +55,18 @@ Deno.serve(async (req) => {
     const pathParts = url.pathname.split('/').filter(Boolean);
     const functionIndex = pathParts.indexOf('master-tenant-features');
     const tenantId = pathParts[functionIndex + 1];
-    const action = pathParts[functionIndex + 2]; // for 'override'
+    const action = pathParts[functionIndex + 2]; // for 'override' or 'resolved-config'
 
     console.log(`[master-tenant-features] ${req.method} tenantId=${tenantId} action=${action}`);
+
+    // GET /master-tenant-features/:tenantId/resolved-config - Get resolved AI config with inheritance
+    if (req.method === 'GET' && tenantId && action === 'resolved-config') {
+      const resolvedConfig = await resolveAIConfig(supabase, tenantId);
+      return new Response(JSON.stringify(resolvedConfig), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // GET /master-tenant-features/:tenantId - Get tenant features
     if (req.method === 'GET' && tenantId) {
@@ -92,16 +101,23 @@ Deno.serve(async (req) => {
           limit_leads: 1000,
           limit_products: 100,
           limit_whatsapp_instances: 1,
-          limit_ai_tokens_monthly: 500, // Legacy field, now per-user
-          limit_storage_mb: 100, // Legacy field, now per-user
-          credits_per_user: 500, // New per-user field
-          storage_mb_per_user: 100, // New per-user field
+          limit_ai_tokens_monthly: 500,
+          limit_storage_mb: 100,
+          credits_per_user: 500,
+          storage_mb_per_user: 100,
+          ai_use_global_config: true,
           overrides: {},
         };
         return new Response(JSON.stringify(defaultFeatures), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
+
+      // If using global config, resolve and attach the inherited values
+      if (features.ai_use_global_config) {
+        const resolvedConfig = await resolveAIConfig(supabase, tenantId);
+        features.resolved_ai_config = resolvedConfig;
       }
 
       return new Response(JSON.stringify(features), {
@@ -273,3 +289,95 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+// deno-lint-ignore no-explicit-any
+async function resolveAIConfig(supabase: any, tenantId: string) {
+  console.log(`[resolveAIConfig] Resolving AI config for tenant: ${tenantId}`);
+
+  // 1. Get tenant features
+  const { data: tenantFeatures } = await supabase
+    .from('tenant_features')
+    .select('ai_use_global_config, ai_layer_1_model, ai_layer_1_instructions, ai_layer_2_model, ai_layer_2_instructions, ai_layer_3_model, ai_layer_3_instructions')
+    .eq('tenant_id', tenantId)
+    .single();
+
+  // If tenant has custom config, use it
+  if (tenantFeatures && !tenantFeatures.ai_use_global_config) {
+    console.log('[resolveAIConfig] Using tenant custom config');
+    return {
+      source: 'tenant',
+      layer_1_model: tenantFeatures.ai_layer_1_model,
+      layer_1_instructions: tenantFeatures.ai_layer_1_instructions,
+      layer_2_model: tenantFeatures.ai_layer_2_model,
+      layer_2_instructions: tenantFeatures.ai_layer_2_instructions,
+      layer_3_model: tenantFeatures.ai_layer_3_model,
+      layer_3_instructions: tenantFeatures.ai_layer_3_instructions,
+    };
+  }
+
+  // 2. Check if tenant has a niche template via onboarding
+  const { data: onboarding } = await supabase
+    .from('tenant_onboarding')
+    .select('niche_template_id')
+    .eq('tenant_id', tenantId)
+    .single();
+
+  if (onboarding?.niche_template_id) {
+    // Get niche template config
+    const { data: nicheTemplate } = await supabase
+      .from('niche_templates')
+      .select('prompts')
+      .eq('id', onboarding.niche_template_id)
+      .single();
+
+    if (nicheTemplate?.prompts) {
+      const prompts = nicheTemplate.prompts as Record<string, unknown>;
+      
+      // Check if niche has AI config in prompts
+      if (prompts.ai_config) {
+        const aiConfig = prompts.ai_config as Record<string, unknown>;
+        console.log('[resolveAIConfig] Using niche template config');
+        
+        // Get global settings for fallback
+        const { data: globalSettings } = await supabase
+          .from('master_settings')
+          .select('ai_layer_1_model, ai_layer_2_model, ai_layer_3_model, ai_layer_1_instructions, ai_layer_2_instructions, ai_layer_3_instructions')
+          .eq('key', 'ai_global_engine')
+          .single();
+
+        return {
+          source: 'niche',
+          niche_template_id: onboarding.niche_template_id,
+          layer_1_model: aiConfig.layer_1_model || globalSettings?.ai_layer_1_model,
+          layer_1_instructions: aiConfig.layer_1_instructions || globalSettings?.ai_layer_1_instructions,
+          layer_2_model: aiConfig.layer_2_model || globalSettings?.ai_layer_2_model,
+          layer_2_instructions: aiConfig.layer_2_instructions || globalSettings?.ai_layer_2_instructions,
+          layer_3_model: aiConfig.layer_3_model || globalSettings?.ai_layer_3_model,
+          layer_3_instructions: aiConfig.layer_3_instructions || globalSettings?.ai_layer_3_instructions,
+        };
+      }
+    }
+  }
+
+  // 3. Fallback to master global config
+  const { data: globalSettings, error: globalError } = await supabase
+    .from('master_settings')
+    .select('ai_layer_1_model, ai_layer_2_model, ai_layer_3_model, ai_layer_1_instructions, ai_layer_2_instructions, ai_layer_3_instructions')
+    .eq('key', 'ai_global_engine')
+    .single();
+
+  if (globalError && globalError.code !== 'PGRST116') {
+    console.error('[resolveAIConfig] Error fetching global settings:', globalError);
+  }
+
+  console.log('[resolveAIConfig] Using master global config');
+  return {
+    source: 'master',
+    layer_1_model: globalSettings?.ai_layer_1_model || 'gemini-1.5-flash',
+    layer_1_instructions: globalSettings?.ai_layer_1_instructions || '',
+    layer_2_model: globalSettings?.ai_layer_2_model || 'gemini-1.5-pro',
+    layer_2_instructions: globalSettings?.ai_layer_2_instructions || '',
+    layer_3_model: globalSettings?.ai_layer_3_model || 'claude-3-5-sonnet',
+    layer_3_instructions: globalSettings?.ai_layer_3_instructions || '',
+  };
+}
