@@ -6,10 +6,11 @@ export interface AIModel {
   provider: string;
   model_id: string;
   display_name: string;
-  layer_category: 'router' | 'standard' | 'elite';
-  is_active: boolean;
+  layer_category: string;
+  is_active: boolean | null;
   cost_per_1k_tokens: number | null;
   max_context_tokens: number | null;
+  created_at?: string | null;
 }
 
 export interface GroupedModels {
@@ -28,10 +29,14 @@ export function useAvailableModels() {
         .eq('is_active', true)
         .order('display_name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar modelos de IA:', error);
+        throw error;
+      }
       return data as AIModel[];
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
+    retry: 2,
   });
 }
 
