@@ -1,13 +1,23 @@
 import { CheckCircle2, PartyPopper, Clock, Mail } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import uopaLogo from "@/assets/uopa-logo-color.png";
 
 export function StepConcluido() {
   return (
-    <div className="space-y-6 py-8">
+    <div className="space-y-8 py-8">
+      {/* Logo */}
+      <div className="flex justify-center">
+        <img 
+          src={uopaLogo} 
+          alt="Uôpa CRM" 
+          className="h-16 w-auto"
+        />
+      </div>
+
       {/* Success icon */}
       <div className="text-center space-y-4">
-        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-success/20 to-success/10 flex items-center justify-center animate-pulse">
+        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-success/20 to-success/10 flex items-center justify-center">
           <CheckCircle2 className="w-12 h-12 text-success" />
         </div>
         
@@ -67,6 +77,11 @@ export function StepConcluido() {
           Voltar para o site
         </Button>
       </div>
+
+      {/* Footer branding */}
+      <p className="text-center text-xs text-muted-foreground">
+        Powered by <span className="font-semibold text-foreground">Uôpa CRM</span> — by Wesgion
+      </p>
     </div>
   );
 }
