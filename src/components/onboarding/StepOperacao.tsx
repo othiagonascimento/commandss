@@ -1,4 +1,4 @@
-import { BarChart3, MessageCircle, Package, Smartphone } from "lucide-react";
+import { BarChart3, MessageCircle, Package, Smartphone, Store } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,20 +22,21 @@ function MetricCard({ icon: Icon, label, description, value, onChange, placehold
   return (
     <div className="p-4 rounded-xl border border-border bg-card hover:border-primary/30 transition-colors">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
           <Icon className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1 space-y-2">
           <div>
-            <p className="font-medium text-foreground">{label}</p>
+            <p className="font-medium text-foreground text-sm">{label}</p>
             <p className="text-xs text-muted-foreground">{description}</p>
           </div>
           <Input
             type="number"
+            inputMode="numeric"
             placeholder={placeholder}
             value={value ?? ""}
             onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
-            className="h-10"
+            className="h-11 text-base"
           />
         </div>
       </div>
@@ -48,17 +49,17 @@ export function StepOperacao({ formData, updateFormData }: StepOperacaoProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-          <BarChart3 className="w-8 h-8 text-primary" />
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+          <BarChart3 className="w-7 h-7 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">Raio-X da Operação</h2>
-        <p className="text-muted-foreground">
-          Nos conte um pouco sobre o volume do seu negócio
+        <h2 className="text-xl font-bold text-foreground">Raio-X da Operação</h2>
+        <p className="text-sm text-muted-foreground">
+          Nos conte sobre o volume do seu negócio
         </p>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      {/* Metrics - stacked on mobile */}
+      <div className="space-y-3">
         <MetricCard
           icon={MessageCircle}
           label="Atendimentos mensais"
@@ -89,14 +90,17 @@ export function StepOperacao({ formData, updateFormData }: StepOperacaoProps) {
 
       {/* Niche */}
       <Card className="border-border/50">
-        <CardContent className="pt-6 space-y-2">
-          <Label htmlFor="niche">Qual o nicho da sua loja?</Label>
+        <CardContent className="pt-5 space-y-2">
+          <div className="flex items-center gap-2">
+            <Store className="w-5 h-5 text-primary" />
+            <Label htmlFor="niche" className="text-sm font-medium">Qual o nicho da sua loja?</Label>
+          </div>
           <Input
             id="niche"
-            placeholder="Ex: Veículos, Moda, Eletrônicos, Cosméticos..."
+            placeholder="Ex: Veículos, Moda, Eletrônicos..."
             value={formData.niche}
             onChange={(e) => updateFormData({ niche: e.target.value })}
-            className="h-12"
+            className="h-12 text-base"
           />
           <p className="text-xs text-muted-foreground">
             Isso nos ajuda a personalizar a IA para o seu mercado

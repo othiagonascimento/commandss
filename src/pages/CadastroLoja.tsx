@@ -48,6 +48,7 @@ export interface OnboardingFormData {
   working_hours: {
     weekdays: { start: string; end: string };
     saturday: { start: string; end: string };
+    sunday: { start: string; end: string; enabled: boolean };
   };
   ai_respond_outside_hours: boolean;
   
@@ -85,6 +86,7 @@ const DEFAULT_FORM_DATA: OnboardingFormData = {
   working_hours: {
     weekdays: { start: "08:00", end: "18:00" },
     saturday: { start: "09:00", end: "13:00" },
+    sunday: { start: "", end: "", enabled: false },
   },
   ai_respond_outside_hours: false,
   funnel_stages: ["Novo Lead", "Qualificando", "Proposta", "Negociação", "Ganho", "Perdido"],
@@ -97,7 +99,8 @@ export default function CadastroLoja() {
   const [formData, setFormData] = useState<OnboardingFormData>(DEFAULT_FORM_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const progress = ((currentStep - 1) / (STEPS.length - 1)) * 100;
+  const totalSteps = STEPS.length - 1; // Exclude "Concluído" from count
+  const progress = ((currentStep - 1) / totalSteps) * 100;
 
   const updateFormData = (updates: Partial<OnboardingFormData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
@@ -159,105 +162,117 @@ export default function CadastroLoja() {
     }
   };
 
+  const isLastStep = currentStep === 6;
+  const isCompleted = currentStep === 7;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img 
-              src={uopaLogo} 
-              alt="Uôpa CRM" 
-              className="h-10 w-auto"
-            />
-          </div>
-          
-          {/* Step indicator */}
-          <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{currentStep}</span>
-            <span>/</span>
-            <span>{STEPS.length - 1}</span>
-          </div>
+      {/* Header - Centered logo */}
+      <header className="border-b border-border/50 bg-card/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <div className="max-w-lg mx-auto px-5 py-4 flex items-center justify-center">
+          <img 
+            src={uopaLogo} 
+            alt="Uôpa CRM" 
+            className="h-9 w-auto"
+          />
         </div>
       </header>
 
-      {/* Progress bar */}
-      <div className="max-w-4xl mx-auto px-4 py-4">
-        <Progress value={progress} className="h-2" />
-        
-        {/* Step pills */}
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {STEPS.slice(0, -1).map((step) => {
-            const Icon = step.icon;
-            const isActive = currentStep === step.id;
-            const isCompleted = currentStep > step.id;
-            
-            return (
-              <button
-                key={step.id}
-                onClick={() => step.id < currentStep && setCurrentStep(step.id)}
-                disabled={step.id > currentStep}
-                className={`
-                  flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap
-                  transition-all duration-200
-                  ${isActive 
-                    ? "bg-primary text-primary-foreground shadow-md" 
-                    : isCompleted 
-                      ? "bg-primary/10 text-primary cursor-pointer hover:bg-primary/20" 
-                      : "bg-muted text-muted-foreground"
-                  }
-                `}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{step.title}</span>
-              </button>
-            );
-          })}
+      {/* Progress section - mobile optimized */}
+      {!isCompleted && (
+        <div className="max-w-lg mx-auto px-5 pt-4 pb-2">
+          {/* Progress text */}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-foreground">
+              Passo {currentStep} de {totalSteps}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {Math.round(progress)}%
+            </span>
+          </div>
+          
+          {/* Progress bar */}
+          <Progress value={progress} className="h-2" />
+          
+          {/* Step pills - mobile: icons only with larger touch area */}
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
+            {STEPS.slice(0, -1).map((step) => {
+              const Icon = step.icon;
+              const isActive = currentStep === step.id;
+              const isStepCompleted = currentStep > step.id;
+              
+              return (
+                <button
+                  key={step.id}
+                  onClick={() => step.id < currentStep && setCurrentStep(step.id)}
+                  disabled={step.id > currentStep}
+                  className={`
+                    flex items-center justify-center gap-2 
+                    min-w-[44px] min-h-[44px] px-3 py-2
+                    rounded-full text-sm font-medium whitespace-nowrap
+                    transition-all duration-200 snap-center
+                    ${isActive 
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" 
+                      : isStepCompleted 
+                        ? "bg-primary/10 text-primary cursor-pointer hover:bg-primary/20 active:scale-95" 
+                        : "bg-muted text-muted-foreground"
+                    }
+                  `}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="hidden sm:inline">{step.title}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Step content */}
-      <main className="max-w-4xl mx-auto px-4 pb-32">
+      {/* Step content - increased padding for mobile */}
+      <main className="max-w-lg mx-auto px-5 pb-36 pt-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
           >
             {renderStep()}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Navigation footer */}
-      {currentStep < 7 && (
-        <footer className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      {/* Navigation footer - safe area for mobile */}
+      {!isCompleted && (
+        <footer className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 backdrop-blur-sm pb-safe">
+          <div className="max-w-lg mx-auto px-5 py-4 flex items-center justify-between gap-4">
             <Button
               variant="ghost"
               onClick={handlePrev}
               disabled={currentStep === 1}
-              className="gap-2"
+              className="min-h-[48px] min-w-[100px] gap-2 text-base"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Voltar
+              <ArrowLeft className="w-5 h-5" />
+              <span className="hidden xs:inline">Voltar</span>
             </Button>
 
-            {currentStep < 6 ? (
-              <Button onClick={handleNext} className="gap-2">
+            {!isLastStep ? (
+              <Button 
+                onClick={handleNext} 
+                className="min-h-[48px] flex-1 max-w-[200px] gap-2 text-base shadow-lg shadow-primary/20"
+              >
                 Continuar
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-5 h-5" />
               </Button>
             ) : (
               <Button 
                 onClick={handleSubmit} 
                 disabled={isSubmitting}
-                className="gap-2 bg-gradient-to-r from-primary to-primary/80"
+                className="min-h-[48px] flex-1 max-w-[200px] gap-2 text-base bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20"
               >
-                {isSubmitting ? "Enviando..." : "Finalizar Cadastro"}
-                <CheckCircle2 className="w-4 h-4" />
+                {isSubmitting ? "Enviando..." : "Finalizar"}
+                <CheckCircle2 className="w-5 h-5" />
               </Button>
             )}
           </div>

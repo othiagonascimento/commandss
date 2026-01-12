@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { GitBranch, Plus, X, GripVertical, Package } from "lucide-react";
+import { GitBranch, Plus, X, Package, Info } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import type { OnboardingFormData } from "@/pages/CadastroLoja";
 
 interface StepFunilProps {
@@ -43,47 +42,52 @@ function EditableList({ title, description, icon: Icon, items, onUpdate, placeho
 
   return (
     <Card className="border-border/50">
-      <CardContent className="pt-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <Icon className="w-5 h-5 text-primary" />
+      <CardContent className="pt-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Icon className="w-5 h-5 text-primary" />
+          </div>
           <div>
             <p className="font-medium">{title}</p>
             <p className="text-xs text-muted-foreground">{description}</p>
           </div>
         </div>
 
-        {/* Items list */}
+        {/* Items list - larger touch targets */}
         <div className="flex flex-wrap gap-2">
           {items.map((item, index) => (
-            <Badge
+            <div
               key={index}
-              variant="secondary"
-              className="pl-3 pr-1 py-1.5 gap-1 text-sm"
+              className="flex items-center gap-2 px-3 py-2 rounded-full bg-muted border border-border text-sm"
             >
-              <GripVertical className="w-3 h-3 text-muted-foreground" />
-              {item}
+              <span>{item}</span>
               <button
                 type="button"
                 onClick={() => handleRemove(index)}
-                className="ml-1 p-0.5 rounded hover:bg-destructive/20 hover:text-destructive transition-colors"
+                className="min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full hover:bg-destructive/20 hover:text-destructive transition-colors"
               >
-                <X className="w-3 h-3" />
+                <X className="w-4 h-4" />
               </button>
-            </Badge>
+            </div>
           ))}
         </div>
 
-        {/* Add new */}
+        {/* Add new - larger inputs */}
         <div className="flex gap-2">
           <Input
             placeholder={placeholder}
             value={newItem}
             onChange={(e) => setNewItem(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1"
+            className="flex-1 h-12 text-base"
           />
-          <Button type="button" variant="outline" size="icon" onClick={handleAdd}>
-            <Plus className="w-4 h-4" />
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleAdd}
+            className="min-w-[48px] h-12"
+          >
+            <Plus className="w-5 h-5" />
           </Button>
         </div>
       </CardContent>
@@ -96,19 +100,19 @@ export function StepFunil({ formData, updateFormData }: StepFunilProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-          <GitBranch className="w-8 h-8 text-primary" />
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+          <GitBranch className="w-7 h-7 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">Processo de Vendas</h2>
-        <p className="text-muted-foreground">
-          Configure as etapas do seu funil e categorias de produtos
+        <h2 className="text-xl font-bold text-foreground">Processo de Vendas</h2>
+        <p className="text-sm text-muted-foreground">
+          Configure as etapas do seu funil e categorias
         </p>
       </div>
 
       {/* Funnel stages */}
       <EditableList
         title="Etapas do Funil"
-        description="Organize as fases do seu processo de vendas"
+        description="Fases do seu processo de vendas"
         icon={GitBranch}
         items={formData.funnel_stages}
         onUpdate={(items) => updateFormData({ funnel_stages: items })}
@@ -118,7 +122,7 @@ export function StepFunil({ formData, updateFormData }: StepFunilProps) {
       {/* Product categories */}
       <EditableList
         title="Categorias de Produtos"
-        description="Organize seus produtos em categorias"
+        description="Organize seus produtos"
         icon={Package}
         items={formData.product_categories}
         onUpdate={(items) => updateFormData({ product_categories: items })}
@@ -126,10 +130,11 @@ export function StepFunil({ formData, updateFormData }: StepFunilProps) {
       />
 
       {/* Tips */}
-      <div className="p-4 rounded-lg bg-info/10 border border-info/20">
+      <div className="flex items-start gap-3 p-4 rounded-xl bg-info/10 border border-info/20">
+        <Info className="w-5 h-5 text-info shrink-0 mt-0.5" />
         <p className="text-sm text-muted-foreground">
-          <strong>Dica:</strong> Você poderá alterar essas configurações depois, 
-          dentro do painel administrativo. Por enquanto, deixe como está se não tiver certeza.
+          <strong>Dica:</strong> Você pode alterar isso depois no painel. 
+          Por enquanto, deixe como está se não tiver certeza.
         </p>
       </div>
     </div>
