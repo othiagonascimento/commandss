@@ -148,6 +148,7 @@ export default function CreateTenant() {
         subdomain: data.slug,
         plan_type: plan?.slug || 'basic',
         plan_id: data.plan_id,
+        contact_email: data.contact_email || undefined,
         promo_enabled: data.promo_enabled,
         promo_type: data.promo_enabled ? data.promo_type : undefined,
         promo_days: data.promo_enabled && data.promo_type !== 'lifetime' ? data.promo_days : undefined,
@@ -156,6 +157,10 @@ export default function CreateTenant() {
           company_name: data.company_name || data.name,
           primary_color: data.primary_color,
         },
+        // Include admin credentials if provided
+        admin_email: data.admin_email || undefined,
+        admin_name: data.admin_name || undefined,
+        admin_password: data.admin_password || undefined,
       };
       
       const result = await tenantsApi.create(payload);

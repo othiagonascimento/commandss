@@ -5,6 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -13,8 +14,11 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 serve(async (req) => {
+  logStep('Request received', { method: req.method, url: req.url, origin: req.headers.get('origin') });
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    logStep('CORS preflight handled');
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   const supabaseAdmin = createClient(
@@ -159,6 +163,7 @@ serve(async (req) => {
     // POST /master-tenants - Create tenant
     if (method === 'POST') {
       const body = await req.json();
+      logStep('Creating tenant', { name: body.name, subdomain: body.subdomain || body.slug });
       
       // Handle promotional access (trial, partnership, lifetime)
       const promoEnabled = body.promo_enabled === true;
@@ -215,29 +220,160 @@ serve(async (req) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        logStep('Tenant creation failed', { error: error.message });
+        throw error;
+      }
+
+      logStep('Tenant created', { tenantId: newTenant.id });
 
       // Create default branding
-      if (body.branding) {
-        await supabaseAdmin
-          .from('tenant_branding')
-          .insert({
-            tenant_id: newTenant.id,
-            company_name: body.branding.company_name || body.name,
-            primary_color: body.branding.primary_color || '#6366f1',
-            logo_url: body.branding.logo_url,
-          });
+      const brandingData = {
+        tenant_id: newTenant.id,
+        company_name: body.branding?.company_name || body.name,
+        primary_color: body.branding?.primary_color || '#6366f1',
+        logo_url: body.branding?.logo_url || null,
+      };
+      
+      const { error: brandingError } = await supabaseAdmin
+        .from('tenant_branding')
+        .insert(brandingData);
+
+      if (brandingError) {
+        logStep('Branding creation failed (non-critical)', { error: brandingError.message });
+      } else {
+        logStep('Branding created');
       }
 
       // Create onboarding record
-      await supabaseAdmin
+      const { error: onboardingError } = await supabaseAdmin
         .from('tenant_onboarding')
         .insert({
           tenant_id: newTenant.id,
           status: 'pending',
         });
 
-      logStep('Tenant created', { tenantId: newTenant.id });
+      if (onboardingError) {
+        logStep('Onboarding creation failed (non-critical)', { error: onboardingError.message });
+      } else {
+        logStep('Onboarding record created');
+      }
+
+      // Create tenant_features with default values
+      const { error: featuresError } = await supabaseAdmin
+        .from('tenant_features')
+        .insert({
+          tenant_id: newTenant.id,
+          module_ai_agent: true,
+          module_ai_transcription: true,
+          module_automation_flows: true,
+          module_campaigns: true,
+          module_ecommerce: false,
+          module_erp_integration: false,
+          module_api_access: false,
+          module_whitelabel: false,
+          module_multi_whatsapp: false,
+          limit_users: 5,
+          limit_leads: 1000,
+          limit_products: 100,
+          limit_whatsapp_instances: 1,
+          limit_ai_tokens_monthly: 100000,
+          limit_storage_mb: 1024,
+          ai_use_global_config: true,
+          overrides: {},
+        });
+
+      if (featuresError) {
+        logStep('Features creation failed (non-critical)', { error: featuresError.message });
+      } else {
+        logStep('Tenant features created');
+      }
+
+      // Create tenant_usage with zero values
+      const now = new Date();
+      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+      
+      const { error: usageError } = await supabaseAdmin
+        .from('tenant_usage')
+        .insert({
+          tenant_id: newTenant.id,
+          period_start: periodStart,
+          period_end: periodEnd,
+          active_users: 0,
+          users_count: 0,
+          leads_count: 0,
+          messages_sent: 0,
+          storage_used_mb: 0,
+          ai_tokens_used: 0,
+          api_calls: 0,
+          estimated_cost_brl: 0,
+        });
+
+      if (usageError) {
+        logStep('Usage creation failed (non-critical)', { error: usageError.message });
+      } else {
+        logStep('Tenant usage record created');
+      }
+
+      // Create admin user if credentials provided
+      if (body.admin_email && body.admin_password) {
+        logStep('Creating admin user', { email: body.admin_email });
+        
+        try {
+          // Create auth user
+          const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email: body.admin_email,
+            password: body.admin_password,
+            email_confirm: true,
+            user_metadata: {
+              full_name: body.admin_name || body.admin_email.split('@')[0],
+            },
+          });
+
+          if (authError) {
+            logStep('Admin auth user creation failed', { error: authError.message });
+          } else if (authData.user) {
+            logStep('Admin auth user created', { userId: authData.user.id });
+
+            // Create profile
+            const { error: profileError } = await supabaseAdmin
+              .from('profiles')
+              .insert({
+                id: authData.user.id,
+                tenant_id: newTenant.id,
+                full_name: body.admin_name || body.admin_email.split('@')[0],
+                role: null, // Role stored in user_roles
+              });
+
+            if (profileError) {
+              logStep('Admin profile creation failed', { error: profileError.message });
+            } else {
+              logStep('Admin profile created');
+            }
+
+            // Create user_role with admin role
+            const { error: roleError } = await supabaseAdmin
+              .from('user_roles')
+              .insert({
+                user_id: authData.user.id,
+                tenant_id: newTenant.id,
+                role: 'admin',
+              });
+
+            if (roleError) {
+              logStep('Admin role creation failed', { error: roleError.message });
+            } else {
+              logStep('Admin role assigned');
+            }
+          }
+        } catch (adminError) {
+          logStep('Admin user creation exception', { error: (adminError as Error).message });
+          // Don't fail tenant creation if admin user fails
+        }
+      }
+
+      logStep('Tenant creation complete', { tenantId: newTenant.id });
 
       return new Response(
         JSON.stringify({ ...newTenant, is_active: true, slug: newTenant.subdomain }),
@@ -248,6 +384,7 @@ serve(async (req) => {
     // PATCH /master-tenants/:id - Update tenant
     if (method === 'PATCH' && tenantId) {
       const body = await req.json();
+      logStep('Updating tenant', { tenantId, updates: Object.keys(body) });
       
       // Map is_active to is_blocked
       const updateData: Record<string, unknown> = { ...body };
@@ -297,12 +434,6 @@ serve(async (req) => {
             .delete()
             .eq('tenant_id', tenantId);
 
-          // Delete user_usage
-          await supabaseAdmin
-            .from('user_usage')
-            .delete()
-            .eq('tenant_id', tenantId);
-
           // Delete user_roles
           await supabaseAdmin
             .from('user_roles')
@@ -332,27 +463,11 @@ serve(async (req) => {
         await supabaseAdmin.from('credit_transactions').delete().eq('tenant_id', tenantId);
         await supabaseAdmin.from('payment_failures').delete().eq('tenant_id', tenantId);
         await supabaseAdmin.from('impersonate_sessions').delete().eq('target_tenant_id', tenantId);
-        await supabaseAdmin.from('vendedor_cloning_profiles').delete().eq('tenant_id', tenantId);
         await supabaseAdmin.from('ai_orchestration_logs').delete().eq('tenant_id', tenantId);
         await supabaseAdmin.from('lead_memory').delete().eq('tenant_id', tenantId);
-
-        // Delete webhooks and their logs
-        const { data: webhooks } = await supabaseAdmin
-          .from('webhooks')
-          .select('id')
-          .eq('tenant_id', tenantId);
-        
-        if (webhooks && webhooks.length > 0) {
-          const webhookIds = webhooks.map(w => w.id);
-          await supabaseAdmin
-            .from('webhook_logs')
-            .delete()
-            .in('webhook_id', webhookIds);
-          await supabaseAdmin
-            .from('webhooks')
-            .delete()
-            .eq('tenant_id', tenantId);
-        }
+        await supabaseAdmin.from('tenant_template_overrides').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('tenant_template_subscriptions').delete().eq('tenant_id', tenantId);
+        await supabaseAdmin.from('user_education_progress').delete().eq('tenant_id', tenantId);
 
         // Finally delete the tenant
         const { error } = await supabaseAdmin

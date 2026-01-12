@@ -56,7 +56,7 @@ const createUserSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-  role: z.enum(['admin', 'user']),
+  role: z.enum(['admin', 'manager', 'viewer']),
 });
 
 type CreateUserFormData = z.infer<typeof createUserSchema>;
@@ -69,7 +69,7 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
     name: '',
     email: '',
     password: '',
-    role: 'user',
+    role: 'viewer',
   });
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -123,7 +123,7 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
   });
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', password: '', role: 'user' });
+    setFormData({ name: '', email: '', password: '', role: 'viewer' });
     setFormError(null);
   };
 
@@ -135,11 +135,16 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
 
   const handleOpenEdit = (user: TenantUser) => {
     setEditingUser(user);
+    // Map user role to valid form role
+    let formRole: 'admin' | 'manager' | 'viewer' = 'viewer';
+    if (user.role === 'admin') formRole = 'admin';
+    else if (user.role === 'manager') formRole = 'manager';
+    
     setFormData({
       name: user.name || user.full_name || '',
       email: user.email,
       password: '',
-      role: user.role as 'admin' | 'user',
+      role: formRole,
     });
     setFormError(null);
     setIsDialogOpen(true);
@@ -243,14 +248,15 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
                   <Label htmlFor="role">Função</Label>
                   <Select
                     value={formData.role}
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, role: v as 'admin' | 'user' }))}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, role: v as 'admin' | 'manager' | 'viewer' }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="user">Usuário</SelectItem>
+                      <SelectItem value="manager">Gerente</SelectItem>
+                      <SelectItem value="viewer">Visualizador</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

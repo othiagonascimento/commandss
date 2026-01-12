@@ -4,6 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
+  'Access-Control-Max-Age': '86400',
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -11,9 +13,26 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[MASTER-USERS] ${step}${detailsStr}`);
 };
 
+// Valid app_role enum values
+const VALID_ROLES = ['admin', 'manager', 'viewer'] as const;
+type AppRole = typeof VALID_ROLES[number];
+
+function mapToValidRole(role: string | undefined): AppRole {
+  if (role && VALID_ROLES.includes(role as AppRole)) {
+    return role as AppRole;
+  }
+  // Map legacy roles
+  if (role === 'user' || role === 'seller') return 'viewer';
+  if (role === 'super_admin') return 'admin';
+  return 'viewer';
+}
+
 serve(async (req) => {
+  logStep('Request received', { method: req.method, url: req.url, origin: req.headers.get('origin') });
+
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    logStep('CORS preflight handled');
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   const supabaseAdmin = createClient(
@@ -73,19 +92,25 @@ serve(async (req) => {
           const authUser = authData?.user;
           const userRole = roles?.find(r => r.user_id === profile.id);
           
+          // Check if user is banned by looking at user_metadata or ban_duration
+          const isBanned = authUser?.user_metadata?.banned === true || 
+                          (authUser as unknown as { banned_at?: string })?.banned_at != null;
+          
           return {
             id: profile.id,
             email: authUser?.email || '',
             name: profile.full_name || '',
             full_name: profile.full_name || '',
-            role: userRole?.role || profile.role || 'user',
-            status: 'active',
-            is_active: true,
+            role: userRole?.role || 'viewer',
+            status: isBanned ? 'inactive' : 'active',
+            is_active: !isBanned,
             created_at: profile.created_at,
             last_login: authUser?.last_sign_in_at || null,
           };
         })
       );
+
+      logStep('Users fetched', { count: users.length });
 
       return new Response(
         JSON.stringify({ data: users, total: users.length }),
@@ -113,14 +138,18 @@ serve(async (req) => {
         .eq('user_id', targetUserId)
         .single();
 
+      // Check if user is banned
+      const isBanned = authUser?.user_metadata?.banned === true || 
+                      (authUser as unknown as { banned_at?: string })?.banned_at != null;
+
       const user = {
         id: profile.id,
         email: authUser?.email || '',
         name: profile.full_name || '',
         full_name: profile.full_name || '',
-        role: userRole?.role || profile.role || 'user',
-        status: 'active',
-        is_active: true,
+        role: userRole?.role || 'viewer',
+        status: isBanned ? 'inactive' : 'active',
+        is_active: !isBanned,
         created_at: profile.created_at,
         last_login: authUser?.last_sign_in_at || null,
       };
@@ -134,6 +163,15 @@ serve(async (req) => {
     // POST /master-users/:tenantId - Create user for tenant
     if (method === 'POST') {
       const body = await req.json();
+      logStep('Creating user', { email: body.email, role: body.role });
+
+      // Validate required fields
+      if (!body.email || !body.password) {
+        return new Response(
+          JSON.stringify({ error: 'Email and password are required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
       // Create auth user
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -145,8 +183,12 @@ serve(async (req) => {
         },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        logStep('Auth user creation failed', { error: authError.message });
+        throw authError;
+      }
       const authUser = authData.user;
+      logStep('Auth user created', { authUserId: authUser.id });
 
       // Create profile
       const { error: profileError } = await supabaseAdmin
@@ -155,21 +197,33 @@ serve(async (req) => {
           id: authUser.id,
           tenant_id: tenantId,
           full_name: body.full_name || body.name,
-          role: body.role || 'seller',
+          role: null, // Role is stored in user_roles table, not here
         });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        logStep('Profile creation failed', { error: profileError.message });
+        // Cleanup: delete auth user if profile fails
+        await supabaseAdmin.auth.admin.deleteUser(authUser.id);
+        throw profileError;
+      }
+      logStep('Profile created');
 
-      // Create user role
-      await supabaseAdmin
+      // Create user role with valid enum value
+      const appRole = mapToValidRole(body.role);
+      const { error: roleError } = await supabaseAdmin
         .from('user_roles')
         .insert({
           user_id: authUser.id,
           tenant_id: tenantId,
-          role: body.role === 'admin' ? 'admin' : 'viewer',
+          role: appRole,
         });
 
-      logStep('User created', { newUserId: authUser.id, tenantId });
+      if (roleError) {
+        logStep('User role creation failed', { error: roleError.message });
+        // Continue anyway, role can be set later
+      } else {
+        logStep('User role created', { role: appRole });
+      }
 
       return new Response(
         JSON.stringify({
@@ -177,7 +231,7 @@ serve(async (req) => {
           email: authUser.email,
           name: body.full_name || body.name,
           full_name: body.full_name || body.name,
-          role: body.role || 'user',
+          role: appRole,
           status: 'active',
           is_active: true,
           created_at: new Date().toISOString(),
@@ -190,23 +244,25 @@ serve(async (req) => {
     // PATCH /master-users/:tenantId/:userId - Update user
     if (method === 'PATCH' && targetUserId) {
       const body = await req.json();
+      logStep('Updating user', { targetUserId, updates: Object.keys(body) });
 
       // Update profile
-      if (body.full_name || body.name || body.role) {
-        const updateData: Record<string, unknown> = {};
-        if (body.full_name || body.name) updateData.full_name = body.full_name || body.name;
-        if (body.role) updateData.role = body.role;
-
-        await supabaseAdmin
+      if (body.full_name || body.name) {
+        const { error: profileError } = await supabaseAdmin
           .from('profiles')
-          .update(updateData)
+          .update({ full_name: body.full_name || body.name })
           .eq('id', targetUserId)
           .eq('tenant_id', tenantId);
+
+        if (profileError) {
+          logStep('Profile update failed', { error: profileError.message });
+        }
       }
 
       // Update user role if changed
       if (body.role) {
-        const roleValue = body.role === 'admin' ? 'admin' : 'viewer';
+        const appRole = mapToValidRole(body.role);
+        logStep('Updating role', { from: body.role, to: appRole });
         
         // Check if role exists
         const { data: existingRole } = await supabaseAdmin
@@ -219,7 +275,7 @@ serve(async (req) => {
         if (existingRole) {
           await supabaseAdmin
             .from('user_roles')
-            .update({ role: roleValue })
+            .update({ role: appRole })
             .eq('user_id', targetUserId)
             .eq('tenant_id', tenantId);
         } else {
@@ -228,7 +284,7 @@ serve(async (req) => {
             .insert({
               user_id: targetUserId,
               tenant_id: tenantId,
-              role: roleValue,
+              role: appRole,
             });
         }
       }
@@ -243,10 +299,17 @@ serve(async (req) => {
 
     // DELETE /master-users/:tenantId/:userId - Deactivate user
     if (method === 'DELETE' && targetUserId) {
+      logStep('Deactivating user', { targetUserId });
+      
       // Ban the user in auth
-      await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+      const { error: banError } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
         ban_duration: '876000h', // ~100 years
       });
+
+      if (banError) {
+        logStep('User ban failed', { error: banError.message });
+        throw banError;
+      }
 
       logStep('User deactivated', { targetUserId, tenantId });
 
