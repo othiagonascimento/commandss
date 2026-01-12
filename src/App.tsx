@@ -2,7 +2,7 @@ import { Suspense, lazy } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -106,8 +106,11 @@ const App = () => (
                 <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
                 <Route path="/api-costs" element={<ProtectedRoute><APICosts /></ProtectedRoute>} />
                 <Route path="/admin/cadastros" element={<ProtectedRoute><AdminCadastros /></ProtectedRoute>} />
-                {/* Public onboarding route */}
-                <Route path="/cadastro-loja" element={<CadastroLoja />} />
+                {/* Public onboarding route - URL curta e amigável */}
+                <Route path="/cadastro" element={<CadastroLoja />} />
+                {/* Redirecionamentos para URLs antigas */}
+                <Route path="/cadastro-loja" element={<Navigate to="/cadastro" replace />} />
+                <Route path="/cadastros-loja" element={<Navigate to="/cadastro" replace />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
