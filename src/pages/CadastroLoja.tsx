@@ -109,12 +109,14 @@ export default function CadastroLoja() {
   const handleNext = () => {
     if (currentStep < STEPS.length) {
       setCurrentStep(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handlePrev = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -194,8 +196,8 @@ export default function CadastroLoja() {
           {/* Progress bar */}
           <Progress value={progress} className="h-2" />
           
-          {/* Step pills - mobile: icons only with larger touch area */}
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
+          {/* Step pills - centered with equal spacing */}
+          <div className="mt-4 flex justify-center gap-2 pb-2">
             {STEPS.slice(0, -1).map((step) => {
               const Icon = step.icon;
               const isActive = currentStep === step.id;
