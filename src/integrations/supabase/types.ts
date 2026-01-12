@@ -131,6 +131,42 @@ export type Database = {
           },
         ]
       }
+      ai_available_models: {
+        Row: {
+          cost_per_1k_tokens: number | null
+          created_at: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+          layer_category: string
+          max_context_tokens: number | null
+          model_id: string
+          provider: string
+        }
+        Insert: {
+          cost_per_1k_tokens?: number | null
+          created_at?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          layer_category: string
+          max_context_tokens?: number | null
+          model_id: string
+          provider: string
+        }
+        Update: {
+          cost_per_1k_tokens?: number | null
+          created_at?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          layer_category?: string
+          max_context_tokens?: number | null
+          model_id?: string
+          provider?: string
+        }
+        Relationships: []
+      }
       ai_orchestration_logs: {
         Row: {
           ai_response: string | null

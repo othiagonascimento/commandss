@@ -12,6 +12,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useGroupedModels } from '@/hooks/useAvailableModels';
 import { 
   Settings as SettingsIcon,
   Bell,
@@ -33,6 +41,7 @@ import { toast } from 'sonner';
 
 export default function Settings() {
   const queryClient = useQueryClient();
+  const { grouped: modelsByCategory, isLoading: isLoadingModels } = useGroupedModels();
   
   // General settings
   const [systemName, setSystemName] = useState('UOPA Master');
@@ -356,12 +365,24 @@ export default function Settings() {
                     <CardContent className="space-y-4">
                       <div className="grid gap-2">
                         <Label htmlFor="layer1Model">Modelo</Label>
-                        <Input
-                          id="layer1Model"
+                        <Select
                           value={aiLayer1Model}
-                          onChange={(e) => setAiLayer1Model(e.target.value)}
-                          placeholder="Ex: gpt-4o-mini, claude-3-haiku"
-                        />
+                          onValueChange={setAiLayer1Model}
+                        >
+                          <SelectTrigger id="layer1Model">
+                            <SelectValue placeholder="Selecione um modelo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {modelsByCategory.router.map((model) => (
+                              <SelectItem key={model.id} value={model.model_id}>
+                                <div className="flex items-center gap-2">
+                                  <span>{model.display_name}</span>
+                                  <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <p className="text-xs text-muted-foreground">
                           Recomendado: modelo leve e rápido para decisões simples
                         </p>
@@ -398,12 +419,24 @@ export default function Settings() {
                     <CardContent className="space-y-4">
                       <div className="grid gap-2">
                         <Label htmlFor="layer2Model">Modelo</Label>
-                        <Input
-                          id="layer2Model"
+                        <Select
                           value={aiLayer2Model}
-                          onChange={(e) => setAiLayer2Model(e.target.value)}
-                          placeholder="Ex: gpt-4o, claude-3-5-sonnet"
-                        />
+                          onValueChange={setAiLayer2Model}
+                        >
+                          <SelectTrigger id="layer2Model">
+                            <SelectValue placeholder="Selecione um modelo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {modelsByCategory.standard.map((model) => (
+                              <SelectItem key={model.id} value={model.model_id}>
+                                <div className="flex items-center gap-2">
+                                  <span>{model.display_name}</span>
+                                  <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <p className="text-xs text-muted-foreground">
                           Recomendado: modelo versátil com bom custo-benefício
                         </p>
@@ -440,12 +473,24 @@ export default function Settings() {
                     <CardContent className="space-y-4">
                       <div className="grid gap-2">
                         <Label htmlFor="layer3Model">Modelo</Label>
-                        <Input
-                          id="layer3Model"
+                        <Select
                           value={aiLayer3Model}
-                          onChange={(e) => setAiLayer3Model(e.target.value)}
-                          placeholder="Ex: gpt-4o, claude-sonnet-4-5"
-                        />
+                          onValueChange={setAiLayer3Model}
+                        >
+                          <SelectTrigger id="layer3Model">
+                            <SelectValue placeholder="Selecione um modelo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {modelsByCategory.elite.map((model) => (
+                              <SelectItem key={model.id} value={model.model_id}>
+                                <div className="flex items-center gap-2">
+                                  <span>{model.display_name}</span>
+                                  <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <p className="text-xs text-muted-foreground">
                           Recomendado: modelo mais capaz para situações críticas
                         </p>
