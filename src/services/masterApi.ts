@@ -342,6 +342,7 @@ export interface CreateTenantPayload {
   subdomain: string;
   plan_type: string;
   plan_id?: string;
+  contact_email?: string;
   promo_enabled?: boolean;
   promo_type?: 'trial' | 'partnership' | 'lifetime';
   promo_days?: number;
@@ -351,6 +352,10 @@ export interface CreateTenantPayload {
     logo_url?: string;
     primary_color?: string;
   };
+  // Admin user credentials (optional)
+  admin_email?: string;
+  admin_name?: string;
+  admin_password?: string;
 }
 
 export interface SubscriptionDetail {
@@ -382,7 +387,7 @@ export interface CreateUserPayload {
   name: string;
   full_name?: string;
   password: string;
-  role: 'admin' | 'user' | string;
+  role: 'admin' | 'manager' | 'viewer';
 }
 
 export interface BrandingData {
