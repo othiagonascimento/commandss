@@ -1271,6 +1271,30 @@ export type Database = {
           },
         ]
       }
+      onboarding_submissions: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          form_data: Json | null
+          id: string
+          status: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          form_data?: Json | null
+          id?: string
+          status?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          form_data?: Json | null
+          id?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       payment_failures: {
         Row: {
           amount_brl: number | null
@@ -1390,6 +1414,66 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      products: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          price: number | null
+          sku: string | null
+          tenant_id: string
+          updated_at: string | null
+          visibility: string | null
+          wholesale_price: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          price?: number | null
+          sku?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          visibility?: string | null
+          wholesale_price?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          price?: number | null
+          sku?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          visibility?: string | null
+          wholesale_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
       profiles: {
         Row: {
