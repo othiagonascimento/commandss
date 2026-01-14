@@ -129,6 +129,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "ai_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       ai_available_models: {
@@ -253,6 +260,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "ai_orchestration_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       api_cost_config: {
@@ -312,6 +326,7 @@ export type Database = {
           cost_brl: number | null
           cost_usd: number | null
           created_at: string | null
+          credits_consumed: number | null
           error_message: string | null
           id: string
           image_count: number | null
@@ -333,6 +348,7 @@ export type Database = {
           cost_brl?: number | null
           cost_usd?: number | null
           created_at?: string | null
+          credits_consumed?: number | null
           error_message?: string | null
           id?: string
           image_count?: number | null
@@ -354,6 +370,7 @@ export type Database = {
           cost_brl?: number | null
           cost_usd?: number | null
           created_at?: string | null
+          credits_consumed?: number | null
           error_message?: string | null
           id?: string
           image_count?: number | null
@@ -383,6 +400,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "api_usage_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -440,6 +464,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -500,6 +531,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "billing_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -607,6 +645,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       credit_transactions: {
@@ -653,6 +698,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -740,6 +792,13 @@ export type Database = {
             columns: ["target_tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "impersonate_sessions_target_tenant_id_fkey"
+            columns: ["target_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -833,6 +892,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "knowledge_base_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -1269,6 +1335,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "objection_handlers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       onboarding_submissions: {
@@ -1342,6 +1415,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "payment_failures_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -1473,6 +1553,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       profiles: {
@@ -1510,6 +1597,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -1658,6 +1752,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "template_sync_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       tenant_branding: {
@@ -1745,6 +1846,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "tenant_branding_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       tenant_domains: {
@@ -1818,6 +1926,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -1940,6 +2055,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "tenant_features_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       tenant_onboarding: {
@@ -2002,6 +2124,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_onboarding_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -2076,6 +2205,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "tenant_template_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       tenant_template_subscriptions: {
@@ -2146,6 +2282,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "tenant_template_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       tenant_usage: {
@@ -2155,6 +2298,7 @@ export type Database = {
           api_calls: number | null
           campaign_messages_month: number | null
           created_at: string | null
+          credits_consumed: number | null
           estimated_cost_brl: number | null
           id: string
           last_calculated_at: string | null
@@ -2176,6 +2320,7 @@ export type Database = {
           api_calls?: number | null
           campaign_messages_month?: number | null
           created_at?: string | null
+          credits_consumed?: number | null
           estimated_cost_brl?: number | null
           id?: string
           last_calculated_at?: string | null
@@ -2197,6 +2342,7 @@ export type Database = {
           api_calls?: number | null
           campaign_messages_month?: number | null
           created_at?: string | null
+          credits_consumed?: number | null
           estimated_cost_brl?: number | null
           id?: string
           last_calculated_at?: string | null
@@ -2225,6 +2371,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -2417,6 +2570,13 @@ export type Database = {
             referencedColumns: ["tenant_id"]
           },
           {
+            foreignKeyName: "user_education_progress_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
             foreignKeyName: "user_education_progress_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
@@ -2499,6 +2659,13 @@ export type Database = {
             referencedColumns: ["tenant_id"]
           },
           {
+            foreignKeyName: "user_limits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
             foreignKeyName: "user_limits_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -2547,6 +2714,13 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "user_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
       user_usage: {
@@ -2555,6 +2729,7 @@ export type Database = {
           ai_tokens_total: number | null
           api_calls_month: number | null
           billing_period_start: string | null
+          credits_consumed_month: number | null
           id: string
           last_updated_at: string | null
           messages_sent_month: number | null
@@ -2568,6 +2743,7 @@ export type Database = {
           ai_tokens_total?: number | null
           api_calls_month?: number | null
           billing_period_start?: string | null
+          credits_consumed_month?: number | null
           id?: string
           last_updated_at?: string | null
           messages_sent_month?: number | null
@@ -2581,6 +2757,7 @@ export type Database = {
           ai_tokens_total?: number | null
           api_calls_month?: number | null
           billing_period_start?: string | null
+          credits_consumed_month?: number | null
           id?: string
           last_updated_at?: string | null
           messages_sent_month?: number | null
@@ -2602,6 +2779,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "user_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
           {
@@ -2681,6 +2865,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "vendedor_cloning_profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
@@ -2793,10 +2984,80 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "webhooks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
     }
     Views: {
+      v_ai_diagnostics: {
+        Row: {
+          avg_confidence: number | null
+          avg_latency_ms: number | null
+          day: string | null
+          escalations_count: number | null
+          model: string | null
+          objections_count: number | null
+          tenant_id: string | null
+          total_calls: number | null
+          total_cost_usd: number | null
+          total_tokens: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_orchestration_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_orchestration_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_orchestration_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      v_ai_escalation_rates: {
+        Row: {
+          day: string | null
+          layer_1_calls: number | null
+          layer_2_calls: number | null
+          layer_2_rate: number | null
+          layer_3_calls: number | null
+          layer_3_rate: number | null
+          total_calls: number | null
+        }
+        Relationships: []
+      }
+      v_ai_model_summary: {
+        Row: {
+          avg_confidence: number | null
+          avg_latency_ms: number | null
+          first_call: string | null
+          last_call: string | null
+          model: string | null
+          total_calls: number | null
+          total_cost_usd: number | null
+          total_tokens: number | null
+          unique_tenants: number | null
+        }
+        Relationships: []
+      }
       v_effective_ai_config: {
         Row: {
           context_variables: Json | null
@@ -2806,6 +3067,19 @@ export type Database = {
           effective_system_prompt: string | null
           tenant_id: string | null
           tenant_name: string | null
+        }
+        Relationships: []
+      }
+      v_tenant_ai_consumption: {
+        Row: {
+          avg_latency_ms: number | null
+          credits_consumed: number | null
+          last_ai_call: string | null
+          tenant_id: string | null
+          tenant_name: string | null
+          total_ai_calls: number | null
+          total_cost_usd: number | null
+          total_tokens: number | null
         }
         Relationships: []
       }
@@ -2850,10 +3124,21 @@ export type Database = {
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
+          {
+            foreignKeyName: "tenant_template_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
         ]
       }
     }
     Functions: {
+      calculate_credits_from_cost: {
+        Args: { cost_brl: number }
+        Returns: number
+      }
       calculate_tenant_usage: {
         Args: { _tenant_id: string }
         Returns: undefined
