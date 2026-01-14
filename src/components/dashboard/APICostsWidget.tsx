@@ -117,13 +117,13 @@ export function APICostsWidget() {
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-lg flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-primary" />
-            Custos de API
+            <Coins className="h-4 w-4 text-primary" />
+            Consumo de Créditos
           </CardTitle>
-          <CardDescription>Consumo do mês atual</CardDescription>
+          <CardDescription>Créditos consumidos no mês</CardDescription>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => navigate('/api-costs')}>
-          Configurar
+        <Button variant="ghost" size="sm" onClick={() => navigate('/ai-diagnostics')}>
+          Diagnóstico
           <ArrowRight className="h-4 w-4 ml-1" />
         </Button>
       </CardHeader>
@@ -136,17 +136,17 @@ export function APICostsWidget() {
           </div>
         ) : (
           <>
-            {/* Summary Stats */}
+            {/* Summary Stats - Credits First */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Total Gasto</p>
+                <p className="text-xs text-muted-foreground">Créditos</p>
                 <p className="text-2xl font-bold text-primary">
-                  R$ {summary.totalCostBrl.toFixed(2)}
+                  {formatNumber(Math.round(summary.totalCostBrl * 100))}
                 </p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Tokens</p>
-                <p className="text-lg font-bold">{formatNumber(summary.totalTokens)}</p>
+                <p className="text-xs text-muted-foreground">Custo (R$)</p>
+                <p className="text-lg font-bold">R$ {summary.totalCostBrl.toFixed(2)}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Chamadas</p>
@@ -169,8 +169,8 @@ export function APICostsWidget() {
                         <Badge variant="outline" className="capitalize mb-1">
                           {provider}
                         </Badge>
-                        <p className="text-sm font-medium">R$ {stats.costBrl.toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground">{formatNumber(stats.tokens)} tokens</p>
+                        <p className="text-sm font-medium">{formatNumber(Math.round(stats.costBrl * 100))} cr</p>
+                        <p className="text-xs text-muted-foreground">R$ {stats.costBrl.toFixed(2)}</p>
                       </div>
                     ))}
                 </div>
@@ -196,8 +196,8 @@ export function APICostsWidget() {
                         </span>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium">R$ {tenant.cost.toFixed(2)}</p>
-                        <p className="text-xs text-muted-foreground">{formatNumber(tenant.tokens)} tokens</p>
+                        <p className="text-sm font-medium">{formatNumber(Math.round(tenant.cost * 100))} créditos</p>
+                        <p className="text-xs text-muted-foreground">R$ {tenant.cost.toFixed(2)}</p>
                       </div>
                     </div>
                   ))}

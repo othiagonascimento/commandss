@@ -125,6 +125,14 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           badge: 'IA',
           permissionCheck: permissions.canViewTemplates,
         },
+        {
+          icon: BarChart3,
+          label: 'Diagnóstico de IA',
+          path: '/ai-diagnostics',
+          description: 'Monitoramento em tempo real',
+          badge: 'Novo',
+          permissionCheck: permissions.canViewSettings,
+        },
       ],
     },
     {

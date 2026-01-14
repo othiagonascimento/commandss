@@ -117,9 +117,12 @@ serve(async (req) => {
         costBrl = costUsd * usdToBrlRate;
       }
 
-      logStep('Cost calculated', { costUsd, costBrl, usdToBrlRate, markupPercent });
+      // Calculate credits consumed (1 credit = R$ 0.01)
+      const creditsConsumed = Math.round(costBrl * 100);
+      
+      logStep('Cost calculated', { costUsd, costBrl, creditsConsumed, usdToBrlRate, markupPercent });
 
-      // Insert usage log
+      // Insert usage log with credits
       const { data: usageLog, error: insertError } = await supabaseAdmin
         .from('api_usage_logs')
         .insert({
@@ -134,6 +137,7 @@ serve(async (req) => {
           image_count: payload.image_count || 0,
           cost_usd: costUsd,
           cost_brl: costBrl,
+          credits_consumed: creditsConsumed,
           request_id: payload.request_id,
           latency_ms: payload.latency_ms,
           success: payload.success ?? true,
@@ -161,13 +165,14 @@ serve(async (req) => {
         .single();
 
       if (existingUsage) {
-        // Update existing record
+        // Update existing record with credits
         const { error: updateError } = await supabaseAdmin
           .from('user_usage')
           .update({
             ai_tokens_month: (existingUsage.ai_tokens_month || 0) + totalTokens,
             ai_tokens_total: (existingUsage.ai_tokens_total || 0) + totalTokens,
             api_calls_month: (existingUsage.api_calls_month || 0) + 1,
+            credits_consumed_month: (existingUsage.credits_consumed_month || 0) + creditsConsumed,
             last_updated_at: new Date().toISOString(),
           })
           .eq('id', existingUsage.id);
@@ -176,7 +181,7 @@ serve(async (req) => {
           logStep('Error updating user_usage', { error: updateError.message });
         }
       } else {
-        // Insert new record
+        // Insert new record with credits
         const { error: insertUsageError } = await supabaseAdmin
           .from('user_usage')
           .insert({
@@ -185,6 +190,7 @@ serve(async (req) => {
             ai_tokens_month: totalTokens,
             ai_tokens_total: totalTokens,
             api_calls_month: 1,
+            credits_consumed_month: creditsConsumed,
             billing_period_start: periodStart,
             last_updated_at: new Date().toISOString(),
           });
@@ -212,6 +218,7 @@ serve(async (req) => {
             ai_tokens_used: (existingTenantUsage.ai_tokens_used || 0) + totalTokens,
             api_calls: (existingTenantUsage.api_calls || 0) + 1,
             estimated_cost_brl: (parseFloat(existingTenantUsage.estimated_cost_brl) || 0) + costBrl,
+            credits_consumed: (existingTenantUsage.credits_consumed || 0) + creditsConsumed,
             last_calculated_at: new Date().toISOString(),
           })
           .eq('id', existingTenantUsage.id);
@@ -229,6 +236,7 @@ serve(async (req) => {
             ai_tokens_used: totalTokens,
             api_calls: 1,
             estimated_cost_brl: costBrl,
+            credits_consumed: creditsConsumed,
           });
 
         if (insertTenantError) {
