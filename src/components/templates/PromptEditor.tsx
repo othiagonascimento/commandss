@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { useFormContext, useFieldArray } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Eye, EyeOff, GitMerge } from 'lucide-react';
+import { PromptCompositionEditor } from './PromptCompositionEditor';
 import type { TemplateFormData } from '@/types/templates';
 
 export function PromptEditor() {
   const { register, watch, setValue } = useFormContext<TemplateFormData>();
-  const [activePromptTab, setActivePromptTab] = useState('greeting');
+  const [activePromptTab, setActivePromptTab] = useState('composition');
   const [showPreview, setShowPreview] = useState(false);
 
   const prompts = watch('prompts');
@@ -49,28 +50,41 @@ export function PromptEditor() {
             Configure os textos e prompts que serão usados pela IA
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setShowPreview(!showPreview)}
-        >
-          {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-          {showPreview ? 'Ocultar Preview' : 'Ver Preview'}
-        </Button>
       </div>
 
       <Tabs value={activePromptTab} onValueChange={setActivePromptTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="composition" className="gap-2">
+            <GitMerge className="h-4 w-4" />
+            <span className="hidden sm:inline">Composição</span>
+          </TabsTrigger>
           <TabsTrigger value="greeting">Saudação</TabsTrigger>
           <TabsTrigger value="system">System Prompt</TabsTrigger>
           <TabsTrigger value="objections">Objeções</TabsTrigger>
           <TabsTrigger value="qualification">Qualificação</TabsTrigger>
         </TabsList>
 
+        {/* New Composition Tab */}
+        <TabsContent value="composition" className="mt-4">
+          <PromptCompositionEditor />
+        </TabsContent>
+
         <TabsContent value="greeting" className="space-y-4 mt-4">
+          <div className="flex items-center justify-between">
+            <div />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+              {showPreview ? 'Ocultar Preview' : 'Ver Preview'}
+            </Button>
+          </div>
+          
           <div className="space-y-2">
-            <Label htmlFor="greeting">Mensagem de Saudação *</Label>
+            <Label htmlFor="greeting">Mensagem de Saudação (Override Direto)</Label>
             <Textarea
               id="greeting"
               placeholder="Olá! Bem-vindo. Como posso ajudar você hoje?"
@@ -78,7 +92,7 @@ export function PromptEditor() {
               {...register('prompts.greeting', { required: true })}
             />
             <p className="text-xs text-muted-foreground">
-              Primeira mensagem enviada ao cliente quando ele inicia uma conversa
+              Use a aba "Composição" para herdar ou complementar o prompt base. Este campo é para override direto.
             </p>
           </div>
 
@@ -97,8 +111,21 @@ export function PromptEditor() {
         </TabsContent>
 
         <TabsContent value="system" className="space-y-4 mt-4">
+          <div className="flex items-center justify-between">
+            <div />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+              {showPreview ? 'Ocultar Preview' : 'Ver Preview'}
+            </Button>
+          </div>
+          
           <div className="space-y-2">
-            <Label htmlFor="system_prompt">System Prompt *</Label>
+            <Label htmlFor="system_prompt">System Prompt (Override Direto)</Label>
             <Textarea
               id="system_prompt"
               placeholder="Você é um assistente de vendas especializado..."
@@ -107,7 +134,7 @@ export function PromptEditor() {
               {...register('prompts.system_prompt', { required: true })}
             />
             <p className="text-xs text-muted-foreground">
-              Instruções gerais para o comportamento da IA. Suporta markdown.
+              Use a aba "Composição" para herdar ou complementar o prompt base. Este campo é para override direto.
             </p>
           </div>
 
@@ -164,7 +191,7 @@ export function PromptEditor() {
                         <Textarea
                           placeholder="Como responder quando o cliente menciona essa objeção..."
                           rows={3}
-                          value={value}
+                          value={typeof value === 'string' ? value : ''}
                           onChange={(e) => setValue(`prompts.objection_handlers.${key}`, e.target.value)}
                         />
                       </div>
