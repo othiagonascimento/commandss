@@ -273,13 +273,31 @@ export interface ProhibitedPhrase {
   alternative: string;
 }
 
-// ==================== Core Prompt Structures ====================
+// ==================== Prompt Composition Types ====================
 
+export type PromptMode = 'inherit' | 'extend' | 'override';
+
+export interface PromptSection {
+  mode: PromptMode;
+  content: string;
+  excludes?: string[];
+}
+
+export interface ComposedPrompts {
+  greeting: PromptSection;
+  system_prompt: PromptSection;
+  objection_handlers: PromptSection;
+  qualification_criteria: PromptSection;
+}
+
+// Legacy prompts interface (for backward compatibility)
 export interface Prompts {
   greeting: string;
   system_prompt: string;
   objection_handlers: ObjectionHandler;
   qualification_criteria: Record<string, QualificationCriterion>;
+  // Composition metadata (optional)
+  composition?: ComposedPrompts;
 }
 
 export interface AIConfig {
@@ -546,6 +564,8 @@ export interface TemplateFormData {
     system_prompt: string;
     objection_handlers: Record<string, string>;
     qualification_criteria: Record<string, QualificationCriterion>;
+    // Composition metadata
+    composition?: ComposedPrompts;
   };
   ai_config: {
     personality: string;
