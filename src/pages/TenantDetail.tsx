@@ -73,6 +73,7 @@ import { TenantOverridesForm } from '@/components/tenant/TenantOverridesForm';
 import { TenantAIEngineEditor } from '@/components/tenant/TenantAIEngineEditor';
 import { TenantCommercialEditor } from '@/components/tenant/TenantCommercialEditor';
 import { UserManagement } from '@/components/tenant/UserManagement';
+import { TenantTemplateManager } from '@/components/tenant/TenantTemplateManager';
 
 const planColors: Record<string, string> = {
   basic: 'bg-muted text-muted-foreground',
@@ -379,6 +380,7 @@ export default function TenantDetail() {
               defaultValue="overview"
             >
               <option value="overview">📊 Visão Geral</option>
+              <option value="template">📋 Template</option>
               <option value="commercial">💼 Comercial</option>
               <option value="resources">⚙️ Recursos e Limites</option>
               <option value="ai-engine">🧠 Motor de IA</option>
@@ -397,6 +399,11 @@ export default function TenantDetail() {
               <Building2 className="w-3 h-3 lg:w-4 lg:h-4" />
               <span className="hidden lg:inline">Visão Geral</span>
               <span className="lg:hidden">Geral</span>
+            </TabsTrigger>
+            <TabsTrigger value="template" className="gap-1 text-xs lg:text-sm">
+              <ClipboardList className="w-3 h-3 lg:w-4 lg:h-4" />
+              <span className="hidden lg:inline">Template</span>
+              <span className="lg:hidden">📋</span>
             </TabsTrigger>
             <TabsTrigger value="commercial" className="gap-1 text-xs lg:text-sm">
               <Briefcase className="w-3 h-3 lg:w-4 lg:h-4" />
@@ -908,6 +915,11 @@ export default function TenantDetail() {
           {/* Unit Economics Tab */}
           <TabsContent value="economics">
             <UnitEconomicsCard tenantId={id!} />
+          </TabsContent>
+
+          {/* Template Tab */}
+          <TabsContent value="template">
+            <TenantTemplateManager tenantId={id!} tenantName={tenant.name} />
           </TabsContent>
 
           {/* AI Engine Tab */}

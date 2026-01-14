@@ -42,6 +42,7 @@ import { AIAgentsEditor } from '@/components/templates/AIAgentsEditor';
 import { SalesPlaybookEditor } from '@/components/templates/SalesPlaybookEditor';
 import { OperationsConfigEditor } from '@/components/templates/OperationsConfigEditor';
 import { CatalogKnowledgeEditor } from '@/components/templates/CatalogKnowledgeEditor';
+import { TemplateSubscribersTab } from '@/components/templates/TemplateSubscribersTab';
 import type { TemplateFormData, SyncResponse, SLAConfig, OperatingHours } from '@/types/templates';
 import { defaultTemplateFormData } from '@/types/templates';
 
@@ -56,6 +57,7 @@ const TABS = [
   { value: 'automations', label: 'Automações', shortLabel: 'Auto' },
   { value: 'operations', label: 'Operações', shortLabel: 'Ops' },
   { value: 'catalog', label: 'Catálogo', shortLabel: 'Cat' },
+  { value: 'subscribers', label: 'Assinantes', shortLabel: 'Subs' },
 ];
 
 export default function TemplateEditor() {
@@ -428,6 +430,16 @@ export default function TemplateEditor() {
                           methods.setValue('catalog.competitors', data.competitors);
                         }}
                       />
+                    </TabsContent>
+
+                    <TabsContent value="subscribers">
+                      {!isNew && id ? (
+                        <TemplateSubscribersTab templateId={id} />
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          Salve o template primeiro para gerenciar assinantes.
+                        </div>
+                      )}
                     </TabsContent>
                   </Tabs>
                 </CardContent>
