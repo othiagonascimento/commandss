@@ -1,6 +1,107 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+// Prompt Composition Types and Functions (inline to avoid import issues)
+type PromptMode = 'inherit' | 'extend' | 'override';
+
+interface PromptSection {
+  mode: PromptMode;
+  content: string;
+  excludes?: string[];
+}
+
+interface BasePrompts {
+  [key: string]: string | undefined;
+}
+
+interface ComposedPrompts {
+  [key: string]: string;
+}
+
+function applyExclusions(prompt: string, excludes: string[]): string {
+  if (!excludes || excludes.length === 0) return prompt;
+  
+  let result = prompt;
+  
+  for (const exclusion of excludes) {
+    const patterns = [
+      new RegExp(exclusion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'),
+      new RegExp(`[^.]*${exclusion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^.]*\\.?`, 'gi'),
+      new RegExp(`[-•*]\\s*[^\\n]*${exclusion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\\n]*\\n?`, 'gi'),
+    ];
+    
+    for (const pattern of patterns) {
+      result = result.replace(pattern, '');
+    }
+  }
+  
+  return result.replace(/\n{3,}/g, '\n\n').replace(/^\s+|\s+$/gm, '').trim();
+}
+
+function composeTemplatePrompts(
+  basePrompts: BasePrompts,
+  templatePrompts: unknown
+): ComposedPrompts {
+  const result: ComposedPrompts = {};
+  
+  const sections = [
+    'system_prompt',
+    'greeting',
+    'qualification_criteria',
+    'objection_handlers',
+    'closing_techniques',
+    'follow_up_rules',
+  ];
+  
+  // Check if prompts are in new composition format
+  const isCompositionFormat = templatePrompts && 
+    typeof templatePrompts === 'object' && 
+    Object.values(templatePrompts)[0] && 
+    typeof Object.values(templatePrompts)[0] === 'object' &&
+    'mode' in (Object.values(templatePrompts)[0] as object);
+  
+  for (const section of sections) {
+    const baseKey = `${section}_base`;
+    const baseContent = (basePrompts[baseKey] as string) || '';
+    
+    if (isCompositionFormat) {
+      const config = (templatePrompts as Record<string, PromptSection>)?.[section];
+      
+      if (!config || !config.mode) {
+        result[section] = baseContent;
+        continue;
+      }
+      
+      switch (config.mode) {
+        case 'inherit':
+          result[section] = baseContent;
+          break;
+        case 'extend':
+          let composed = baseContent;
+          if (config.content?.trim()) {
+            composed = `${baseContent}\n\n---\n\nAdições específicas:\n\n${config.content}`;
+          }
+          if (config.excludes?.length) {
+            composed = applyExclusions(composed, config.excludes);
+          }
+          result[section] = composed;
+          break;
+        case 'override':
+          result[section] = config.content || baseContent;
+          break;
+        default:
+          result[section] = baseContent;
+      }
+    } else {
+      // Legacy format: use template content if exists, otherwise base
+      const legacyContent = (templatePrompts as Record<string, string>)?.[section];
+      result[section] = (legacyContent?.trim()) ? legacyContent : baseContent;
+    }
+  }
+  
+  return result;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -163,10 +264,23 @@ serve(async (req) => {
 
         if (tenantError) throw tenantError;
 
+        // Get global base prompts for composition
+        const { data: globalSettings } = await supabaseAdmin
+          .from('master_settings')
+          .select('value')
+          .eq('key', 'global_base_prompts')
+          .single();
+        
+        const basePrompts = globalSettings?.value || {};
+        
+        // Compose prompts using intelligent inheritance
+        const composedPrompts = await composeTemplatePrompts(basePrompts, template.prompts);
+        
         const newConfig = {
           ...(tenant?.config || {}),
           niche: template.slug,
-          prompts: template.prompts,
+          prompts: composedPrompts,
+          prompts_raw: template.prompts, // Keep original for reference
           flows: template.flows,
           kanban_tags: template.kanban_tags,
           template_applied_at: new Date().toISOString(),
