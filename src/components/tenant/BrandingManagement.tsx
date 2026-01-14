@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, RotateCcw, Image } from 'lucide-react';
+import { Loader2, Save, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { ImageUpload } from './ImageUpload';
 
 interface BrandingManagementProps {
   tenantId: string;
@@ -130,83 +131,54 @@ export function BrandingManagement({ tenantId, branding, planType, isLoading }: 
             </div>
           </div>
 
-          {/* Logos */}
+          {/* Logos with Upload */}
           <div className="space-y-4">
-            <h4 className="font-medium flex items-center gap-2">
-              <Image className="w-4 h-4" />
-              Logos e Imagens
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h4 className="font-medium">Logos e Imagens</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="logo_url">Logo Principal (URL)</Label>
-                <Input
-                  id="logo_url"
-                  value={formData.logo_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, logo_url: e.target.value }))}
-                  placeholder="https://..."
+                <Label>Logo Principal</Label>
+                <ImageUpload
+                  value={formData.logo_url || ''}
+                  onChange={(url) => setFormData(prev => ({ ...prev, logo_url: url }))}
+                  tenantId={tenantId}
+                  folder="logo"
+                  previewBgClass="bg-muted"
                 />
-                {formData.logo_url && (
-                  <div className="mt-2 p-4 bg-muted rounded-lg">
-                    <img 
-                      src={formData.logo_url} 
-                      alt="Logo preview" 
-                      className="max-h-12 object-contain"
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
-                    />
-                  </div>
-                )}
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="logo_white_url">Logo Branca (URL)</Label>
-                <Input
-                  id="logo_white_url"
-                  value={formData.logo_white_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, logo_white_url: e.target.value }))}
-                  placeholder="https://..."
+                <Label>Logo Branca</Label>
+                <ImageUpload
+                  value={formData.logo_white_url || ''}
+                  onChange={(url) => setFormData(prev => ({ ...prev, logo_white_url: url }))}
+                  tenantId={tenantId}
+                  folder="logo-white"
+                  previewBgClass="bg-foreground"
                 />
-                {formData.logo_white_url && (
-                  <div className="mt-2 p-4 bg-foreground rounded-lg">
-                    <img 
-                      src={formData.logo_white_url} 
-                      alt="Logo white preview" 
-                      className="max-h-12 object-contain"
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
-                    />
-                  </div>
-                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="symbol_url">Símbolo/Ícone (URL)</Label>
-                <Input
-                  id="symbol_url"
-                  value={formData.symbol_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, symbol_url: e.target.value }))}
-                  placeholder="https://..."
+                <Label>Símbolo/Ícone</Label>
+                <ImageUpload
+                  value={formData.symbol_url || ''}
+                  onChange={(url) => setFormData(prev => ({ ...prev, symbol_url: url }))}
+                  tenantId={tenantId}
+                  folder="symbol"
+                  previewClassName="max-h-10 w-10 object-contain"
                 />
-                {formData.symbol_url && (
-                  <div className="mt-2 p-4 bg-muted rounded-lg flex justify-center">
-                    <img 
-                      src={formData.symbol_url} 
-                      alt="Symbol preview" 
-                      className="max-h-10 w-10 object-contain"
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
-                    />
-                  </div>
-                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="favicon_url">Favicon (URL)</Label>
-                <Input
-                  id="favicon_url"
-                  value={formData.favicon_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, favicon_url: e.target.value }))}
-                  placeholder="https://..."
+                <Label>Favicon</Label>
+                <ImageUpload
+                  value={formData.favicon_url || ''}
+                  onChange={(url) => setFormData(prev => ({ ...prev, favicon_url: url }))}
+                  tenantId={tenantId}
+                  folder="favicon"
+                  previewClassName="max-h-8 w-8 object-contain"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Recomendado: 32x32 ou 64x64 pixels, formato .ico ou .png
+                  Recomendado: 32x32 ou 64x64 pixels
                 </p>
               </div>
             </div>
