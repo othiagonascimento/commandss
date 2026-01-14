@@ -213,20 +213,47 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
     );
   }
 
+  const publicSiteUrl = `https://site.uopacrm.com/${tenantSubdomain}`;
+  
+  const handleOpenPublicSite = () => {
+    window.open(publicSiteUrl, '_blank');
+  };
+
   return (
     <div className="space-y-6">
-      {/* Info Card */}
-      <Alert>
-        <Globe className="w-4 h-4" />
-        <AlertDescription>
-          <strong>Subdomínio padrão:</strong>{' '}
-          <code className="bg-muted px-2 py-0.5 rounded">{tenantSubdomain}.suaapp.com</code>
-          <br />
-          <span className="text-muted-foreground">
-            Este subdomínio é usado para acesso ao CRM e PWA. Domínios próprios são apenas para o site público.
-          </span>
-        </AlertDescription>
-      </Alert>
+      {/* Public Site URL Card */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <Globe className="w-5 h-5 text-primary mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-medium">URL do Site Público</p>
+                <div className="flex items-center gap-2">
+                  <code className="bg-background px-3 py-1.5 rounded-md border text-sm font-mono">
+                    {publicSiteUrl}
+                  </code>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={() => copyToClipboard(publicSiteUrl)}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Esta é a URL padrão do site público. Configure um domínio próprio abaixo para usar um endereço personalizado.
+                </p>
+              </div>
+            </div>
+            <Button onClick={handleOpenPublicSite} className="shrink-0">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Abrir Site
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Domains Table */}
       <Card>
