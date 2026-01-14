@@ -9,6 +9,7 @@ export interface FunnelStage {
   sort_order: number;
   is_won: boolean;
   is_lost: boolean;
+  is_system?: boolean; // System stages cannot be removed or have their is_won/is_lost changed
   // Enhanced fields
   objective?: string;
   criteria_to_advance?: string[];
@@ -676,10 +677,11 @@ export const defaultTemplateFormData: TemplateFormData = {
   business_context: defaultBusinessContext,
   
   funnel_stages: [
-    { name: 'Novo Lead', slug: 'novo', color: '#3B82F6', sort_order: 1, is_won: false, is_lost: false },
+    { name: 'Novos', slug: 'novos', color: '#3B82F6', sort_order: 1, is_won: false, is_lost: false, is_system: true },
     { name: 'Em Negociação', slug: 'negociacao', color: '#F59E0B', sort_order: 2, is_won: false, is_lost: false },
-    { name: 'Fechado Ganho', slug: 'ganho', color: '#10B981', sort_order: 3, is_won: true, is_lost: false },
-    { name: 'Fechado Perdido', slug: 'perdido', color: '#EF4444', sort_order: 4, is_won: false, is_lost: true },
+    { name: 'Proposta Enviada', slug: 'proposta', color: '#8B5CF6', sort_order: 3, is_won: false, is_lost: false },
+    { name: 'Ganho', slug: 'ganho', color: '#10B981', sort_order: 4, is_won: true, is_lost: false, is_system: true },
+    { name: 'Perdido', slug: 'perdido', color: '#EF4444', sort_order: 5, is_won: false, is_lost: true, is_system: true },
   ],
   tag_categories: [
     { name: 'Interesse', color: '#10B981', tags: ['alto', 'médio', 'baixo'] },

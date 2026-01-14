@@ -155,8 +155,31 @@ export default function TemplateEditor() {
       return;
     }
 
-    if (formData.funnel_stages.length < 2) {
-      toast.error('O funil precisa ter pelo menos 2 etapas');
+    if (formData.funnel_stages.length < 3) {
+      toast.error('O funil precisa ter pelo menos 3 etapas (incluindo Novos, Ganho e Perdido)');
+      setActiveTab('funnel');
+      return;
+    }
+
+    // Validate required system stages
+    const hasWonStage = formData.funnel_stages.some(s => s.is_won === true);
+    const hasLostStage = formData.funnel_stages.some(s => s.is_lost === true);
+    const hasEntryStage = formData.funnel_stages.some(s => !s.is_won && !s.is_lost);
+
+    if (!hasWonStage) {
+      toast.error('O funil precisa ter pelo menos uma etapa marcada como "Ganho" 🏆');
+      setActiveTab('funnel');
+      return;
+    }
+
+    if (!hasLostStage) {
+      toast.error('O funil precisa ter pelo menos uma etapa marcada como "Perdido" ❌');
+      setActiveTab('funnel');
+      return;
+    }
+
+    if (!hasEntryStage) {
+      toast.error('O funil precisa ter pelo menos uma etapa de entrada (não marcada como Ganho ou Perdido)');
       setActiveTab('funnel');
       return;
     }
