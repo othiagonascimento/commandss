@@ -1583,6 +1583,83 @@ export type Database = {
         }
         Relationships: []
       }
+      template_sync_history: {
+        Row: {
+          changes_applied: Json | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          sections_skipped: string[] | null
+          sections_synced: string[] | null
+          status: string
+          subscription_id: string | null
+          sync_type: string
+          template_id: string | null
+          template_version: string | null
+          tenant_id: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          changes_applied?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          sections_skipped?: string[] | null
+          sections_synced?: string[] | null
+          status: string
+          subscription_id?: string | null
+          sync_type: string
+          template_id?: string | null
+          template_version?: string | null
+          tenant_id?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          changes_applied?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          sections_skipped?: string[] | null
+          sections_synced?: string[] | null
+          status?: string
+          subscription_id?: string | null
+          sync_type?: string
+          template_id?: string | null
+          template_version?: string | null
+          tenant_id?: string | null
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_sync_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_template_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_sync_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_template_info"
+            referencedColumns: ["subscription_id"]
+          },
+          {
+            foreignKeyName: "template_sync_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_sync_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       tenant_branding: {
         Row: {
           accent_color: string | null
@@ -2006,22 +2083,46 @@ export type Database = {
           auto_sync_enabled: boolean | null
           created_at: string | null
           id: string
+          last_synced_at: string | null
+          last_synced_version: string | null
+          local_overrides: Json | null
+          sync_error: string | null
+          sync_mode: string | null
+          sync_sections: string[] | null
+          sync_status: string | null
           template_id: string | null
           tenant_id: string | null
+          updated_at: string | null
         }
         Insert: {
           auto_sync_enabled?: boolean | null
           created_at?: string | null
           id?: string
+          last_synced_at?: string | null
+          last_synced_version?: string | null
+          local_overrides?: Json | null
+          sync_error?: string | null
+          sync_mode?: string | null
+          sync_sections?: string[] | null
+          sync_status?: string | null
           template_id?: string | null
           tenant_id?: string | null
+          updated_at?: string | null
         }
         Update: {
           auto_sync_enabled?: boolean | null
           created_at?: string | null
           id?: string
+          last_synced_at?: string | null
+          last_synced_version?: string | null
+          local_overrides?: Json | null
+          sync_error?: string | null
+          sync_mode?: string | null
+          sync_sections?: string[] | null
+          sync_status?: string | null
           template_id?: string | null
           tenant_id?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -2707,6 +2808,49 @@ export type Database = {
           tenant_name: string | null
         }
         Relationships: []
+      }
+      v_tenant_template_info: {
+        Row: {
+          auto_sync_enabled: boolean | null
+          last_synced_at: string | null
+          last_synced_version: string | null
+          local_overrides: Json | null
+          subscribed_at: string | null
+          subscription_id: string | null
+          sync_mode: string | null
+          sync_sections: string[] | null
+          sync_status: string | null
+          template_id: string | null
+          template_name: string | null
+          template_slug: string | null
+          tenant_id: string | null
+          tenant_name: string | null
+          tenant_status: string | null
+          tenant_subdomain: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_template_subscriptions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "master_niche_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_template_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_template_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
     }
     Functions: {
