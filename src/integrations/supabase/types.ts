@@ -2131,6 +2131,7 @@ export type Database = {
       tenants: {
         Row: {
           ai_token_limit: number | null
+          api_url: string | null
           blocked_at: string | null
           blocked_reason: string | null
           channel_price: number | null
@@ -2171,6 +2172,7 @@ export type Database = {
         }
         Insert: {
           ai_token_limit?: number | null
+          api_url?: string | null
           blocked_at?: string | null
           blocked_reason?: string | null
           channel_price?: number | null
@@ -2211,6 +2213,7 @@ export type Database = {
         }
         Update: {
           ai_token_limit?: number | null
+          api_url?: string | null
           blocked_at?: string | null
           blocked_reason?: string | null
           channel_price?: number | null
