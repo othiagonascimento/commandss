@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +12,96 @@ const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[MASTER-SETTINGS] ${step}${detailsStr}`);
 };
+
+interface Tenant {
+  id: string;
+  name: string;
+  api_url: string | null;
+}
+
+interface AISettings {
+  ai_layer_1_model?: string | null;
+  ai_layer_2_model?: string | null;
+  ai_layer_3_model?: string | null;
+  ai_layer_1_instructions?: string | null;
+  ai_layer_2_instructions?: string | null;
+  ai_layer_3_instructions?: string | null;
+}
+
+// Função para notificar tenants sobre mudanças nas settings de IA
+async function notifyTenantsAISettingsUpdated(
+  supabase: SupabaseClient,
+  settings: AISettings
+) {
+  try {
+    // Buscar todos os tenants ativos com api_url configurado
+    const { data: tenants, error } = await supabase
+      .from('tenants')
+      .select('id, name, api_url')
+      .eq('status', 'active')
+      .not('api_url', 'is', null);
+
+    if (error) {
+      logStep('Error fetching tenants for webhook', { error: error.message });
+      return;
+    }
+
+    const tenantsList = tenants as Tenant[] | null;
+
+    if (!tenantsList || tenantsList.length === 0) {
+      logStep('No tenants with api_url to notify');
+      return;
+    }
+
+    logStep('Notifying tenants about AI settings update', { count: tenantsList.length });
+
+    // Para cada tenant com endpoint configurado, enviar webhook
+    const notifications = tenantsList.map(async (tenant) => {
+      try {
+        if (!tenant.api_url) return;
+        
+        const webhookUrl = `${tenant.api_url}/functions/v1/sync-master-settings`;
+        
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Master-Webhook': 'true',
+          },
+          body: JSON.stringify({
+            event_type: 'settings.ai_updated',
+            timestamp: new Date().toISOString(),
+            data: {
+              ai_layer_1_model: settings.ai_layer_1_model,
+              ai_layer_2_model: settings.ai_layer_2_model,
+              ai_layer_3_model: settings.ai_layer_3_model,
+              ai_layer_1_instructions: settings.ai_layer_1_instructions,
+              ai_layer_2_instructions: settings.ai_layer_2_instructions,
+              ai_layer_3_instructions: settings.ai_layer_3_instructions,
+            }
+          })
+        });
+
+        logStep(`Webhook sent to tenant ${tenant.name}`, { 
+          status: response.status,
+          ok: response.ok 
+        });
+      } catch (webhookError) {
+        logStep(`Webhook failed for tenant ${tenant.name}`, { 
+          error: webhookError instanceof Error ? webhookError.message : 'Unknown error' 
+        });
+      }
+    });
+
+    // Executar webhooks em paralelo, mas não bloquear a resposta
+    await Promise.allSettled(notifications);
+    
+  } catch (err) {
+    logStep('Error in notifyTenantsAISettingsUpdated', { 
+      error: err instanceof Error ? err.message : 'Unknown error' 
+    });
+  }
+}
 
 serve(async (req) => {
   logStep('Request received', { method: req.method, url: req.url, origin: req.headers.get('origin') });
@@ -107,7 +197,7 @@ serve(async (req) => {
     // PATCH /master-settings - Update single setting
     if (method === 'PATCH') {
       const body = await req.json();
-      const { key, value } = body;
+      const { key, value, ai_layer_1_model, ai_layer_2_model, ai_layer_3_model, ai_layer_1_instructions, ai_layer_2_instructions, ai_layer_3_instructions } = body;
 
       if (!key) {
         return new Response(
@@ -116,13 +206,24 @@ serve(async (req) => {
         );
       }
 
+      // Construir objeto de atualização
+      const updateData: Record<string, unknown> = {
+        value,
+        updated_at: new Date().toISOString(),
+        updated_by: userId,
+      };
+
+      // Adicionar campos de AI se fornecidos
+      if (ai_layer_1_model !== undefined) updateData.ai_layer_1_model = ai_layer_1_model;
+      if (ai_layer_2_model !== undefined) updateData.ai_layer_2_model = ai_layer_2_model;
+      if (ai_layer_3_model !== undefined) updateData.ai_layer_3_model = ai_layer_3_model;
+      if (ai_layer_1_instructions !== undefined) updateData.ai_layer_1_instructions = ai_layer_1_instructions;
+      if (ai_layer_2_instructions !== undefined) updateData.ai_layer_2_instructions = ai_layer_2_instructions;
+      if (ai_layer_3_instructions !== undefined) updateData.ai_layer_3_instructions = ai_layer_3_instructions;
+
       const { data, error } = await supabaseAdmin
         .from('master_settings')
-        .update({ 
-          value,
-          updated_at: new Date().toISOString(),
-          updated_by: userId,
-        })
+        .update(updateData)
         .eq('key', key)
         .select()
         .single();
@@ -130,6 +231,22 @@ serve(async (req) => {
       if (error) throw error;
 
       logStep('Setting updated', { key });
+
+      // Se for uma atualização de settings de IA, notificar os tenants
+      if (key === 'ai_global_engine') {
+        logStep('AI settings updated, notifying tenants...');
+        
+        // Executar notificação em background (não bloquear resposta)
+        const settingsData = data as AISettings;
+        notifyTenantsAISettingsUpdated(supabaseAdmin, {
+          ai_layer_1_model: settingsData.ai_layer_1_model,
+          ai_layer_2_model: settingsData.ai_layer_2_model,
+          ai_layer_3_model: settingsData.ai_layer_3_model,
+          ai_layer_1_instructions: settingsData.ai_layer_1_instructions,
+          ai_layer_2_instructions: settingsData.ai_layer_2_instructions,
+          ai_layer_3_instructions: settingsData.ai_layer_3_instructions,
+        });
+      }
 
       return new Response(
         JSON.stringify(data),
