@@ -36,6 +36,8 @@ import {
   Cpu,
   Sparkles,
   Zap,
+  MessageSquare,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -69,6 +71,17 @@ export default function Settings() {
   const [isLoadingAiEngine, setIsLoadingAiEngine] = useState(false);
   const [isSavingAiEngine, setIsSavingAiEngine] = useState(false);
 
+  // Global Base Prompts
+  const [basePrompts, setBasePrompts] = useState({
+    system_prompt_base: '',
+    greeting_base: '',
+    qualification_criteria_base: '',
+    objection_handlers_base: '',
+    closing_techniques_base: '',
+    follow_up_rules_base: '',
+  });
+  const [isSavingBasePrompts, setIsSavingBasePrompts] = useState(false);
+
   // Load AI Engine settings
   const { data: aiEngineSettings, isLoading: isLoadingAiSettings, refetch: refetchAiSettings } = useQuery({
     queryKey: ['ai-engine-settings'],
@@ -77,6 +90,20 @@ export default function Settings() {
         .from('master_settings')
         .select('*')
         .eq('key', 'ai_global_engine')
+        .single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+  });
+
+  // Load Global Base Prompts
+  const { data: basePromptsData, isLoading: isLoadingBasePrompts } = useQuery({
+    queryKey: ['global-base-prompts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('master_settings')
+        .select('*')
+        .eq('key', 'global_base_prompts')
         .single();
       if (error && error.code !== 'PGRST116') throw error;
       return data;
@@ -94,6 +121,64 @@ export default function Settings() {
       setAiLayer3Instructions(aiEngineSettings.ai_layer_3_instructions || '');
     }
   }, [aiEngineSettings]);
+
+  // Update base prompts state when loaded
+  useEffect(() => {
+    if (basePromptsData?.value) {
+      const v = basePromptsData.value as Record<string, string>;
+      setBasePrompts({
+        system_prompt_base: v.system_prompt_base || '',
+        greeting_base: v.greeting_base || '',
+        qualification_criteria_base: v.qualification_criteria_base || '',
+        objection_handlers_base: v.objection_handlers_base || '',
+        closing_techniques_base: v.closing_techniques_base || '',
+        follow_up_rules_base: v.follow_up_rules_base || '',
+      });
+    }
+  }, [basePromptsData]);
+
+  // Save Global Base Prompts
+  const saveBasePromptsMutation = useMutation({
+    mutationFn: async () => {
+      setIsSavingBasePrompts(true);
+      // Check if record exists
+      const { data: existing } = await supabase
+        .from('master_settings')
+        .select('id')
+        .eq('key', 'global_base_prompts')
+        .single();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('master_settings')
+          .update({
+            value: basePrompts,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('key', 'global_base_prompts');
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('master_settings')
+          .insert({
+            key: 'global_base_prompts',
+            category: 'prompts',
+            description: 'Prompts base globais que servem como fundação para todos os templates',
+            value: basePrompts,
+          });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success('Prompts base salvos com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['global-base-prompts'] });
+      setIsSavingBasePrompts(false);
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao salvar prompts base: ${err.message}`);
+      setIsSavingBasePrompts(false);
+    },
+  });
 
   // Save AI Engine settings
   const saveAiEngineMutation = useMutation({
@@ -207,7 +292,7 @@ export default function Settings() {
 
         {/* Tabs */}
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
             <TabsTrigger value="general" className="gap-2">
               <Globe className="w-4 h-4" />
               <span className="hidden sm:inline">Geral</span>
@@ -215,6 +300,10 @@ export default function Settings() {
             <TabsTrigger value="ai-engine" className="gap-2">
               <Brain className="w-4 h-4" />
               <span className="hidden sm:inline">Motor de IA</span>
+            </TabsTrigger>
+            <TabsTrigger value="base-prompts" className="gap-2">
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Prompts Base</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="gap-2">
               <Bell className="w-4 h-4" />
@@ -524,6 +613,196 @@ export default function Settings() {
                             <li><strong>Router:</strong> Triagem rápida e classificação de intenção</li>
                             <li><strong>Standard:</strong> Respostas de atendimento e vendas comuns</li>
                             <li><strong>Elite:</strong> Objeções complexas, negociação e fechamento</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Base Prompts Tab */}
+          <TabsContent value="base-prompts">
+            <div className="space-y-6">
+              {/* Header with Save Button */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    Prompts Base Globais
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Estes prompts servem como fundação para todos os templates. Templates podem complementar ou substituir partes específicas.
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => saveBasePromptsMutation.mutate()}
+                  disabled={isSavingBasePrompts}
+                >
+                  {isSavingBasePrompts ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Salvar Prompts Base
+                </Button>
+              </div>
+
+              {isLoadingBasePrompts ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid gap-6">
+                  {/* System Prompt Base */}
+                  <Card className="border-l-4 border-l-primary">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-primary" />
+                        Prompt de Sistema Base
+                      </CardTitle>
+                      <CardDescription>
+                        Instruções fundamentais que definem a personalidade e comportamento da IA. Templates herdam ou estendem este prompt.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Textarea
+                        value={basePrompts.system_prompt_base}
+                        onChange={(e) => setBasePrompts(prev => ({ ...prev, system_prompt_base: e.target.value }))}
+                        placeholder="Você é um assistente de vendas especializado. Sempre seja cordial e profissional..."
+                        rows={12}
+                        className="font-mono text-sm"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Greeting Base */}
+                  <Card className="border-l-4 border-l-green-500">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-green-500" />
+                        Saudação Base
+                      </CardTitle>
+                      <CardDescription>
+                        Modelo de primeira mensagem para novos leads.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Textarea
+                        value={basePrompts.greeting_base}
+                        onChange={(e) => setBasePrompts(prev => ({ ...prev, greeting_base: e.target.value }))}
+                        placeholder="Olá! 👋 Que bom ter você aqui. Como posso ajudar?"
+                        rows={4}
+                        className="font-mono text-sm"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Qualification Criteria Base */}
+                  <Card className="border-l-4 border-l-amber-500">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-amber-500" />
+                        Critérios de Qualificação Base
+                      </CardTitle>
+                      <CardDescription>
+                        Regras para qualificar leads e identificar interesse.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Textarea
+                        value={basePrompts.qualification_criteria_base}
+                        onChange={(e) => setBasePrompts(prev => ({ ...prev, qualification_criteria_base: e.target.value }))}
+                        placeholder="Identifique o nível de interesse, orçamento disponível e urgência da compra..."
+                        rows={6}
+                        className="font-mono text-sm"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Objection Handlers Base */}
+                  <Card className="border-l-4 border-l-red-500">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-red-500" />
+                        Tratamento de Objeções Base
+                      </CardTitle>
+                      <CardDescription>
+                        Estratégias padrão para lidar com objeções comuns.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Textarea
+                        value={basePrompts.objection_handlers_base}
+                        onChange={(e) => setBasePrompts(prev => ({ ...prev, objection_handlers_base: e.target.value }))}
+                        placeholder="Quando o cliente diz que está caro, valide a preocupação e demonstre valor..."
+                        rows={8}
+                        className="font-mono text-sm"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Closing Techniques Base */}
+                  <Card className="border-l-4 border-l-purple-500">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-purple-500" />
+                        Técnicas de Fechamento Base
+                      </CardTitle>
+                      <CardDescription>
+                        Estratégias para conduzir o lead ao fechamento.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Textarea
+                        value={basePrompts.closing_techniques_base}
+                        onChange={(e) => setBasePrompts(prev => ({ ...prev, closing_techniques_base: e.target.value }))}
+                        placeholder="Use perguntas de fechamento como: 'Qual a melhor forma de pagamento para você?'"
+                        rows={6}
+                        className="font-mono text-sm"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Follow Up Rules Base */}
+                  <Card className="border-l-4 border-l-blue-500">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <RefreshCw className="w-5 h-5 text-blue-500" />
+                        Regras de Follow-up Base
+                      </CardTitle>
+                      <CardDescription>
+                        Diretrizes para mensagens de acompanhamento.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Textarea
+                        value={basePrompts.follow_up_rules_base}
+                        onChange={(e) => setBasePrompts(prev => ({ ...prev, follow_up_rules_base: e.target.value }))}
+                        placeholder="Após 24h sem resposta, envie uma mensagem casual perguntando se pode ajudar..."
+                        rows={6}
+                        className="font-mono text-sm"
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {/* Info Box */}
+                  <Card className="bg-muted/50">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-3">
+                        <Brain className="w-5 h-5 text-primary mt-0.5" />
+                        <div>
+                          <p className="font-medium">Como funciona a Composição de Prompts</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Os prompts base definidos aqui são herdados por todos os templates de nicho. Cada template pode:
+                          </p>
+                          <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
+                            <li><strong>Herdar:</strong> Usar o prompt base exatamente como está</li>
+                            <li><strong>Complementar:</strong> Adicionar instruções específicas ao prompt base</li>
+                            <li><strong>Substituir:</strong> Ignorar o prompt base e usar um completamente diferente</li>
+                            <li><strong>Excluir:</strong> Remover comportamentos específicos do prompt base</li>
                           </ul>
                         </div>
                       </div>
