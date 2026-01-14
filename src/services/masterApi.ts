@@ -677,3 +677,72 @@ export interface UsageAlertsResponse {
   }[];
   total: number;
 }
+
+// ============================================
+// Domains API - for tenant domain resolution
+// ============================================
+export const domainsApi = {
+  checkSubdomainAvailability: async (subdomain: string): Promise<ApiResponse<{ available: boolean; suggestion?: string }>> => {
+    const { data, error } = await supabase.functions.invoke('verify-domains', {
+      method: 'GET',
+      body: null,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    // Use query params approach
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-domains?action=check-subdomain&subdomain=${encodeURIComponent(subdomain)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    if (!response.ok) {
+      return { data: null, error: 'Failed to check subdomain availability' };
+    }
+    
+    const result = await response.json();
+    return { data: result, error: null };
+  },
+  
+  resolveTenantByDomain: async (domain: string): Promise<ApiResponse<{
+    tenant_id: string;
+    subdomain: string;
+    name: string;
+    branding: {
+      company_name: string | null;
+      logo_url: string | null;
+      logo_white_url: string | null;
+      symbol_url: string | null;
+      favicon_url: string | null;
+      primary_color: string | null;
+      secondary_color: string | null;
+    } | null;
+    config?: Record<string, unknown>;
+  }>> => {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-domains?action=resolve&domain=${encodeURIComponent(domain)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return { data: null, error: errorData.error || 'Failed to resolve tenant' };
+    }
+    
+    const result = await response.json();
+    return { data: result, error: null };
+  },
+};
