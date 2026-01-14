@@ -140,7 +140,7 @@ export function UserUsageCard({ userId, tenantId, userName, limits }: UserUsageC
   };
 
   // Calculate credits (1 credit = R$ 0.01)
-  const creditsConsumed = Math.round(totalCost * 100);
+  const creditsConsumed = Math.round(summary.totalCostBrl * 100);
 
   // Use user_usage if available (more accurate), otherwise use logs summary
   const tokensUsed = userUsage?.ai_tokens_month || summary.totalTokens;
