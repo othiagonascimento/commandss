@@ -6,68 +6,253 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Local Supabase (Master)
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Remote Supabase (CRM where actual AI data lives)
+const remoteUrl = Deno.env.get('REMOTE_SUPABASE_URL');
+const remoteKey = Deno.env.get('REMOTE_SUPABASE_ANON_KEY');
+const remoteSupabase = remoteUrl && remoteKey 
+  ? createClient(remoteUrl, remoteKey)
+  : null;
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[AI-DIAGNOSTICS] ${step}${detailsStr}`);
 };
 
+// Table and column mapping for different database schemas
+// Remote CRM uses 'orchestrator_logs' with different column names
+// Local Master uses 'ai_orchestration_logs' with standard column names
+interface ColumnMapping {
+  tableName: string;
+  aiModel: string;
+  tenantId: string;
+  tokensUsed: string;
+  costUsd: string;
+  responseTimeMs: string;
+  confidenceScore: string;
+  hasObjection: string;
+  conversationStage: string;
+  createdAt: string;
+}
+
+const getColumnMapping = (): ColumnMapping => {
+  if (remoteSupabase) {
+    // Remote CRM schema - try common column name patterns
+    return {
+      tableName: 'orchestrator_logs',
+      aiModel: 'model_used',        // or 'selected_model', 'ai_model'
+      tenantId: 'tenant_id',
+      tokensUsed: 'tokens',         // or 'token_count', 'total_tokens'
+      costUsd: 'cost',              // or 'total_cost', 'cost_usd'
+      responseTimeMs: 'latency_ms', // or 'response_time', 'duration_ms'
+      confidenceScore: 'confidence',
+      hasObjection: 'has_objection',
+      conversationStage: 'stage',   // or 'conversation_stage'
+      createdAt: 'created_at',
+    };
+  }
+  // Local Master schema
+  return {
+    tableName: 'ai_orchestration_logs',
+    aiModel: 'ai_selected',
+    tenantId: 'tenant_id',
+    tokensUsed: 'tokens_used',
+    costUsd: 'cost_usd',
+    responseTimeMs: 'response_time_ms',
+    confidenceScore: 'confidence_score',
+    hasObjection: 'has_objection',
+    conversationStage: 'conversation_stage',
+    createdAt: 'created_at',
+  };
+};
+
+// Get the data client (prefer remote if available)
+const getDataClient = () => {
+  if (remoteSupabase) {
+    logStep('Using REMOTE Supabase', { url: remoteUrl });
+    return remoteSupabase;
+  }
+  logStep('Using LOCAL Supabase (no remote configured)', { url: supabaseUrl });
+  return supabase;
+};
+
+// Dynamically discover the schema of orchestrator_logs table
+async function discoverSchema() {
+  const client = getDataClient();
+  const mapping = getColumnMapping();
+  
+  try {
+    // Try to fetch one row to see what columns exist
+    const { data, error } = await client
+      .from(mapping.tableName)
+      .select('*')
+      .limit(1);
+
+    if (error) {
+      logStep('Error discovering schema', error);
+      return null;
+    }
+
+    if (data && data.length > 0) {
+      const columns = Object.keys(data[0]);
+      logStep('Discovered schema', { columns });
+      return columns;
+    }
+
+    logStep('No data in table to discover schema');
+    return null;
+  } catch (e) {
+    logStep('Exception discovering schema', e);
+    return null;
+  }
+}
+
 // Get summary statistics
 async function getSummary() {
+  const client = getDataClient();
+  const mapping = getColumnMapping();
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-  // Get model summary from view
-  const { data: modelSummary, error: modelError } = await supabase
-    .from('v_ai_model_summary')
-    .select('*');
+  logStep('Getting summary', { tableName: mapping.tableName, monthStart });
+
+  // First, discover the actual schema
+  const columns = await discoverSchema();
   
-  if (modelError) {
-    logStep('Error fetching model summary', modelError);
+  // Build dynamic select based on available columns
+  let selectFields = '*';
+  if (columns) {
+    logStep('Available columns in remote table', { columns });
   }
 
-  // Get escalation rates from view
-  const { data: escalationRates, error: escalationError } = await supabase
-    .from('v_ai_escalation_rates')
+  // Query directly from orchestration logs table with all columns
+  const { data: logsData, error: logsError } = await client
+    .from(mapping.tableName)
     .select('*')
-    .limit(30);
-  
-  if (escalationError) {
-    logStep('Error fetching escalation rates', escalationError);
+    .gte(mapping.createdAt, monthStart);
+
+  if (logsError) {
+    logStep('Error fetching logs', logsError);
+    return {
+      period: 'month',
+      dataSource: remoteSupabase ? 'remote' : 'local',
+      tableName: mapping.tableName,
+      error: logsError.message,
+      totals: { calls: 0, tokens: 0, costUsd: 0, credits: 0, avgLatencyMs: 0 },
+      last24h: { calls: 0 },
+      escalation: { layer1Calls: 0, layer2Calls: 0, layer3Calls: 0, layer2Rate: 0, layer3Rate: 0, escalationTrend: [] },
+      modelDistribution: [],
+    };
   }
 
-  // Get totals for month
-  const { data: monthlyStats, error: monthlyError } = await supabase
-    .from('ai_orchestration_logs')
-    .select('id, tokens_used, cost_usd, response_time_ms')
-    .gte('created_at', monthStart);
+  logStep('Logs fetched', { count: logsData?.length || 0 });
 
-  const totalCalls = monthlyStats?.length || 0;
-  const totalTokens = monthlyStats?.reduce((sum, log) => sum + (log.tokens_used || 0), 0) || 0;
-  const totalCostUsd = monthlyStats?.reduce((sum, log) => sum + (log.cost_usd || 0), 0) || 0;
-  const avgLatency = monthlyStats?.length 
-    ? (monthlyStats.reduce((sum, log) => sum + (log.response_time_ms || 0), 0) / monthlyStats.length)
-    : 0;
+  if (!logsData || logsData.length === 0) {
+    return {
+      period: 'month',
+      dataSource: remoteSupabase ? 'remote' : 'local',
+      tableName: mapping.tableName,
+      schemaDiscovered: columns,
+      totals: { calls: 0, tokens: 0, costUsd: 0, credits: 0, avgLatencyMs: 0 },
+      last24h: { calls: 0 },
+      escalation: { layer1Calls: 0, layer2Calls: 0, layer3Calls: 0, layer2Rate: 0, layer3Rate: 0, escalationTrend: [] },
+      modelDistribution: [],
+    };
+  }
+
+  // Log first record to understand schema
+  logStep('Sample record', { record: logsData[0] });
+
+  // Aggregate by model - try multiple possible column names
+  const modelMap: Record<string, { 
+    calls: number; 
+    tokens: number; 
+    cost: number; 
+    latency: number; 
+    confidence: number;
+    tenants: Set<string>;
+  }> = {};
+
+  let totalCalls = 0;
+  let totalTokens = 0;
+  let totalCostUsd = 0;
+  let totalLatency = 0;
+
+  // Try to find the right column names dynamically
+  const getModelFromLog = (log: Record<string, unknown>): string => {
+    return (log.model_used || log.ai_selected || log.selected_model || log.ai_model || log.model || 'unknown') as string;
+  };
+
+  const getTokensFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.tokens_used || log.tokens || log.token_count || log.total_tokens || 0);
+  };
+
+  const getCostFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.cost_usd || log.cost || log.total_cost || 0);
+  };
+
+  const getLatencyFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.response_time_ms || log.latency_ms || log.response_time || log.duration_ms || log.latency || 0);
+  };
+
+  const getConfidenceFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.confidence_score || log.confidence || 0);
+  };
+
+  const getTenantFromLog = (log: Record<string, unknown>): string => {
+    return (log.tenant_id || log.tenantId || '') as string;
+  };
+
+  (logsData as Record<string, unknown>[]).forEach(log => {
+    totalCalls++;
+    totalTokens += getTokensFromLog(log);
+    totalCostUsd += getCostFromLog(log);
+    totalLatency += getLatencyFromLog(log);
+
+    const model = getModelFromLog(log);
+    if (!modelMap[model]) {
+      modelMap[model] = { calls: 0, tokens: 0, cost: 0, latency: 0, confidence: 0, tenants: new Set() };
+    }
+    modelMap[model].calls++;
+    modelMap[model].tokens += getTokensFromLog(log);
+    modelMap[model].cost += getCostFromLog(log);
+    modelMap[model].latency += getLatencyFromLog(log);
+    modelMap[model].confidence += getConfidenceFromLog(log);
+    const tenantId = getTenantFromLog(log);
+    if (tenantId) modelMap[model].tenants.add(tenantId);
+  });
+
+  const modelSummary = Object.entries(modelMap).map(([model, data]) => ({
+    model,
+    total_calls: data.calls,
+    total_tokens: data.tokens,
+    total_cost_usd: data.cost,
+    avg_latency_ms: data.calls > 0 ? Math.round(data.latency / data.calls) : 0,
+    avg_confidence: data.calls > 0 ? data.confidence / data.calls : 0,
+    unique_tenants: data.tenants.size,
+  }));
+
+  const avgLatency = totalCalls > 0 ? totalLatency / totalCalls : 0;
 
   // Calculate credits (1 credit = R$ 0.01 = $0.00182 at 5.50 rate)
   const usdToBrlRate = 5.50;
   const totalCredits = Math.round(totalCostUsd * usdToBrlRate * 100);
 
   // Get 24h stats for comparison
-  const { data: last24h } = await supabase
-    .from('ai_orchestration_logs')
+  const { data: last24h } = await client
+    .from(mapping.tableName)
     .select('id')
-    .gte('created_at', dayAgo);
+    .gte(mapping.createdAt, dayAgo);
 
   const callsLast24h = last24h?.length || 0;
 
   // Calculate model distribution
-  const modelDistribution = (modelSummary || []).map(m => ({
+  const modelDistribution = modelSummary.map(m => ({
     model: m.model,
     calls: m.total_calls,
     percentage: totalCalls > 0 ? Math.round((m.total_calls / totalCalls) * 100) : 0,
@@ -76,16 +261,33 @@ async function getSummary() {
     cost: m.total_cost_usd,
   }));
 
-  // Calculate average escalation rates
-  const avgLayer2Rate = escalationRates?.length 
-    ? escalationRates.reduce((sum, r) => sum + (parseFloat(r.layer_2_rate) || 0), 0) / escalationRates.length
-    : 0;
-  const avgLayer3Rate = escalationRates?.length 
-    ? escalationRates.reduce((sum, r) => sum + (parseFloat(r.layer_3_rate) || 0), 0) / escalationRates.length
-    : 0;
+  // Calculate escalation rates (Layer 2 = claude/gpt-4, Layer 3 = sonnet/gpt-4o)
+  const layer1Models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gpt-4o-mini', 'gpt-3.5'];
+  const layer2Models = ['claude-3-haiku', 'claude-3-5-haiku', 'gpt-4'];
+  const layer3Models = ['claude-3-5-sonnet', 'claude-3-opus', 'gpt-4o', 'gpt-4-turbo'];
+
+  let layer1Calls = 0;
+  let layer2Calls = 0;
+  let layer3Calls = 0;
+
+  modelSummary.forEach(m => {
+    const modelLower = m.model.toLowerCase();
+    if (layer3Models.some(l3 => modelLower.includes(l3.toLowerCase()))) {
+      layer3Calls += m.total_calls;
+    } else if (layer2Models.some(l2 => modelLower.includes(l2.toLowerCase()))) {
+      layer2Calls += m.total_calls;
+    } else {
+      layer1Calls += m.total_calls;
+    }
+  });
+
+  const layer2Rate = totalCalls > 0 ? (layer2Calls / totalCalls) * 100 : 0;
+  const layer3Rate = totalCalls > 0 ? (layer3Calls / totalCalls) * 100 : 0;
 
   return {
     period: 'month',
+    dataSource: remoteSupabase ? 'remote' : 'local',
+    tableName: mapping.tableName,
     totals: {
       calls: totalCalls,
       tokens: totalTokens,
@@ -97,9 +299,12 @@ async function getSummary() {
       calls: callsLast24h,
     },
     escalation: {
-      layer2Rate: Math.round(avgLayer2Rate * 10) / 10,
-      layer3Rate: Math.round(avgLayer3Rate * 10) / 10,
-      escalationTrend: escalationRates?.slice(0, 7) || [],
+      layer1Calls,
+      layer2Calls,
+      layer3Calls,
+      layer2Rate: Math.round(layer2Rate * 10) / 10,
+      layer3Rate: Math.round(layer3Rate * 10) / 10,
+      escalationTrend: [],
     },
     modelDistribution,
   };
@@ -107,70 +312,220 @@ async function getSummary() {
 
 // Get consumption by tenant
 async function getByTenant(limit = 20) {
-  const { data, error } = await supabase
-    .from('v_tenant_ai_consumption')
-    .select('*')
-    .order('total_ai_calls', { ascending: false })
-    .limit(limit);
+  const client = getDataClient();
+  const mapping = getColumnMapping();
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
-  if (error) {
-    logStep('Error fetching tenant consumption', error);
-    throw error;
+  logStep('Getting by tenant', { tableName: mapping.tableName, limit });
+  
+  // Aggregate directly from logs
+  const { data: logs, error: logsError } = await client
+    .from(mapping.tableName)
+    .select('*')
+    .gte(mapping.createdAt, monthStart);
+
+  if (logsError) {
+    logStep('Error fetching logs for tenant aggregation', logsError);
+    return [];
   }
 
-  return data?.map(t => ({
-    tenantId: t.tenant_id,
-    tenantName: t.tenant_name,
-    totalCalls: t.total_ai_calls,
-    totalTokens: t.total_tokens,
-    totalCostUsd: t.total_cost_usd,
-    avgLatencyMs: t.avg_latency_ms,
-    lastAiCall: t.last_ai_call,
-    creditsConsumed: t.credits_consumed,
-  })) || [];
+  if (!logs || logs.length === 0) {
+    logStep('No AI logs found');
+    return [];
+  }
+
+  logStep('Logs for tenant aggregation', { count: logs.length });
+
+  // Helper functions for dynamic column access
+  const getTokensFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.tokens_used || log.tokens || log.token_count || log.total_tokens || 0);
+  };
+
+  const getCostFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.cost_usd || log.cost || log.total_cost || 0);
+  };
+
+  const getLatencyFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.response_time_ms || log.latency_ms || log.response_time || log.duration_ms || log.latency || 0);
+  };
+
+  const getTenantFromLog = (log: Record<string, unknown>): string => {
+    return (log.tenant_id || log.tenantId || 'unknown') as string;
+  };
+
+  const getCreatedAtFromLog = (log: Record<string, unknown>): string => {
+    return (log.created_at || log.createdAt || '') as string;
+  };
+
+  // Aggregate by tenant
+  const tenantMap: Record<string, { 
+    calls: number; 
+    tokens: number; 
+    cost: number; 
+    latency: number;
+    lastCall: string;
+  }> = {};
+
+  (logs as Record<string, unknown>[]).forEach(log => {
+    const tid = getTenantFromLog(log);
+    if (!tenantMap[tid]) {
+      tenantMap[tid] = { calls: 0, tokens: 0, cost: 0, latency: 0, lastCall: '' };
+    }
+    tenantMap[tid].calls++;
+    tenantMap[tid].tokens += getTokensFromLog(log);
+    tenantMap[tid].cost += getCostFromLog(log);
+    tenantMap[tid].latency += getLatencyFromLog(log);
+    const createdAt = getCreatedAtFromLog(log);
+    if (!tenantMap[tid].lastCall || createdAt > tenantMap[tid].lastCall) {
+      tenantMap[tid].lastCall = createdAt;
+    }
+  });
+
+  // Get tenant names from local Master database
+  const tenantIds = Object.keys(tenantMap).filter(id => id !== 'unknown');
+  const tenantNameMap = new Map<string, string>();
+
+  if (tenantIds.length > 0) {
+    const { data: tenants } = await supabase
+      .from('tenants')
+      .select('id, name')
+      .in('id', tenantIds);
+    
+    tenants?.forEach(t => tenantNameMap.set(t.id, t.name));
+
+    // Also try remote
+    if (remoteSupabase) {
+      const { data: remoteTenants } = await remoteSupabase
+        .from('tenants')
+        .select('id, name')
+        .in('id', tenantIds);
+      
+      remoteTenants?.forEach(t => {
+        if (!tenantNameMap.has(t.id)) {
+          tenantNameMap.set(t.id, t.name);
+        }
+      });
+    }
+  }
+
+  const result = Object.entries(tenantMap)
+    .map(([tenantId, data]) => ({
+      tenantId,
+      tenantName: tenantNameMap.get(tenantId) || 'Desconhecido',
+      totalCalls: data.calls,
+      totalTokens: data.tokens,
+      totalCostUsd: Math.round(data.cost * 100) / 100,
+      avgLatencyMs: data.calls > 0 ? Math.round(data.latency / data.calls) : 0,
+      lastAiCall: data.lastCall,
+      creditsConsumed: Math.round(data.cost * 5.50 * 100),
+    }))
+    .sort((a, b) => b.totalCalls - a.totalCalls)
+    .slice(0, limit);
+
+  logStep('Aggregated tenant consumption', { count: result.length });
+  return result;
 }
 
 // Get model performance details
 async function getModelPerformance() {
-  const { data, error } = await supabase
-    .from('v_ai_model_summary')
-    .select('*');
+  const client = getDataClient();
+  const mapping = getColumnMapping();
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  
+  const { data: logs, error } = await client
+    .from(mapping.tableName)
+    .select('*')
+    .gte(mapping.createdAt, monthStart);
 
   if (error) {
     logStep('Error fetching model performance', error);
-    throw error;
+    return [];
   }
 
-  return data?.map(m => ({
-    model: m.model,
-    totalCalls: m.total_calls,
-    avgLatencyMs: m.avg_latency_ms,
-    totalTokens: m.total_tokens,
-    totalCostUsd: m.total_cost_usd,
-    avgConfidence: m.avg_confidence,
-    uniqueTenants: m.unique_tenants,
-    firstCall: m.first_call,
-    lastCall: m.last_call,
-  })) || [];
+  if (!logs || logs.length === 0) {
+    return [];
+  }
+
+  // Helper functions
+  const getModelFromLog = (log: Record<string, unknown>): string => {
+    return (log.model_used || log.ai_selected || log.selected_model || log.ai_model || log.model || 'unknown') as string;
+  };
+  const getTokensFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.tokens_used || log.tokens || log.token_count || log.total_tokens || 0);
+  };
+  const getCostFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.cost_usd || log.cost || log.total_cost || 0);
+  };
+  const getLatencyFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.response_time_ms || log.latency_ms || log.response_time || log.duration_ms || log.latency || 0);
+  };
+  const getConfidenceFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.confidence_score || log.confidence || 0);
+  };
+  const getTenantFromLog = (log: Record<string, unknown>): string => {
+    return (log.tenant_id || log.tenantId || '') as string;
+  };
+  const getCreatedAtFromLog = (log: Record<string, unknown>): string => {
+    return (log.created_at || log.createdAt || '') as string;
+  };
+
+  // Aggregate by model
+  const modelMap: Record<string, { 
+    calls: number; 
+    tokens: number; 
+    cost: number; 
+    latency: number;
+    confidence: number;
+    tenants: Set<string>;
+    firstCall: string;
+    lastCall: string;
+  }> = {};
+
+  (logs as Record<string, unknown>[]).forEach(log => {
+    const model = getModelFromLog(log);
+    const createdAt = getCreatedAtFromLog(log);
+    
+    if (!modelMap[model]) {
+      modelMap[model] = { 
+        calls: 0, tokens: 0, cost: 0, latency: 0, confidence: 0, 
+        tenants: new Set(), firstCall: createdAt, lastCall: createdAt 
+      };
+    }
+    modelMap[model].calls++;
+    modelMap[model].tokens += getTokensFromLog(log);
+    modelMap[model].cost += getCostFromLog(log);
+    modelMap[model].latency += getLatencyFromLog(log);
+    modelMap[model].confidence += getConfidenceFromLog(log);
+    const tenantId = getTenantFromLog(log);
+    if (tenantId) modelMap[model].tenants.add(tenantId);
+    if (createdAt < modelMap[model].firstCall) modelMap[model].firstCall = createdAt;
+    if (createdAt > modelMap[model].lastCall) modelMap[model].lastCall = createdAt;
+  });
+
+  return Object.entries(modelMap).map(([model, data]) => ({
+    model,
+    totalCalls: data.calls,
+    avgLatencyMs: data.calls > 0 ? Math.round(data.latency / data.calls) : 0,
+    totalTokens: data.tokens,
+    totalCostUsd: Math.round(data.cost * 100) / 100,
+    avgConfidence: data.calls > 0 ? Math.round((data.confidence / data.calls) * 100) / 100 : 0,
+    uniqueTenants: data.tenants.size,
+    firstCall: data.firstCall,
+    lastCall: data.lastCall,
+  }));
 }
 
 // Get live feed of recent AI calls
 async function getLiveFeed(limit = 50) {
-  const { data, error } = await supabase
-    .from('ai_orchestration_logs')
-    .select(`
-      id,
-      ai_selected,
-      tenant_id,
-      conversation_stage,
-      response_time_ms,
-      tokens_used,
-      cost_usd,
-      confidence_score,
-      has_objection,
-      created_at
-    `)
-    .order('created_at', { ascending: false })
+  const client = getDataClient();
+  const mapping = getColumnMapping();
+  
+  logStep('Getting live feed', { tableName: mapping.tableName, limit });
+
+  const { data, error } = await client
+    .from(mapping.tableName)
+    .select('*')
+    .order(mapping.createdAt, { ascending: false })
     .limit(limit);
 
   if (error) {
@@ -178,78 +533,169 @@ async function getLiveFeed(limit = 50) {
     throw error;
   }
 
-  // Get tenant names in bulk
-  const tenantIds = [...new Set(data?.map(d => d.tenant_id).filter(Boolean))];
-  const { data: tenants } = await supabase
-    .from('tenants')
-    .select('id, name')
-    .in('id', tenantIds);
+  logStep('Live feed fetched', { count: data?.length || 0 });
 
-  const tenantMap = new Map(tenants?.map(t => [t.id, t.name]) || []);
+  if (!data || data.length === 0) {
+    return [];
+  }
 
-  return data?.map(log => ({
+  // Helper functions
+  const getModelFromLog = (log: Record<string, unknown>): string => {
+    return (log.model_used || log.ai_selected || log.selected_model || log.ai_model || log.model || 'unknown') as string;
+  };
+  const getTokensFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.tokens_used || log.tokens || log.token_count || log.total_tokens || 0);
+  };
+  const getCostFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.cost_usd || log.cost || log.total_cost || 0);
+  };
+  const getLatencyFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.response_time_ms || log.latency_ms || log.response_time || log.duration_ms || log.latency || 0);
+  };
+  const getConfidenceFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.confidence_score || log.confidence || 0);
+  };
+  const getTenantFromLog = (log: Record<string, unknown>): string => {
+    return (log.tenant_id || log.tenantId || '') as string;
+  };
+  const getStageFromLog = (log: Record<string, unknown>): string => {
+    return (log.conversation_stage || log.stage || '') as string;
+  };
+  const getCreatedAtFromLog = (log: Record<string, unknown>): string => {
+    return (log.created_at || log.createdAt || '') as string;
+  };
+  const getHasObjectionFromLog = (log: Record<string, unknown>): boolean => {
+    return Boolean(log.has_objection || log.hasObjection || false);
+  };
+
+  // Get tenant names
+  const tenantIds = [...new Set((data as Record<string, unknown>[]).map(d => getTenantFromLog(d)).filter(Boolean))];
+  const tenantMap = new Map<string, string>();
+  
+  if (tenantIds.length > 0) {
+    const { data: localTenants } = await supabase
+      .from('tenants')
+      .select('id, name')
+      .in('id', tenantIds);
+    
+    localTenants?.forEach(t => tenantMap.set(t.id, t.name));
+
+    if (remoteSupabase) {
+      const { data: remoteTenants } = await remoteSupabase
+        .from('tenants')
+        .select('id, name')
+        .in('id', tenantIds);
+      
+      remoteTenants?.forEach(t => {
+        if (!tenantMap.has(t.id)) {
+          tenantMap.set(t.id, t.name);
+        }
+      });
+    }
+  }
+
+  return (data as Record<string, unknown>[]).map(log => ({
     id: log.id,
-    model: log.ai_selected,
-    tenantId: log.tenant_id,
-    tenantName: tenantMap.get(log.tenant_id) || 'Desconhecido',
-    stage: log.conversation_stage,
-    latencyMs: log.response_time_ms,
-    tokens: log.tokens_used,
-    costUsd: log.cost_usd,
-    confidence: log.confidence_score,
-    hasObjection: log.has_objection,
-    createdAt: log.created_at,
-  })) || [];
+    model: getModelFromLog(log),
+    tenantId: getTenantFromLog(log),
+    tenantName: tenantMap.get(getTenantFromLog(log)) || 'Desconhecido',
+    stage: getStageFromLog(log),
+    latencyMs: getLatencyFromLog(log),
+    tokens: getTokensFromLog(log),
+    costUsd: getCostFromLog(log),
+    confidence: getConfidenceFromLog(log),
+    hasObjection: getHasObjectionFromLog(log),
+    createdAt: getCreatedAtFromLog(log),
+  }));
 }
 
 // Get diagnostics for a specific tenant
 async function getTenantDiagnostics(tenantId: string) {
+  const client = getDataClient();
+  const mapping = getColumnMapping();
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
   // Get tenant info
-  const { data: tenant } = await supabase
+  let tenantName = 'Desconhecido';
+  
+  const { data: localTenant } = await supabase
     .from('tenants')
     .select('id, name')
     .eq('id', tenantId)
     .single();
 
+  if (localTenant) {
+    tenantName = localTenant.name;
+  } else if (remoteSupabase) {
+    const { data: remoteTenant } = await remoteSupabase
+      .from('tenants')
+      .select('id, name')
+      .eq('id', tenantId)
+      .single();
+    if (remoteTenant) tenantName = remoteTenant.name;
+  }
+
   // Get AI logs for this tenant
-  const { data: logs, error } = await supabase
-    .from('ai_orchestration_logs')
+  const { data: logs, error } = await client
+    .from(mapping.tableName)
     .select('*')
-    .eq('tenant_id', tenantId)
-    .gte('created_at', monthStart)
-    .order('created_at', { ascending: false });
+    .eq(mapping.tenantId, tenantId)
+    .gte(mapping.createdAt, monthStart)
+    .order(mapping.createdAt, { ascending: false });
 
   if (error) {
     logStep('Error fetching tenant diagnostics', error);
     throw error;
   }
 
+  logStep('Tenant diagnostics fetched', { tenantId, logsCount: logs?.length || 0 });
+
+  // Helper functions
+  const getModelFromLog = (log: Record<string, unknown>): string => {
+    return (log.model_used || log.ai_selected || log.selected_model || log.ai_model || log.model || 'unknown') as string;
+  };
+  const getTokensFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.tokens_used || log.tokens || log.token_count || log.total_tokens || 0);
+  };
+  const getCostFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.cost_usd || log.cost || log.total_cost || 0);
+  };
+  const getLatencyFromLog = (log: Record<string, unknown>): number => {
+    return Number(log.response_time_ms || log.latency_ms || log.response_time || log.duration_ms || log.latency || 0);
+  };
+  const getStageFromLog = (log: Record<string, unknown>): string => {
+    return (log.conversation_stage || log.stage || '') as string;
+  };
+  const getCreatedAtFromLog = (log: Record<string, unknown>): string => {
+    return (log.created_at || log.createdAt || '') as string;
+  };
+
   // Calculate stats
   const totalCalls = logs?.length || 0;
-  const totalTokens = logs?.reduce((sum, l) => sum + (l.tokens_used || 0), 0) || 0;
-  const totalCostUsd = logs?.reduce((sum, l) => sum + (l.cost_usd || 0), 0) || 0;
+  const totalTokens = (logs as Record<string, unknown>[] || []).reduce((sum, l) => sum + getTokensFromLog(l), 0);
+  const totalCostUsd = (logs as Record<string, unknown>[] || []).reduce((sum, l) => sum + getCostFromLog(l), 0);
   const avgLatency = totalCalls > 0
-    ? logs!.reduce((sum, l) => sum + (l.response_time_ms || 0), 0) / totalCalls
+    ? (logs as Record<string, unknown>[]).reduce((sum, l) => sum + getLatencyFromLog(l), 0) / totalCalls
     : 0;
 
   // Model breakdown
   const byModel: Record<string, { calls: number; tokens: number; cost: number }> = {};
-  logs?.forEach(log => {
-    const model = log.ai_selected || 'unknown';
+  (logs as Record<string, unknown>[] || []).forEach(log => {
+    const model = getModelFromLog(log);
     if (!byModel[model]) byModel[model] = { calls: 0, tokens: 0, cost: 0 };
     byModel[model].calls++;
-    byModel[model].tokens += log.tokens_used || 0;
-    byModel[model].cost += log.cost_usd || 0;
+    byModel[model].tokens += getTokensFromLog(log);
+    byModel[model].cost += getCostFromLog(log);
   });
 
   return {
     tenant: {
       id: tenantId,
-      name: tenant?.name || 'Desconhecido',
+      name: tenantName,
     },
     period: 'month',
+    dataSource: remoteSupabase ? 'remote' : 'local',
+    tableName: mapping.tableName,
     stats: {
       totalCalls,
       totalTokens,
@@ -264,14 +710,14 @@ async function getTenantDiagnostics(tenantId: string) {
       cost: stats.cost,
       percentage: totalCalls > 0 ? Math.round((stats.calls / totalCalls) * 100) : 0,
     })),
-    recentLogs: logs?.slice(0, 20).map(log => ({
+    recentLogs: (logs as Record<string, unknown>[] || []).slice(0, 20).map(log => ({
       id: log.id,
-      model: log.ai_selected,
-      stage: log.conversation_stage,
-      latencyMs: log.response_time_ms,
-      tokens: log.tokens_used,
-      createdAt: log.created_at,
-    })) || [],
+      model: getModelFromLog(log),
+      stage: getStageFromLog(log),
+      latencyMs: getLatencyFromLog(log),
+      tokens: getTokensFromLog(log),
+      createdAt: getCreatedAtFromLog(log),
+    })),
   };
 }
 
@@ -281,7 +727,13 @@ serve(async (req) => {
   }
 
   try {
-    logStep('Function started', { method: req.method });
+    const mapping = getColumnMapping();
+    logStep('Function started', { 
+      method: req.method,
+      hasRemote: !!remoteSupabase,
+      tableName: mapping.tableName,
+      remoteUrl: remoteUrl ? remoteUrl.substring(0, 30) + '...' : 'not configured'
+    });
 
     const url = new URL(req.url);
     const path = url.pathname.split('/').pop() || '';
@@ -308,7 +760,6 @@ serve(async (req) => {
         result = await getTenantDiagnostics(tenantId);
         break;
       default:
-        // Default: return summary
         result = await getSummary();
     }
 
