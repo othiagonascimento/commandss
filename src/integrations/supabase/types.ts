@@ -2523,6 +2523,39 @@ export type Database = {
           },
         ]
       }
+      user_agent_context: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          description: string
+          embedding: string | null
+          id: number
+          metadata: Json | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          description: string
+          embedding?: string | null
+          id?: never
+          metadata?: Json | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          description?: string
+          embedding?: string | null
+          id?: never
+          metadata?: Json | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_education_progress: {
         Row: {
           ai_activations_count: number | null
@@ -3187,6 +3220,20 @@ export type Database = {
           _user_id: string
         }
         Returns: string
+      }
+      match_uopa_context: {
+        Args: {
+          filter_tenant_id: string
+          match_count: number
+          match_threshold: number
+          query_embedding: string
+        }
+        Returns: {
+          content: string
+          id: number
+          similarity: number
+          type: string
+        }[]
       }
       reset_monthly_usage: { Args: never; Returns: undefined }
     }
