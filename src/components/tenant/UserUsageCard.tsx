@@ -5,11 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  Cpu, 
+  Coins, 
   MessageSquare, 
   DollarSign,
   TrendingUp,
   Activity,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -138,15 +139,18 @@ export function UserUsageCard({ userId, tenantId, userName, limits }: UserUsageC
     byProvider: {},
   };
 
+  // Calculate credits (1 credit = R$ 0.01)
+  const creditsConsumed = Math.round(totalCost * 100);
+
   // Use user_usage if available (more accurate), otherwise use logs summary
   const tokensUsed = userUsage?.ai_tokens_month || summary.totalTokens;
   const apiCalls = userUsage?.api_calls_month || summary.totalLogs;
-  const totalCost = summary.totalCostBrl;
+  const creditsUsed = userUsage?.credits_consumed_month || creditsConsumed;
 
-  // Calculate percentages if limits exist
-  const tokenLimit = limits?.ai_tokens_monthly || 100000;
-  const tokenPercent = Math.min((tokensUsed / tokenLimit) * 100, 100);
-  const isNearLimit = tokenPercent > 80;
+  // Calculate percentages if limits exist - now based on credits
+  const creditLimit = (limits?.ai_tokens_monthly || 100000) / 10; // Convert token limit to credit equivalent
+  const creditPercent = Math.min((creditsUsed / creditLimit) * 100, 100);
+  const isNearLimit = creditPercent > 80;
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -173,14 +177,14 @@ export function UserUsageCard({ userId, tenantId, userName, limits }: UserUsageC
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Main Stats */}
+        {/* Main Stats - Credits First */}
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Cpu className="h-3 w-3" />
-              Tokens
+              <Coins className="h-3 w-3" />
+              Créditos
             </div>
-            <p className="text-lg font-bold">{formatNumber(tokensUsed)}</p>
+            <p className="text-lg font-bold text-primary">{formatNumber(creditsUsed)}</p>
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -191,25 +195,25 @@ export function UserUsageCard({ userId, tenantId, userName, limits }: UserUsageC
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <DollarSign className="h-3 w-3" />
-              Custo
+              <Zap className="h-3 w-3" />
+              Tokens
             </div>
-            <p className="text-lg font-bold text-primary">
-              R$ {totalCost.toFixed(2)}
+            <p className="text-lg font-bold">
+              {formatNumber(tokensUsed)}
             </p>
           </div>
         </div>
 
-        {/* Token Usage Progress */}
+        {/* Credit Usage Progress */}
         <div className="space-y-2">
           <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Uso de tokens</span>
+            <span className="text-muted-foreground">Uso de créditos</span>
             <span className={cn(isNearLimit && 'text-warning')}>
-              {formatNumber(tokensUsed)} / {formatNumber(tokenLimit)}
+              {formatNumber(creditsUsed)} / {formatNumber(creditLimit)}
             </span>
           </div>
           <Progress 
-            value={tokenPercent} 
+            value={creditPercent} 
             className={cn(
               "h-2",
               isNearLimit && "[&>div]:bg-warning"
