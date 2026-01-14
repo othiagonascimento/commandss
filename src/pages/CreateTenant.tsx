@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { tenantsApi, CreateTenantPayload } from '@/services/masterApi';
+import { tenantsApi, domainsApi, CreateTenantPayload } from '@/services/masterApi';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Loader2, Building2, AlertCircle, Gift, Handshake, Crown, Check, Users, Database, Cpu, HardDrive, Brain, Mail, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, Building2, AlertCircle, Gift, Handshake, Crown, Check, Users, Database, Cpu, HardDrive, Brain, Mail, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
@@ -82,6 +82,11 @@ function formatLimit(value: number | null): string {
 export default function CreateTenant() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [subdomainStatus, setSubdomainStatus] = useState<{
+    checking: boolean;
+    available: boolean | null;
+    suggestion?: string;
+  }>({ checking: false, available: null });
   
   // Fetch plans
   const { data: plans, isLoading: plansLoading } = useQuery({
@@ -130,11 +135,49 @@ export default function CreateTenant() {
     admin_password: '',
   });
 
+  // Debounced subdomain check
+  const checkSubdomain = useCallback(async (subdomain: string) => {
+    if (subdomain.length < 2) {
+      setSubdomainStatus({ checking: false, available: null });
+      return;
+    }
+    
+    setSubdomainStatus({ checking: true, available: null });
+    
+    try {
+      const result = await domainsApi.checkSubdomainAvailability(subdomain);
+      if (result.data) {
+        setSubdomainStatus({
+          checking: false,
+          available: result.data.available,
+          suggestion: result.data.suggestion,
+        });
+      } else {
+        setSubdomainStatus({ checking: false, available: null });
+      }
+    } catch {
+      setSubdomainStatus({ checking: false, available: null });
+    }
+  }, []);
+
+  // Effect to check subdomain availability with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.slug) {
+        checkSubdomain(formData.slug);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [formData.slug, checkSubdomain]);
+
   // Set default plan when plans load
-  if (plans && plans.length > 0 && !formData.plan_id) {
-    const defaultPlan = plans.find(p => p.slug === 'basic') || plans[0];
-    setFormData(prev => ({ ...prev, plan_id: defaultPlan.id }));
-  }
+  useEffect(() => {
+    if (plans && plans.length > 0 && !formData.plan_id) {
+      const defaultPlan = plans.find(p => p.slug === 'basic') || plans[0];
+      setFormData(prev => ({ ...prev, plan_id: defaultPlan.id }));
+    }
+  }, [plans, formData.plan_id]);
 
   const selectedPlan = plans?.find(p => p.id === formData.plan_id);
   const selectedTemplate = templates?.find(t => t.id === formData.template_id);
@@ -253,16 +296,51 @@ export default function CreateTenant() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="slug">Slug (URL) *</Label>
-                <Input
-                  id="slug"
-                  value={formData.slug}
-                  onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                  placeholder="minha-empresa"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  Será usado na URL: {formData.slug || 'slug'}.suaapp.com
-                </p>
+                <div className="relative">
+                  <Input
+                    id="slug"
+                    value={formData.slug}
+                    onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                    placeholder="minha-empresa"
+                    required
+                    className={cn(
+                      "pr-10",
+                      subdomainStatus.available === true && "border-green-500 focus-visible:ring-green-500",
+                      subdomainStatus.available === false && "border-destructive focus-visible:ring-destructive"
+                    )}
+                  />
+                  {formData.slug && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {subdomainStatus.checking ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      ) : subdomainStatus.available === true ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                      ) : subdomainStatus.available === false ? (
+                        <XCircle className="w-4 h-4 text-destructive" />
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    Será usado na URL: {formData.slug || 'slug'}.uopacrm.com
+                  </p>
+                  {subdomainStatus.available === false && subdomainStatus.suggestion && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <span>Slug indisponível.</span>
+                      <button
+                        type="button"
+                        className="text-primary hover:underline"
+                        onClick={() => setFormData(prev => ({ ...prev, slug: subdomainStatus.suggestion || '' }))}
+                      >
+                        Usar "{subdomainStatus.suggestion}"?
+                      </button>
+                    </p>
+                  )}
+                  {subdomainStatus.available === true && (
+                    <p className="text-xs text-green-600">✓ Slug disponível</p>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>

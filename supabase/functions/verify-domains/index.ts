@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 interface DomainRecord {
@@ -13,6 +14,24 @@ interface DomainRecord {
   verification_token: string | null;
   dns_configured: boolean;
   ssl_provisioned: boolean;
+}
+
+interface TenantBranding {
+  company_name: string | null;
+  logo_url: string | null;
+  logo_white_url: string | null;
+  symbol_url: string | null;
+  favicon_url: string | null;
+  primary_color: string | null;
+  secondary_color: string | null;
+}
+
+interface ResolveResponse {
+  tenant_id: string;
+  subdomain: string;
+  name: string;
+  branding: TenantBranding | null;
+  config?: Record<string, unknown>;
 }
 
 function logStep(step: string, details?: Record<string, unknown>) {
@@ -78,6 +97,112 @@ async function verifyDNS(domain: string, expectedToken: string): Promise<{ confi
   }
 }
 
+// Resolve tenant by domain (for public site detection)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveTenantByDomain(
+  supabase: any,
+  domain: string
+): Promise<ResolveResponse | null> {
+  logStep("Resolving tenant by domain", { domain });
+  
+  // First, try to find in tenant_domains (custom domains)
+  const { data: domainRecord, error: domainError } = await supabase
+    .from("tenant_domains")
+    .select("tenant_id, domain, status")
+    .eq("domain", domain)
+    .eq("status", "verified")
+    .single();
+  
+  let tenantId: string | null = null;
+  
+  if (domainRecord && !domainError) {
+    tenantId = (domainRecord as { tenant_id: string }).tenant_id;
+    logStep("Found tenant via custom domain", { tenantId, domain });
+  } else {
+    // Try to match as subdomain pattern (e.g., "clientex.uopacrm.com")
+    const subdomainMatch = domain.match(/^([a-z0-9-]+)\.(uopacrm\.com|app\.uopacrm\.com)$/i);
+    
+    if (subdomainMatch) {
+      const subdomain = subdomainMatch[1];
+      logStep("Trying subdomain match", { subdomain });
+      
+      const { data: tenantBySubdomain, error: subError } = await supabase
+        .from("tenants")
+        .select("id, subdomain")
+        .eq("subdomain", subdomain)
+        .eq("is_active", true)
+        .single();
+      
+      if (tenantBySubdomain && !subError) {
+        tenantId = (tenantBySubdomain as { id: string }).id;
+        logStep("Found tenant via subdomain", { tenantId, subdomain });
+      }
+    }
+  }
+  
+  if (!tenantId) {
+    logStep("No tenant found for domain", { domain });
+    return null;
+  }
+  
+  // Fetch tenant details with branding
+  const { data: tenant, error: tenantError } = await supabase
+    .from("tenants")
+    .select("id, name, subdomain, config")
+    .eq("id", tenantId)
+    .eq("is_active", true)
+    .single();
+  
+  if (tenantError || !tenant) {
+    logStep("Tenant not found or inactive", { tenantId, error: tenantError?.message });
+    return null;
+  }
+  
+  const tenantData = tenant as { id: string; name: string; subdomain: string; config: Record<string, unknown> | null };
+  
+  // Fetch branding
+  const { data: branding } = await supabase
+    .from("tenant_branding")
+    .select("company_name, logo_url, logo_white_url, symbol_url, favicon_url, primary_color, secondary_color")
+    .eq("tenant_id", tenantId)
+    .single();
+  
+  return {
+    tenant_id: tenantData.id,
+    subdomain: tenantData.subdomain,
+    name: tenantData.name,
+    branding: branding || null,
+    config: tenantData.config || {},
+  };
+}
+
+// Check subdomain availability
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function checkSubdomainAvailability(
+  supabase: any,
+  subdomain: string
+): Promise<{ available: boolean; suggestion?: string }> {
+  const normalizedSubdomain = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  
+  logStep("Checking subdomain availability", { subdomain: normalizedSubdomain });
+  
+  const { data, error } = await supabase
+    .from("tenants")
+    .select("id")
+    .eq("subdomain", normalizedSubdomain)
+    .single();
+  
+  const available = !data && error?.code === "PGRST116"; // No rows found
+  
+  if (!available) {
+    // Generate suggestion
+    const suggestion = `${normalizedSubdomain}-${Math.floor(Math.random() * 1000)}`;
+    return { available: false, suggestion };
+  }
+  
+  return { available: true };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -89,8 +214,61 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const url = new URL(req.url);
+    const action = url.searchParams.get("action");
+    
+    // ==========================================
+    // ACTION: resolve - Resolve tenant by domain
+    // ==========================================
+    if (action === "resolve") {
+      const domain = url.searchParams.get("domain");
+      
+      if (!domain) {
+        return new Response(
+          JSON.stringify({ error: "Domain parameter is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      const result = await resolveTenantByDomain(supabase, domain);
+      
+      if (!result) {
+        return new Response(
+          JSON.stringify({ error: "Tenant not found for this domain" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // ==========================================
+    // ACTION: check-subdomain - Check availability
+    // ==========================================
+    if (action === "check-subdomain") {
+      const subdomain = url.searchParams.get("subdomain");
+      
+      if (!subdomain) {
+        return new Response(
+          JSON.stringify({ error: "Subdomain parameter is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      const result = await checkSubdomainAvailability(supabase, subdomain);
+      
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // ==========================================
+    // DEFAULT: Verify domains (original behavior)
+    // ==========================================
     const domainId = url.searchParams.get("domain_id");
-
     logStep("Starting domain verification", { domainId });
 
     // Get domains to verify
