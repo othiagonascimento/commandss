@@ -1135,10 +1135,13 @@ export type Database = {
       }
       master_settings: {
         Row: {
+          ai_layer_1_cost: number | null
           ai_layer_1_instructions: string | null
           ai_layer_1_model: string | null
+          ai_layer_2_cost: number | null
           ai_layer_2_instructions: string | null
           ai_layer_2_model: string | null
+          ai_layer_3_cost: number | null
           ai_layer_3_instructions: string | null
           ai_layer_3_model: string | null
           category: string
@@ -1146,15 +1149,19 @@ export type Database = {
           description: string | null
           id: string
           key: string
+          tenant_id: string | null
           updated_at: string | null
           updated_by: string | null
           value: Json
         }
         Insert: {
+          ai_layer_1_cost?: number | null
           ai_layer_1_instructions?: string | null
           ai_layer_1_model?: string | null
+          ai_layer_2_cost?: number | null
           ai_layer_2_instructions?: string | null
           ai_layer_2_model?: string | null
+          ai_layer_3_cost?: number | null
           ai_layer_3_instructions?: string | null
           ai_layer_3_model?: string | null
           category?: string
@@ -1162,15 +1169,19 @@ export type Database = {
           description?: string | null
           id?: string
           key: string
+          tenant_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           value?: Json
         }
         Update: {
+          ai_layer_1_cost?: number | null
           ai_layer_1_instructions?: string | null
           ai_layer_1_model?: string | null
+          ai_layer_2_cost?: number | null
           ai_layer_2_instructions?: string | null
           ai_layer_2_model?: string | null
+          ai_layer_3_cost?: number | null
           ai_layer_3_instructions?: string | null
           ai_layer_3_model?: string | null
           category?: string
@@ -1178,6 +1189,7 @@ export type Database = {
           description?: string | null
           id?: string
           key?: string
+          tenant_id?: string | null
           updated_at?: string | null
           updated_by?: string | null
           value?: Json
