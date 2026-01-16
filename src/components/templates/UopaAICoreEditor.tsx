@@ -305,15 +305,15 @@ export function UopaAICoreEditor() {
                     Camada 1 - Router
                   </Label>
                   <Select 
-                    value={uopaCore?.layer_1_model || ''} 
-                    onValueChange={(value) => setValue('uopa_ai_core.layer_1_model', value || undefined)}
+                    value={uopaCore?.layer_1_model || '__inherit__'} 
+                    onValueChange={(value) => setValue('uopa_ai_core.layer_1_model', value === '__inherit__' ? undefined : value)}
                     disabled={modelsLoading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Herdar do Global" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value="__inherit__">
                         <span className="flex items-center gap-2 text-muted-foreground">
                           <Globe className="h-4 w-4" />
                           Herdar do Global
@@ -337,15 +337,15 @@ export function UopaAICoreEditor() {
                     Camada 2 - Standard
                   </Label>
                   <Select 
-                    value={uopaCore?.layer_2_model || ''} 
-                    onValueChange={(value) => setValue('uopa_ai_core.layer_2_model', value || undefined)}
+                    value={uopaCore?.layer_2_model || '__inherit__'} 
+                    onValueChange={(value) => setValue('uopa_ai_core.layer_2_model', value === '__inherit__' ? undefined : value)}
                     disabled={modelsLoading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Herdar do Global" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value="__inherit__">
                         <span className="flex items-center gap-2 text-muted-foreground">
                           <Globe className="h-4 w-4" />
                           Herdar do Global
@@ -369,15 +369,15 @@ export function UopaAICoreEditor() {
                     Camada 3 - Elite
                   </Label>
                   <Select 
-                    value={(uopaCore as { layer_3_model?: string })?.layer_3_model || ''} 
-                    onValueChange={(value) => setValue('uopa_ai_core.layer_3_model', value || undefined)}
+                    value={(uopaCore as { layer_3_model?: string })?.layer_3_model || '__inherit__'} 
+                    onValueChange={(value) => setValue('uopa_ai_core.layer_3_model', value === '__inherit__' ? undefined : value)}
                     disabled={modelsLoading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Herdar do Global" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value="__inherit__">
                         <span className="flex items-center gap-2 text-muted-foreground">
                           <Globe className="h-4 w-4" />
                           Herdar do Global
