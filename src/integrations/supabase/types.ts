@@ -17,8 +17,14 @@ export type Database = {
       ai_agent_config: {
         Row: {
           active_mode: string | null
+          agent_modes: Json | null
           aggression_level: string | null
           ai_model_provider: string | null
+          allowed_modes: string[] | null
+          auto_activate: boolean | null
+          auto_transfer_triggers: string[] | null
+          autonomy_profile: string | null
+          catalog_access: boolean | null
           created_at: string | null
           custom_layer_1_model: string | null
           custom_layer_2_model: string | null
@@ -27,31 +33,54 @@ export type Database = {
           enable_tri_modal: boolean | null
           enable_uopa_agent: boolean | null
           enable_vendedor_cloning: boolean | null
+          escalation_cooldown_minutes: number | null
+          escalation_rules: Json | null
+          flow_fallback_to_rotation: boolean | null
+          flow_integration_enabled: boolean | null
+          flow_notify_on_fallback: boolean | null
           followup_interval_minutes: number | null
+          greeting: string | null
           human_delay_enabled: boolean | null
           id: string
           is_active: boolean | null
+          is_enabled: boolean | null
+          knowledge_base: string[] | null
           layer_1_model: string | null
           layer_2_model: string | null
           layer_3_model: string | null
           max_delay_seconds: number | null
           max_followups: number | null
           max_gpt4o_calls_per_day: number | null
+          max_interactions: number | null
           min_delay_seconds: number | null
+          minimum_price_triggers: string[] | null
+          mode_switch_rules: Json | null
           niche_category: string | null
           orchestration_rules: Json | null
+          orchestrator_config: Json | null
+          payment_config: Json | null
+          personality: string | null
           personality_prompt: string | null
           persuasion_level: number | null
           prohibited_phrases: string[] | null
+          scheduling_config: Json | null
           tenant_id: string | null
           tone_voice: string | null
+          typing_indicator_enabled: boolean | null
           updated_at: string | null
+          use_minimum_price_in_recovery: boolean | null
           working_hours: Json | null
         }
         Insert: {
           active_mode?: string | null
+          agent_modes?: Json | null
           aggression_level?: string | null
           ai_model_provider?: string | null
+          allowed_modes?: string[] | null
+          auto_activate?: boolean | null
+          auto_transfer_triggers?: string[] | null
+          autonomy_profile?: string | null
+          catalog_access?: boolean | null
           created_at?: string | null
           custom_layer_1_model?: string | null
           custom_layer_2_model?: string | null
@@ -60,31 +89,54 @@ export type Database = {
           enable_tri_modal?: boolean | null
           enable_uopa_agent?: boolean | null
           enable_vendedor_cloning?: boolean | null
+          escalation_cooldown_minutes?: number | null
+          escalation_rules?: Json | null
+          flow_fallback_to_rotation?: boolean | null
+          flow_integration_enabled?: boolean | null
+          flow_notify_on_fallback?: boolean | null
           followup_interval_minutes?: number | null
+          greeting?: string | null
           human_delay_enabled?: boolean | null
           id?: string
           is_active?: boolean | null
+          is_enabled?: boolean | null
+          knowledge_base?: string[] | null
           layer_1_model?: string | null
           layer_2_model?: string | null
           layer_3_model?: string | null
           max_delay_seconds?: number | null
           max_followups?: number | null
           max_gpt4o_calls_per_day?: number | null
+          max_interactions?: number | null
           min_delay_seconds?: number | null
+          minimum_price_triggers?: string[] | null
+          mode_switch_rules?: Json | null
           niche_category?: string | null
           orchestration_rules?: Json | null
+          orchestrator_config?: Json | null
+          payment_config?: Json | null
+          personality?: string | null
           personality_prompt?: string | null
           persuasion_level?: number | null
           prohibited_phrases?: string[] | null
+          scheduling_config?: Json | null
           tenant_id?: string | null
           tone_voice?: string | null
+          typing_indicator_enabled?: boolean | null
           updated_at?: string | null
+          use_minimum_price_in_recovery?: boolean | null
           working_hours?: Json | null
         }
         Update: {
           active_mode?: string | null
+          agent_modes?: Json | null
           aggression_level?: string | null
           ai_model_provider?: string | null
+          allowed_modes?: string[] | null
+          auto_activate?: boolean | null
+          auto_transfer_triggers?: string[] | null
+          autonomy_profile?: string | null
+          catalog_access?: boolean | null
           created_at?: string | null
           custom_layer_1_model?: string | null
           custom_layer_2_model?: string | null
@@ -93,25 +145,42 @@ export type Database = {
           enable_tri_modal?: boolean | null
           enable_uopa_agent?: boolean | null
           enable_vendedor_cloning?: boolean | null
+          escalation_cooldown_minutes?: number | null
+          escalation_rules?: Json | null
+          flow_fallback_to_rotation?: boolean | null
+          flow_integration_enabled?: boolean | null
+          flow_notify_on_fallback?: boolean | null
           followup_interval_minutes?: number | null
+          greeting?: string | null
           human_delay_enabled?: boolean | null
           id?: string
           is_active?: boolean | null
+          is_enabled?: boolean | null
+          knowledge_base?: string[] | null
           layer_1_model?: string | null
           layer_2_model?: string | null
           layer_3_model?: string | null
           max_delay_seconds?: number | null
           max_followups?: number | null
           max_gpt4o_calls_per_day?: number | null
+          max_interactions?: number | null
           min_delay_seconds?: number | null
+          minimum_price_triggers?: string[] | null
+          mode_switch_rules?: Json | null
           niche_category?: string | null
           orchestration_rules?: Json | null
+          orchestrator_config?: Json | null
+          payment_config?: Json | null
+          personality?: string | null
           personality_prompt?: string | null
           persuasion_level?: number | null
           prohibited_phrases?: string[] | null
+          scheduling_config?: Json | null
           tenant_id?: string | null
           tone_voice?: string | null
+          typing_indicator_enabled?: boolean | null
           updated_at?: string | null
+          use_minimum_price_in_recovery?: boolean | null
           working_hours?: Json | null
         }
         Relationships: [
@@ -475,6 +544,86 @@ export type Database = {
           },
         ]
       }
+      automation_flows: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          last_run_at: string | null
+          name: string
+          run_count: number | null
+          steps: Json | null
+          success_count: number | null
+          tenant_id: string
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          name: string
+          run_count?: number | null
+          steps?: Json | null
+          success_count?: number | null
+          tenant_id: string
+          trigger_config?: Json | null
+          trigger_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_run_at?: string | null
+          name?: string
+          run_count?: number | null
+          steps?: Json | null
+          success_count?: number | null
+          tenant_id?: string
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_flows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_flows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_flows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_flows_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       billing_subscriptions: {
         Row: {
           cancelled_at: string | null
@@ -587,50 +736,409 @@ export type Database = {
         }
         Relationships: []
       }
-      conversations: {
+      campaign_recipients: {
         Row: {
-          ai_mode: string | null
+          campaign_id: string
           created_at: string | null
+          error_message: string | null
           id: string
           lead_id: string | null
+          metadata: Json | null
+          phone: string | null
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          phone?: string | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          phone?: string | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          channel_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          failed_count: number | null
+          id: string
+          messages: Json | null
+          metadata: Json | null
+          name: string
+          scheduled_at: string | null
+          sent_count: number | null
+          started_at: string | null
+          status: string | null
+          tenant_id: string
+          total_recipients: number | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          channel_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          failed_count?: number | null
+          id?: string
+          messages?: Json | null
+          metadata?: Json | null
+          name: string
+          scheduled_at?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id: string
+          total_recipients?: number | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          channel_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          failed_count?: number | null
+          id?: string
+          messages?: Json | null
+          metadata?: Json | null
+          name?: string
+          scheduled_at?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string
+          total_recipients?: number | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      conversation_conflicts: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          original_user_id: string | null
+          pending_user_id: string | null
+          resolution_reason: string | null
+          resolved_at: string | null
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          original_user_id?: string | null
+          pending_user_id?: string | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          original_user_id?: string | null
+          pending_user_id?: string | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_conflicts_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_conflicts_original_user_id_fkey"
+            columns: ["original_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_conflicts_pending_user_id_fkey"
+            columns: ["pending_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_conflicts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_conflicts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "conversation_conflicts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          ai_allowed_modes: Json | null
+          ai_collected_data: Json | null
+          ai_cooldown_until: string | null
+          ai_escalation_reason: string | null
+          ai_intent_score: number | null
+          ai_interaction_count: number | null
+          ai_last_escalated_at: string | null
+          ai_manual_activation: Json | null
+          ai_mode: string | null
+          ai_pause_until: string | null
+          ai_preferred_mode: string | null
+          ai_qualification_score: number | null
+          ai_status: string | null
+          assigned_to: string | null
+          broadcast_campaign_id: string | null
+          context_summary: string | null
+          created_at: string | null
+          current_flow_execution_id: string | null
+          deleted_at: string | null
+          group_jid: string | null
+          handled_by_ai: boolean | null
+          id: string
+          is_broadcast_reply: boolean | null
+          is_group: boolean | null
+          is_pinned: boolean | null
+          last_lead_message_at: string | null
+          last_message: string | null
+          last_message_time: string | null
+          last_summarized_at: string | null
+          lead_id: string | null
+          message_count_since_summary: number | null
+          muted_until: string | null
+          orchestrator_state: Json | null
+          origin_instance_id: string | null
+          previous_assignees: string[] | null
+          qualification_data: Json | null
+          qualification_status: string | null
+          reassign_count: number | null
+          resolution_notes: string | null
+          resolution_reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          sla_breached_at: string | null
           status: string | null
           tenant_id: string | null
+          unread_count: number | null
           uopa_agent_activated_at: string | null
           uopa_agent_activated_by: string | null
           uopa_agent_active: boolean | null
           uopa_agent_deactivated_at: string | null
           uopa_agent_duration: string | null
           updated_at: string | null
+          whatsapp_instance_id: string | null
         }
         Insert: {
+          ai_allowed_modes?: Json | null
+          ai_collected_data?: Json | null
+          ai_cooldown_until?: string | null
+          ai_escalation_reason?: string | null
+          ai_intent_score?: number | null
+          ai_interaction_count?: number | null
+          ai_last_escalated_at?: string | null
+          ai_manual_activation?: Json | null
           ai_mode?: string | null
+          ai_pause_until?: string | null
+          ai_preferred_mode?: string | null
+          ai_qualification_score?: number | null
+          ai_status?: string | null
+          assigned_to?: string | null
+          broadcast_campaign_id?: string | null
+          context_summary?: string | null
           created_at?: string | null
+          current_flow_execution_id?: string | null
+          deleted_at?: string | null
+          group_jid?: string | null
+          handled_by_ai?: boolean | null
           id?: string
+          is_broadcast_reply?: boolean | null
+          is_group?: boolean | null
+          is_pinned?: boolean | null
+          last_lead_message_at?: string | null
+          last_message?: string | null
+          last_message_time?: string | null
+          last_summarized_at?: string | null
           lead_id?: string | null
+          message_count_since_summary?: number | null
+          muted_until?: string | null
+          orchestrator_state?: Json | null
+          origin_instance_id?: string | null
+          previous_assignees?: string[] | null
+          qualification_data?: Json | null
+          qualification_status?: string | null
+          reassign_count?: number | null
+          resolution_notes?: string | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sla_breached_at?: string | null
           status?: string | null
           tenant_id?: string | null
+          unread_count?: number | null
           uopa_agent_activated_at?: string | null
           uopa_agent_activated_by?: string | null
           uopa_agent_active?: boolean | null
           uopa_agent_deactivated_at?: string | null
           uopa_agent_duration?: string | null
           updated_at?: string | null
+          whatsapp_instance_id?: string | null
         }
         Update: {
+          ai_allowed_modes?: Json | null
+          ai_collected_data?: Json | null
+          ai_cooldown_until?: string | null
+          ai_escalation_reason?: string | null
+          ai_intent_score?: number | null
+          ai_interaction_count?: number | null
+          ai_last_escalated_at?: string | null
+          ai_manual_activation?: Json | null
           ai_mode?: string | null
+          ai_pause_until?: string | null
+          ai_preferred_mode?: string | null
+          ai_qualification_score?: number | null
+          ai_status?: string | null
+          assigned_to?: string | null
+          broadcast_campaign_id?: string | null
+          context_summary?: string | null
           created_at?: string | null
+          current_flow_execution_id?: string | null
+          deleted_at?: string | null
+          group_jid?: string | null
+          handled_by_ai?: boolean | null
           id?: string
+          is_broadcast_reply?: boolean | null
+          is_group?: boolean | null
+          is_pinned?: boolean | null
+          last_lead_message_at?: string | null
+          last_message?: string | null
+          last_message_time?: string | null
+          last_summarized_at?: string | null
           lead_id?: string | null
+          message_count_since_summary?: number | null
+          muted_until?: string | null
+          orchestrator_state?: Json | null
+          origin_instance_id?: string | null
+          previous_assignees?: string[] | null
+          qualification_data?: Json | null
+          qualification_status?: string | null
+          reassign_count?: number | null
+          resolution_notes?: string | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sla_breached_at?: string | null
           status?: string | null
           tenant_id?: string | null
+          unread_count?: number | null
           uopa_agent_activated_at?: string | null
           uopa_agent_activated_by?: string | null
           uopa_agent_active?: boolean | null
           uopa_agent_deactivated_at?: string | null
           uopa_agent_duration?: string | null
           updated_at?: string | null
+          whatsapp_instance_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "conversations_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversations_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -709,6 +1217,143 @@ export type Database = {
           },
         ]
       }
+      ecommerce_config: {
+        Row: {
+          accent_color: string | null
+          business_address: string | null
+          business_hours: Json | null
+          created_at: string | null
+          favicon_url: string | null
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          store_name: string | null
+          tenant_id: string
+          updated_at: string | null
+          welcome_message: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          business_address?: string | null
+          business_hours?: Json | null
+          created_at?: string | null
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          store_name?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          welcome_message?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          business_address?: string | null
+          business_hours?: Json | null
+          created_at?: string | null
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          store_name?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          welcome_message?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      event_queue: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string
+          id: string
+          payload: Json | null
+          priority: number
+          processed_at: string | null
+          retry_count: number | null
+          scheduled_for: string | null
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload?: Json | null
+          priority?: number
+          processed_at?: string | null
+          retry_count?: number | null
+          scheduled_for?: string | null
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          priority?: number
+          processed_at?: string | null
+          retry_count?: number | null
+          scheduled_for?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "event_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       feature_flags: {
         Row: {
           created_at: string | null
@@ -741,6 +1386,159 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      flow_executions: {
+        Row: {
+          completed_at: string | null
+          conversation_id: string | null
+          current_step_index: number | null
+          error_count: number | null
+          error_message: string | null
+          flow_id: string
+          id: string
+          lead_id: string | null
+          next_step_at: string | null
+          started_at: string | null
+          status: string | null
+          tenant_id: string
+          variables: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          conversation_id?: string | null
+          current_step_index?: number | null
+          error_count?: number | null
+          error_message?: string | null
+          flow_id: string
+          id?: string
+          lead_id?: string | null
+          next_step_at?: string | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id: string
+          variables?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          conversation_id?: string | null
+          current_step_index?: number | null
+          error_count?: number | null
+          error_message?: string | null
+          flow_id?: string
+          id?: string
+          lead_id?: string | null
+          next_step_at?: string | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_executions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_executions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_executions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "flow_executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      group_campaign_sends: {
+        Row: {
+          campaign_id: string | null
+          created_at: string | null
+          error_message: string | null
+          group_jid: string
+          id: string
+          sent_at: string | null
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          group_jid: string
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          group_jid?: string
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_campaign_sends_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_campaign_sends_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_campaign_sends_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "group_campaign_sends_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
       impersonate_sessions: {
         Row: {
@@ -903,6 +1701,91 @@ export type Database = {
           },
         ]
       }
+      lead_ai_suggestions: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          confidence: number | null
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          status: string | null
+          suggestion: Json
+          tenant_id: string
+          type: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          confidence?: number | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          status?: string | null
+          suggestion: Json
+          tenant_id: string
+          type: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          confidence?: number | null
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          status?: string | null
+          suggestion?: Json
+          tenant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_ai_suggestions_applied_by_fkey"
+            columns: ["applied_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_ai_suggestions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_ai_suggestions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_ai_suggestions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_ai_suggestions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "lead_ai_suggestions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       lead_memory: {
         Row: {
           communication_style: string | null
@@ -941,6 +1824,134 @@ export type Database = {
           urgency_level?: string | null
         }
         Relationships: []
+      }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          avatar: string | null
+          birth_date: string | null
+          created_at: string | null
+          custom_fields: Json | null
+          deleted_at: string | null
+          email: string | null
+          funnel_id: string | null
+          funnel_stage_id: string | null
+          id: string
+          import_campaign_id: string | null
+          import_source: string | null
+          meta_ads_referral: Json | null
+          name: string | null
+          phone: string
+          product_id: string | null
+          product_interest: string | null
+          profile_data: Json | null
+          source: string | null
+          stage: string | null
+          tags: string[] | null
+          temperature: string | null
+          tenant_id: string
+          updated_at: string | null
+          value: number | null
+          whatsapp_about: string | null
+          whatsapp_is_online: boolean | null
+          whatsapp_last_seen: string | null
+          whatsapp_profile_picture: string | null
+          whatsapp_verified: boolean | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          avatar?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          custom_fields?: Json | null
+          deleted_at?: string | null
+          email?: string | null
+          funnel_id?: string | null
+          funnel_stage_id?: string | null
+          id?: string
+          import_campaign_id?: string | null
+          import_source?: string | null
+          meta_ads_referral?: Json | null
+          name?: string | null
+          phone: string
+          product_id?: string | null
+          product_interest?: string | null
+          profile_data?: Json | null
+          source?: string | null
+          stage?: string | null
+          tags?: string[] | null
+          temperature?: string | null
+          tenant_id: string
+          updated_at?: string | null
+          value?: number | null
+          whatsapp_about?: string | null
+          whatsapp_is_online?: boolean | null
+          whatsapp_last_seen?: string | null
+          whatsapp_profile_picture?: string | null
+          whatsapp_verified?: boolean | null
+        }
+        Update: {
+          assigned_to?: string | null
+          avatar?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          custom_fields?: Json | null
+          deleted_at?: string | null
+          email?: string | null
+          funnel_id?: string | null
+          funnel_stage_id?: string | null
+          id?: string
+          import_campaign_id?: string | null
+          import_source?: string | null
+          meta_ads_referral?: Json | null
+          name?: string | null
+          phone?: string
+          product_id?: string | null
+          product_interest?: string | null
+          profile_data?: Json | null
+          source?: string | null
+          stage?: string | null
+          tags?: string[] | null
+          temperature?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+          value?: number | null
+          whatsapp_about?: string | null
+          whatsapp_is_online?: boolean | null
+          whatsapp_last_seen?: string | null
+          whatsapp_profile_picture?: string | null
+          whatsapp_verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "leads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
       master_ai_prompts: {
         Row: {
@@ -1268,6 +2279,80 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          ai_confidence: number | null
+          ai_metadata: Json | null
+          attachments: Json | null
+          audio_summary: string | null
+          content: string | null
+          conversation_id: string
+          created_at: string | null
+          external_message_id: string | null
+          id: string
+          is_from_lead: boolean | null
+          metadata: Json | null
+          reaction: string | null
+          reply_to_id: string | null
+          sent_by_ai: boolean | null
+          status: string | null
+          transcription: string | null
+          transcription_status: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_confidence?: number | null
+          ai_metadata?: Json | null
+          attachments?: Json | null
+          audio_summary?: string | null
+          content?: string | null
+          conversation_id: string
+          created_at?: string | null
+          external_message_id?: string | null
+          id?: string
+          is_from_lead?: boolean | null
+          metadata?: Json | null
+          reaction?: string | null
+          reply_to_id?: string | null
+          sent_by_ai?: boolean | null
+          status?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_confidence?: number | null
+          ai_metadata?: Json | null
+          attachments?: Json | null
+          audio_summary?: string | null
+          content?: string | null
+          conversation_id?: string
+          created_at?: string | null
+          external_message_id?: string | null
+          id?: string
+          is_from_lead?: boolean | null
+          metadata?: Json | null
+          reaction?: string | null
+          reply_to_id?: string | null
+          sent_by_ai?: boolean | null
+          status?: string | null
+          transcription?: string | null
+          transcription_status?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       niche_templates: {
         Row: {
           created_at: string | null
@@ -1306,6 +2391,71 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          id: string
+          message: string | null
+          read_at: string | null
+          tenant_id: string
+          title: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message?: string | null
+          read_at?: string | null
+          tenant_id: string
+          title?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message?: string | null
+          read_at?: string | null
+          tenant_id?: string
+          title?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       objection_handlers: {
         Row: {
@@ -1509,13 +2659,24 @@ export type Database = {
       }
       products: {
         Row: {
+          ai_can_use_minimum_price: boolean | null
+          category_id: string | null
           created_at: string | null
+          custom_fields: Json | null
+          deleted_at: string | null
           description: string | null
+          display_size: string | null
           id: string
           image_url: string | null
+          internal_notes: string | null
           is_active: boolean | null
+          is_featured: boolean | null
+          is_published: boolean | null
+          minimum_price: number | null
           name: string
           price: number | null
+          reserved_by: string | null
+          seller_badge: string | null
           sku: string | null
           tenant_id: string
           updated_at: string | null
@@ -1523,13 +2684,24 @@ export type Database = {
           wholesale_price: number | null
         }
         Insert: {
+          ai_can_use_minimum_price?: boolean | null
+          category_id?: string | null
           created_at?: string | null
+          custom_fields?: Json | null
+          deleted_at?: string | null
           description?: string | null
+          display_size?: string | null
           id?: string
           image_url?: string | null
+          internal_notes?: string | null
           is_active?: boolean | null
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          minimum_price?: number | null
           name: string
           price?: number | null
+          reserved_by?: string | null
+          seller_badge?: string | null
           sku?: string | null
           tenant_id: string
           updated_at?: string | null
@@ -1537,13 +2709,24 @@ export type Database = {
           wholesale_price?: number | null
         }
         Update: {
+          ai_can_use_minimum_price?: boolean | null
+          category_id?: string | null
           created_at?: string | null
+          custom_fields?: Json | null
+          deleted_at?: string | null
           description?: string | null
+          display_size?: string | null
           id?: string
           image_url?: string | null
+          internal_notes?: string | null
           is_active?: boolean | null
+          is_featured?: boolean | null
+          is_published?: boolean | null
+          minimum_price?: number | null
           name?: string
           price?: number | null
+          reserved_by?: string | null
+          seller_badge?: string | null
           sku?: string | null
           tenant_id?: string
           updated_at?: string | null
@@ -1576,25 +2759,70 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_profile_id: string | null
+          avatar: string | null
           created_at: string | null
+          department: string | null
+          email: string | null
           full_name: string | null
           id: string
+          is_active: boolean | null
+          is_online: boolean | null
+          last_assigned_at: string | null
+          name: string | null
+          notify_all_new_messages: boolean | null
+          onboarding_completed_at: string | null
+          participates_in_rotation: boolean | null
+          pause_reason: string | null
+          paused_at: string | null
+          phone: string | null
           role: string | null
           tenant_id: string | null
+          updated_at: string | null
         }
         Insert: {
+          access_profile_id?: string | null
+          avatar?: string | null
           created_at?: string | null
+          department?: string | null
+          email?: string | null
           full_name?: string | null
           id: string
+          is_active?: boolean | null
+          is_online?: boolean | null
+          last_assigned_at?: string | null
+          name?: string | null
+          notify_all_new_messages?: boolean | null
+          onboarding_completed_at?: string | null
+          participates_in_rotation?: boolean | null
+          pause_reason?: string | null
+          paused_at?: string | null
+          phone?: string | null
           role?: string | null
           tenant_id?: string | null
+          updated_at?: string | null
         }
         Update: {
+          access_profile_id?: string | null
+          avatar?: string | null
           created_at?: string | null
+          department?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean | null
+          is_online?: boolean | null
+          last_assigned_at?: string | null
+          name?: string | null
+          notify_all_new_messages?: boolean | null
+          onboarding_completed_at?: string | null
+          participates_in_rotation?: boolean | null
+          pause_reason?: string | null
+          paused_at?: string | null
+          phone?: string | null
           role?: string | null
           tenant_id?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -1617,6 +2845,297 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth_key: string
+          created_at: string | null
+          device_token: string | null
+          endpoint: string
+          id: string
+          is_active: boolean | null
+          last_push_received_at: string | null
+          p256dh_key: string
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auth_key: string
+          created_at?: string | null
+          device_token?: string | null
+          endpoint: string
+          id?: string
+          is_active?: boolean | null
+          last_push_received_at?: string | null
+          p256dh_key: string
+          tenant_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auth_key?: string
+          created_at?: string | null
+          device_token?: string | null
+          endpoint?: string
+          id?: string
+          is_active?: boolean | null
+          last_push_received_at?: string | null
+          p256dh_key?: string
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quick_replies: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_global: boolean | null
+          shortcut: string | null
+          tenant_id: string
+          title: string
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_global?: boolean | null
+          shortcut?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_global?: boolean | null
+          shortcut?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_replies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_replies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quick_replies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "quick_replies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "quick_replies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotation_config: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          max_concurrent_leads: number | null
+          priority: number | null
+          specialties: string[] | null
+          tenant_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_concurrent_leads?: number | null
+          priority?: number | null
+          specialties?: string[] | null
+          tenant_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_concurrent_leads?: number | null
+          priority?: number | null
+          specialties?: string[] | null
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotation_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotation_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "rotation_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "rotation_config_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_goals: {
+        Row: {
+          created_at: string | null
+          current_count: number | null
+          current_value: number | null
+          id: string
+          period_end: string
+          period_start: string
+          period_type: string
+          target_count: number | null
+          target_value: number
+          tenant_id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_count?: number | null
+          current_value?: number | null
+          id?: string
+          period_end: string
+          period_start: string
+          period_type?: string
+          target_count?: number | null
+          target_value?: number
+          tenant_id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_count?: number | null
+          current_value?: number | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          target_count?: number | null
+          target_value?: number
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_goals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_goals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sales_goals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sales_goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1688,6 +3207,170 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      sla_config: {
+        Row: {
+          auto_reassign: boolean | null
+          created_at: string | null
+          first_response_time_minutes: number | null
+          id: string
+          is_enabled: boolean | null
+          notify_on_sla_breach: boolean | null
+          reassign_pool: string[] | null
+          tenant_id: string
+          timeout_minutes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_reassign?: boolean | null
+          created_at?: string | null
+          first_response_time_minutes?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          notify_on_sla_breach?: boolean | null
+          reassign_pool?: string[] | null
+          tenant_id: string
+          timeout_minutes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_reassign?: boolean | null
+          created_at?: string | null
+          first_response_time_minutes?: number | null
+          id?: string
+          is_enabled?: boolean | null
+          notify_on_sla_breach?: boolean | null
+          reassign_pool?: string[] | null
+          tenant_id?: string
+          timeout_minutes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "sla_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          conversation_id: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          lead_id: string | null
+          priority: string | null
+          reminder_before_days: number | null
+          reminder_sent_at: string | null
+          reminder_time_sent_at: string | null
+          status: string | null
+          tenant_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          lead_id?: string | null
+          priority?: string | null
+          reminder_before_days?: number | null
+          reminder_sent_at?: string | null
+          reminder_time_sent_at?: string | null
+          status?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          lead_id?: string | null
+          priority?: string | null
+          reminder_before_days?: number | null
+          reminder_sent_at?: string | null
+          reminder_time_sent_at?: string | null
+          status?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
       template_sync_history: {
         Row: {
@@ -2374,21 +4057,21 @@ export type Database = {
           {
             foreignKeyName: "tenant_usage_tenant_id_fkey"
             columns: ["tenant_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "tenant_usage_tenant_id_fkey"
             columns: ["tenant_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "tenant_usage_tenant_id_fkey"
             columns: ["tenant_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
@@ -2719,6 +4402,72 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          created_at: string | null
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          permission: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          permission: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          permission?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "user_permissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           granted_at: string | null
@@ -3038,6 +4787,208 @@ export type Database = {
           },
         ]
       }
+      whatsapp_groups: {
+        Row: {
+          announce_only: boolean | null
+          created_at: string | null
+          creation: number | null
+          description: string | null
+          id: string
+          invite_link: string | null
+          is_archived: boolean | null
+          is_community: boolean | null
+          is_community_announce: boolean | null
+          is_muted: boolean | null
+          is_pinned: boolean | null
+          jid: string
+          last_sync_at: string | null
+          owner: string | null
+          participants: Json | null
+          profile_picture: string | null
+          restrict_send: boolean | null
+          size: number | null
+          subject: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          announce_only?: boolean | null
+          created_at?: string | null
+          creation?: number | null
+          description?: string | null
+          id?: string
+          invite_link?: string | null
+          is_archived?: boolean | null
+          is_community?: boolean | null
+          is_community_announce?: boolean | null
+          is_muted?: boolean | null
+          is_pinned?: boolean | null
+          jid: string
+          last_sync_at?: string | null
+          owner?: string | null
+          participants?: Json | null
+          profile_picture?: string | null
+          restrict_send?: boolean | null
+          size?: number | null
+          subject?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          announce_only?: boolean | null
+          created_at?: string | null
+          creation?: number | null
+          description?: string | null
+          id?: string
+          invite_link?: string | null
+          is_archived?: boolean | null
+          is_community?: boolean | null
+          is_community_announce?: boolean | null
+          is_muted?: boolean | null
+          is_pinned?: boolean | null
+          jid?: string
+          last_sync_at?: string | null
+          owner?: string | null
+          participants?: Json | null
+          profile_picture?: string | null
+          restrict_send?: boolean | null
+          size?: number | null
+          subject?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      whatsapp_instances: {
+        Row: {
+          assigned_seller_id: string | null
+          channel_status: string | null
+          created_at: string | null
+          daily_message_limit: number | null
+          description: string | null
+          display_name: string | null
+          fixed_seller_id: string | null
+          health_score: number | null
+          id: string
+          instance_id: string | null
+          instance_token: string
+          is_active: boolean | null
+          is_primary: boolean | null
+          last_connected_at: string | null
+          last_health_check: string | null
+          main_instance_id: string | null
+          messages_sent_today: number | null
+          name: string | null
+          phone_number: string | null
+          qr_code: string | null
+          role: string | null
+          routing_mode: string | null
+          status: string | null
+          tenant_id: string
+          type: string | null
+          uazapi_instance_name: string | null
+          updated_at: string | null
+          used_for_campaigns: boolean | null
+          warning_message: string | null
+          webhook_last_verified: string | null
+          webhook_status: string | null
+          webhook_token: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          assigned_seller_id?: string | null
+          channel_status?: string | null
+          created_at?: string | null
+          daily_message_limit?: number | null
+          description?: string | null
+          display_name?: string | null
+          fixed_seller_id?: string | null
+          health_score?: number | null
+          id?: string
+          instance_id?: string | null
+          instance_token: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          last_connected_at?: string | null
+          last_health_check?: string | null
+          main_instance_id?: string | null
+          messages_sent_today?: number | null
+          name?: string | null
+          phone_number?: string | null
+          qr_code?: string | null
+          role?: string | null
+          routing_mode?: string | null
+          status?: string | null
+          tenant_id: string
+          type?: string | null
+          uazapi_instance_name?: string | null
+          updated_at?: string | null
+          used_for_campaigns?: boolean | null
+          warning_message?: string | null
+          webhook_last_verified?: string | null
+          webhook_status?: string | null
+          webhook_token?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          assigned_seller_id?: string | null
+          channel_status?: string | null
+          created_at?: string | null
+          daily_message_limit?: number | null
+          description?: string | null
+          display_name?: string | null
+          fixed_seller_id?: string | null
+          health_score?: number | null
+          id?: string
+          instance_id?: string | null
+          instance_token?: string
+          is_active?: boolean | null
+          is_primary?: boolean | null
+          last_connected_at?: string | null
+          last_health_check?: string | null
+          main_instance_id?: string | null
+          messages_sent_today?: number | null
+          name?: string | null
+          phone_number?: string | null
+          qr_code?: string | null
+          role?: string | null
+          routing_mode?: string | null
+          status?: string | null
+          tenant_id?: string
+          type?: string | null
+          uazapi_instance_name?: string | null
+          updated_at?: string | null
+          used_for_campaigns?: boolean | null
+          warning_message?: string | null
+          webhook_last_verified?: string | null
+          webhook_status?: string | null
+          webhook_token?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_ai_diagnostics: {
@@ -3188,6 +5139,11 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: undefined
       }
+      get_auth_tenant_id: { Args: never; Returns: string }
+      get_instance_token_direct: {
+        Args: { p_instance_id: string; p_tenant_id?: string }
+        Returns: string
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -3219,6 +5175,7 @@ export type Database = {
         Args: { _bytes: number; _user_id: string }
         Returns: undefined
       }
+      is_master_tenant: { Args: never; Returns: boolean }
       log_audit: {
         Args: {
           _action: string
@@ -3257,6 +5214,15 @@ export type Database = {
         | "whatsapp_connected"
         | "training_done"
         | "go_live"
+      permission_type:
+        | "manage_team"
+        | "manage_products"
+        | "manage_leads"
+        | "manage_ai_config"
+        | "view_reports"
+        | "send_messages"
+        | "manage_integrations"
+        | "manage_store"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3391,6 +5357,16 @@ export const Constants = {
         "whatsapp_connected",
         "training_done",
         "go_live",
+      ],
+      permission_type: [
+        "manage_team",
+        "manage_products",
+        "manage_leads",
+        "manage_ai_config",
+        "view_reports",
+        "send_messages",
+        "manage_integrations",
+        "manage_store",
       ],
     },
   },
