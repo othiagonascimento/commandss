@@ -211,22 +211,24 @@ serve(async (req) => {
         if (masterFeatures?.ai_use_global_config) {
           const { data: globalSettings } = await masterSupabase
             .from('master_settings')
-            .select('*')
-            .eq('key', 'ai_engine_config')
+            .select('ai_layer_1_model, ai_layer_2_model, ai_layer_3_model, ai_layer_1_instructions, ai_layer_2_instructions, ai_layer_3_instructions')
+            .eq('key', 'ai_global_engine')
             .maybeSingle();
-
-          const aiConfig = globalSettings?.value || {};
           
           await crmSupabase
             .from('ai_agent_config')
             .upsert({
               tenant_id: crmTenantId,
               is_enabled: true,
-              layer_1_model: aiConfig.ai_layer_1_model || 'gemini-2.0-flash',
-              layer_2_model: aiConfig.ai_layer_2_model || 'gpt-4o-mini',
-              layer_3_model: aiConfig.ai_layer_3_model || 'claude-3-5-sonnet-20241022',
+              layer_1_model: globalSettings?.ai_layer_1_model || 'gemini-2.0-flash',
+              layer_2_model: globalSettings?.ai_layer_2_model || 'gpt-4o-mini',
+              layer_3_model: globalSettings?.ai_layer_3_model || 'claude-3-5-sonnet-20241022',
             });
-          logStep('CRM AI config created from global settings');
+          logStep('CRM AI config created from global settings', { 
+            layer_1: globalSettings?.ai_layer_1_model,
+            layer_2: globalSettings?.ai_layer_2_model,
+            layer_3: globalSettings?.ai_layer_3_model
+          });
         }
 
         // 4. tenant_usage

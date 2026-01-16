@@ -443,6 +443,34 @@ serve(async (req) => {
 
       logStep('Tenant updated', { tenantId });
 
+      // Sync changes to CRM
+      try {
+        logStep('Syncing tenant changes to CRM...');
+        const syncResponse = await fetch(
+          `${Deno.env.get('SUPABASE_URL')}/functions/v1/sync-tenant-to-crm`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'sync',
+              tenant_id: tenantId,
+            }),
+          }
+        );
+
+        if (syncResponse.ok) {
+          const crmSyncResult = await syncResponse.json();
+          logStep('CRM sync after update successful', { crmTenantId: crmSyncResult?.crm_tenant_id });
+        } else {
+          logStep('CRM sync after update failed (non-critical)', { status: syncResponse.status });
+        }
+      } catch (syncError) {
+        logStep('CRM sync after update exception (non-critical)', { error: (syncError as Error).message });
+      }
+
       return new Response(
         JSON.stringify({ ...updatedTenant, is_active: !updatedTenant.is_blocked, slug: updatedTenant.subdomain }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
