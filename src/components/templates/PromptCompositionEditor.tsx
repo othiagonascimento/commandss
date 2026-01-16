@@ -1,19 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Eye, EyeOff, ChevronDown, Plus, X, Layers, GitMerge, Replace, Info } from 'lucide-react';
+import { Eye, EyeOff, Layers, GitMerge, Info, Sparkles, Plus, Minus, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import type { TemplateFormData, PromptMode, ComposedPrompts } from '@/types/templates';
-import type { Json } from '@/integrations/supabase/types';
+import type { TemplateFormData, ComposedPrompts } from '@/types/templates';
 
 interface BasePrompts {
   greeting: string;
@@ -31,27 +27,60 @@ const PROMPT_SECTIONS = [
 
 type PromptSectionKey = typeof PROMPT_SECTIONS[number]['key'];
 
-const MODE_INFO = {
-  inherit: {
-    label: 'Herdar',
-    description: 'Usa exatamente o prompt base das configurações gerais',
-    icon: Layers,
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10',
-  },
+// Intent detection patterns (mirrored from backend)
+const OVERRIDE_PATTERNS = [
+  /^(faça|seja|aja|atue|comporte-se|responda)\s/i,
+  /^(você é|você será|seu papel é|seu nome é)/i,
+  /^(sempre|obrigatoriamente|necessariamente)\s/i,
+];
+
+const EXCLUSION_PATTERNS = [
+  /^(não|nunca|jamais|evite|ignore|remova)\s/i,
+  /(não faça|não use|não mencione|não fale)/i,
+  /(sem usar|sem mencionar|sem falar)/i,
+];
+
+type PromptIntent = 'extend' | 'exclude' | 'override';
+
+function detectPromptIntent(line: string): PromptIntent {
+  const trimmed = line.trim();
+  if (!trimmed) return 'extend';
+
+  if (EXCLUSION_PATTERNS.some(p => p.test(trimmed))) {
+    return 'exclude';
+  }
+  if (OVERRIDE_PATTERNS.some(p => p.test(trimmed))) {
+    return 'override';
+  }
+  return 'extend';
+}
+
+function analyzeContent(content: string) {
+  const lines = content.trim().split('\n').filter(l => l.trim());
+  return lines.map(line => ({
+    line: line.trim(),
+    intent: detectPromptIntent(line),
+  }));
+}
+
+const INTENT_INFO = {
   extend: {
-    label: 'Complementar',
-    description: 'Adiciona conteúdo ao prompt base (qualidade garantida)',
-    icon: GitMerge,
-    color: 'text-green-500',
-    bgColor: 'bg-green-500/10',
+    label: 'Complemento',
+    icon: Plus,
+    color: 'text-green-600',
+    bgColor: 'bg-green-500/10 border-green-500/30',
+  },
+  exclude: {
+    label: 'Exclusão',
+    icon: Minus,
+    color: 'text-red-600',
+    bgColor: 'bg-red-500/10 border-red-500/30',
   },
   override: {
-    label: 'Substituir',
-    description: 'Substitui completamente o prompt base',
-    icon: Replace,
-    color: 'text-amber-500',
-    bgColor: 'bg-amber-500/10',
+    label: 'Substituição',
+    icon: RefreshCw,
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-500/10 border-amber-500/30',
   },
 };
 
@@ -59,12 +88,11 @@ export function PromptCompositionEditor() {
   const { watch, setValue, getValues } = useFormContext<TemplateFormData>();
   const [activeTab, setActiveTab] = useState<string>('greeting');
   const [showPreview, setShowPreview] = useState(false);
-  const [expandedExclusions, setExpandedExclusions] = useState(false);
-  const [localComposition, setLocalComposition] = useState<ComposedPrompts>({
-    greeting: { mode: 'inherit', content: '', excludes: [] },
-    system_prompt: { mode: 'inherit', content: '', excludes: [] },
-    objection_handlers: { mode: 'inherit', content: '', excludes: [] },
-    qualification_criteria: { mode: 'inherit', content: '', excludes: [] },
+  const [localContent, setLocalContent] = useState<Record<PromptSectionKey, string>>({
+    greeting: '',
+    system_prompt: '',
+    objection_handlers: '',
+    qualification_criteria: '',
   });
 
   const prompts = watch('prompts');
@@ -119,108 +147,90 @@ export function PromptCompositionEditor() {
   // Sync local state with form data
   useEffect(() => {
     if (prompts?.composition) {
-      setLocalComposition(prompts.composition);
+      const updated = { ...localContent };
+      for (const section of PROMPT_SECTIONS) {
+        const comp = prompts.composition[section.key];
+        if (comp?.content) {
+          updated[section.key] = comp.content;
+        }
+      }
+      setLocalContent(updated);
     }
   }, [prompts?.composition]);
 
-  // Update form when local state changes
-  const updateComposition = (section: PromptSectionKey, field: 'mode' | 'content' | 'excludes', value: unknown) => {
-    const updated = {
-      ...localComposition,
-      [section]: {
-        ...localComposition[section],
-        [field]: value,
-      },
-    };
-    setLocalComposition(updated);
+  // Update form when content changes
+  const updateContent = (section: PromptSectionKey, value: string) => {
+    setLocalContent(prev => ({ ...prev, [section]: value }));
     
-    // Update form value using type assertion
     const currentPrompts = getValues('prompts');
+    const currentComposition = currentPrompts?.composition || {};
+    
     setValue('prompts', {
       ...currentPrompts,
-      composition: updated,
+      composition: {
+        ...currentComposition,
+        [section]: {
+          mode: 'extend', // Always use extend for intelligent composition
+          content: value,
+          excludes: [],
+        },
+      },
     } as typeof currentPrompts);
-    
-    // Also update legacy field for backward compatibility
-    if (field === 'content' && (section === 'greeting' || section === 'system_prompt')) {
-      const mode = updated[section].mode;
-      if (mode === 'override') {
-        setValue(`prompts.${section}`, String(value));
-      }
+  };
+
+  // Analyze content for each section
+  const analysis = useMemo(() => {
+    const result: Record<string, ReturnType<typeof analyzeContent>> = {};
+    for (const section of PROMPT_SECTIONS) {
+      result[section.key] = analyzeContent(localContent[section.key] || '');
     }
-  };
+    return result;
+  }, [localContent]);
 
-  // Helper functions for accessing composition data
-  const getMode = (section: PromptSectionKey): PromptMode => {
-    return localComposition[section]?.mode || 'inherit';
-  };
-
-  const getContent = (section: PromptSectionKey): string => {
-    return localComposition[section]?.content || '';
-  };
-
-  const getExcludes = (section: PromptSectionKey): string[] => {
-    return localComposition[section]?.excludes || [];
-  };
-
-  const setMode = (section: PromptSectionKey, mode: PromptMode) => {
-    updateComposition(section, 'mode', mode);
-  };
-
-  const setContent = (section: PromptSectionKey, content: string) => {
-    updateComposition(section, 'content', content);
-  };
-
-  const addExclusion = (section: PromptSectionKey) => {
-    const current = getExcludes(section);
-    updateComposition(section, 'excludes', [...current, '']);
-  };
-
-  const removeExclusion = (section: PromptSectionKey, index: number) => {
-    const current = getExcludes(section);
-    updateComposition(section, 'excludes', current.filter((_, i) => i !== index));
-  };
-
-  const updateExclusion = (section: PromptSectionKey, index: number, value: string) => {
-    const current = getExcludes(section);
-    const updated = [...current];
-    updated[index] = value;
-    updateComposition(section, 'excludes', updated);
-  };
-
-  // Compose the final prompt for preview
+  // Compose final prompt for preview
   const composePrompt = (section: PromptSectionKey): string => {
-    const mode = getMode(section);
-    const content = getContent(section);
-    const excludes = getExcludes(section);
     const base = basePrompts[section] || '';
+    const content = localContent[section] || '';
+    
+    if (!content.trim()) return base;
+    if (!base.trim()) return content;
 
-    let result = '';
+    const analyzed = analysis[section] || [];
+    const extensions = analyzed.filter(a => a.intent === 'extend').map(a => a.line);
+    const exclusions = analyzed.filter(a => a.intent === 'exclude').map(a => a.line);
+    const overrides = analyzed.filter(a => a.intent === 'override').map(a => a.line);
 
-    switch (mode) {
-      case 'inherit':
-        result = base;
-        break;
-      case 'extend':
-        result = `${base}\n\n---\n\n### Adições do Template:\n${content}`;
-        break;
-      case 'override':
-        result = content;
-        break;
+    let result = base;
+
+    // Mark exclusions
+    exclusions.forEach(ex => {
+      const target = ex.replace(/^(não|nunca|jamais|evite|ignore|remova)\s+/i, '')
+                       .replace(/(faça|use|mencione|fale)\s*/i, '');
+      const regex = new RegExp(target, 'gi');
+      result = result.replace(regex, `~~$&~~`);
+    });
+
+    // Show overrides at top
+    if (overrides.length > 0) {
+      result = `🔄 **Substituições:**\n${overrides.join('\n')}\n\n---\n\n${result}`;
     }
 
-    // Apply exclusions
-    if (excludes.length > 0 && result) {
-      excludes.forEach(exclusion => {
-        if (exclusion.trim()) {
-          // Mark exclusions with strikethrough for preview
-          const regex = new RegExp(exclusion.trim(), 'gi');
-          result = result.replace(regex, `~~$&~~`);
-        }
-      });
+    // Show extensions at bottom
+    if (extensions.length > 0) {
+      result = `${result}\n\n---\n\n✨ **Complementos:**\n${extensions.join('\n')}`;
     }
 
     return result;
+  };
+
+  const getContentStats = (section: PromptSectionKey) => {
+    const analyzed = analysis[section] || [];
+    return {
+      extends: analyzed.filter(a => a.intent === 'extend').length,
+      excludes: analyzed.filter(a => a.intent === 'exclude').length,
+      overrides: analyzed.filter(a => a.intent === 'override').length,
+      total: analyzed.length,
+    };
   };
 
   return (
@@ -228,11 +238,11 @@ export function PromptCompositionEditor() {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-medium flex items-center gap-2">
-            <GitMerge className="h-5 w-5 text-primary" />
-            Composição de Prompts
+            <Sparkles className="h-5 w-5 text-primary" />
+            Composição Inteligente de Prompts
           </h3>
           <p className="text-sm text-muted-foreground">
-            Configure como os prompts deste template interagem com as configurações gerais
+            Escreva naturalmente - o sistema detecta automaticamente a intenção
           </p>
         </div>
         <Button
@@ -242,21 +252,30 @@ export function PromptCompositionEditor() {
           onClick={() => setShowPreview(!showPreview)}
         >
           {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-          {showPreview ? 'Ocultar Preview' : 'Ver Preview Composto'}
+          {showPreview ? 'Ocultar Preview' : 'Ver Preview'}
         </Button>
       </div>
 
-      {/* Info Box */}
+      {/* Info Box - Simplified */}
       <Card className="bg-muted/30 border-dashed">
         <CardContent className="pt-4">
           <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-muted-foreground mt-0.5" />
+            <Info className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
             <div className="text-sm">
-              <p className="font-medium">Como funciona a composição inteligente</p>
-              <ul className="mt-2 space-y-1 text-muted-foreground">
-                <li><strong className="text-blue-500">Herdar:</strong> Usa o prompt base das configurações gerais (recomendado para começar)</li>
-                <li><strong className="text-green-500">Complementar:</strong> Adiciona instruções específicas do nicho ao prompt base</li>
-                <li><strong className="text-amber-500">Substituir:</strong> Ignora o prompt base e usa apenas o definido aqui</li>
+              <p className="font-medium mb-2">Como funciona a composição inteligente</p>
+              <ul className="space-y-1 text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <Plus className="h-3 w-3 text-green-500" />
+                  <span>Texto normal será <strong className="text-green-600">adicionado</strong> ao prompt base</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Minus className="h-3 w-3 text-red-500" />
+                  <span>"Não faça X" ou "Evite X" será <strong className="text-red-600">removido</strong> do prompt base</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <RefreshCw className="h-3 w-3 text-amber-500" />
+                  <span>"Faça X", "Seja X" ou "Sempre X" <strong className="text-amber-600">substituirá</strong> comportamento similar</span>
+                </li>
               </ul>
             </div>
           </div>
@@ -265,156 +284,91 @@ export function PromptCompositionEditor() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
-          {PROMPT_SECTIONS.map((section) => (
-            <TabsTrigger key={section.key} value={section.key} className="relative">
-              {section.label}
-              {getMode(section.key) !== 'inherit' && (
-                <Badge 
-                  variant="secondary" 
-                  className={`absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-[10px] ${
-                    getMode(section.key) === 'extend' ? 'bg-green-500/20 text-green-600' : 'bg-amber-500/20 text-amber-600'
-                  }`}
-                >
-                  {getMode(section.key) === 'extend' ? '+' : '↻'}
-                </Badge>
-              )}
-            </TabsTrigger>
-          ))}
+          {PROMPT_SECTIONS.map((section) => {
+            const stats = getContentStats(section.key);
+            return (
+              <TabsTrigger key={section.key} value={section.key} className="relative">
+                {section.label}
+                {stats.total > 0 && (
+                  <Badge 
+                    variant="secondary" 
+                    className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-primary/20 text-primary"
+                  >
+                    {stats.total}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         {PROMPT_SECTIONS.map((section) => (
           <TabsContent key={section.key} value={section.key} className="space-y-4 mt-4">
-            {/* Mode Selector */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Modo de Composição</CardTitle>
-                <CardDescription>{section.description}</CardDescription>
+            {/* Base Prompt Preview */}
+            <Card className="bg-blue-500/5 border-blue-500/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-blue-500" />
+                  Prompt Base (Configurações Gerais)
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <RadioGroup
-                  value={getMode(section.key)}
-                  onValueChange={(value) => setMode(section.key, value as PromptMode)}
-                  className="grid grid-cols-3 gap-4"
-                >
-                  {(Object.entries(MODE_INFO) as [PromptMode, typeof MODE_INFO.inherit][]).map(([mode, info]) => {
-                    const Icon = info.icon;
-                    return (
-                      <Label
-                        key={mode}
-                        htmlFor={`${section.key}-${mode}`}
-                        className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          getMode(section.key) === mode 
-                            ? `border-primary ${info.bgColor}` 
-                            : 'border-border hover:border-muted-foreground/50'
-                        }`}
-                      >
-                        <RadioGroupItem value={mode} id={`${section.key}-${mode}`} className="sr-only" />
-                        <Icon className={`h-5 w-5 ${info.color}`} />
-                        <span className="font-medium text-sm">{info.label}</span>
-                        <span className="text-xs text-muted-foreground text-center">{info.description}</span>
-                      </Label>
-                    );
-                  })}
-                </RadioGroup>
+                <div className="bg-background/50 rounded-lg p-3 max-h-32 overflow-y-auto">
+                  <pre className="text-xs whitespace-pre-wrap font-mono text-muted-foreground">
+                    {basePrompts[section.key as keyof BasePrompts] || '(não configurado)'}
+                  </pre>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Base Prompt Preview (for inherit/extend modes) */}
-            {getMode(section.key) !== 'override' && (
-              <Card className="bg-blue-500/5 border-blue-500/20">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Layers className="h-4 w-4 text-blue-500" />
-                    Prompt Base (Configurações Gerais)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-background/50 rounded-lg p-3 max-h-40 overflow-y-auto">
-                    <pre className="text-xs whitespace-pre-wrap font-mono text-muted-foreground">
-                      {basePrompts[section.key as keyof BasePrompts] || '(não configurado)'}
-                    </pre>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Content Editor */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <GitMerge className="h-4 w-4 text-primary" />
+                  Instruções Específicas do Nicho
+                </CardTitle>
+                <CardDescription>{section.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea
+                  placeholder={`Digite instruções específicas para ${section.label.toLowerCase()}...
 
-            {/* Content Editor (for extend/override modes) */}
-            {getMode(section.key) !== 'inherit' && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    {getMode(section.key) === 'extend' ? (
-                      <>
-                        <GitMerge className="h-4 w-4 text-green-500" />
-                        Adicionar ao Prompt Base
-                      </>
-                    ) : (
-                      <>
-                        <Replace className="h-4 w-4 text-amber-500" />
-                        Substituir Prompt Completo
-                      </>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Textarea
-                    placeholder={
-                      getMode(section.key) === 'extend'
-                        ? 'Adicione instruções específicas para este nicho...'
-                        : 'Escreva o prompt completo que substituirá o base...'
-                    }
-                    rows={8}
-                    className="font-mono text-sm"
-                    value={getContent(section.key)}
-                    onChange={(e) => setContent(section.key, e.target.value)}
-                  />
+Exemplos:
+• "Este é um e-commerce de moda feminina" (complementa)
+• "Não use gírias nas respostas" (remove do base)
+• "Sempre responda em português formal" (substitui)`}
+                  rows={8}
+                  className="font-mono text-sm"
+                  value={localContent[section.key] || ''}
+                  onChange={(e) => updateContent(section.key, e.target.value)}
+                />
 
-                  {/* Exclusions */}
-                  <Collapsible open={expandedExclusions} onOpenChange={setExpandedExclusions}>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" size="sm" className="w-full justify-between">
-                        <span className="flex items-center gap-2">
-                          <X className="h-4 w-4" />
-                          Exclusões ({getExcludes(section.key).filter(e => e.trim()).length})
-                        </span>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${expandedExclusions ? 'rotate-180' : ''}`} />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-2 pt-2">
-                      <p className="text-xs text-muted-foreground">
-                        Termos ou frases do prompt base que devem ser ignorados (ex: "não use gírias", "evite emojis")
-                      </p>
-                      {getExcludes(section.key).map((exclusion, index) => (
-                        <div key={index} className="flex gap-2">
-                          <Input
-                            placeholder='Ex: "sempre use emojis"'
-                            value={exclusion}
-                            onChange={(e) => updateExclusion(section.key, index, e.target.value)}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeExclusion(section.key, index)}
+                {/* Real-time Intent Analysis */}
+                {(analysis[section.key]?.length || 0) > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Análise automática:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {analysis[section.key]?.map((item, idx) => {
+                        const info = INTENT_INFO[item.intent];
+                        const Icon = info.icon;
+                        return (
+                          <div
+                            key={idx}
+                            className={`px-2 py-1 rounded border text-xs flex items-center gap-1 ${info.bgColor}`}
                           >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addExclusion(section.key)}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Adicionar Exclusão
-                      </Button>
-                    </CollapsibleContent>
-                  </Collapsible>
-                </CardContent>
-              </Card>
-            )}
+                            <Icon className={`h-3 w-3 ${info.color}`} />
+                            <span className="truncate max-w-[200px]" title={item.line}>
+                              {item.line.length > 30 ? `${item.line.slice(0, 30)}...` : item.line}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Composed Preview */}
             {showPreview && (

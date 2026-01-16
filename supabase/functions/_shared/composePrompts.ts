@@ -1,7 +1,8 @@
 // Prompt Composition Utility
-// Implements intelligent inheritance model for prompt composition
+// Implements intelligent inheritance model with auto-detection
 
 export type PromptMode = 'inherit' | 'extend' | 'override';
+export type PromptIntent = 'extend' | 'exclude' | 'override';
 
 export interface PromptSection {
   mode: PromptMode;
@@ -33,6 +34,91 @@ export interface ComposedPrompts {
   [key: string]: string;
 }
 
+// Patterns that indicate explicit override (replacement)
+const OVERRIDE_PATTERNS = [
+  /^(faça|seja|aja|atue|comporte-se|responda)\s/i,   // Imperative start
+  /^(você é|você será|seu papel é|seu nome é)/i,     // Identity definition
+  /^(sempre|obrigatoriamente|necessariamente)\s/i,   // Mandatory behaviors
+];
+
+// Patterns that indicate exclusion (removal from base)
+const EXCLUSION_PATTERNS = [
+  /^(não|nunca|jamais|evite|ignore|remova)\s/i,      // Negations
+  /(não faça|não use|não mencione|não fale)/i,       // Specific prohibitions
+  /(sem usar|sem mencionar|sem falar)/i,             // Prohibitions with "sem"
+];
+
+/**
+ * Detect the intent of a prompt line based on its content
+ */
+export function detectPromptIntent(line: string): PromptIntent {
+  const trimmed = line.trim();
+  if (!trimmed) return 'extend';
+
+  // Check exclusion first (higher priority)
+  if (EXCLUSION_PATTERNS.some(p => p.test(trimmed))) {
+    return 'exclude';
+  }
+
+  // Check override
+  if (OVERRIDE_PATTERNS.some(p => p.test(trimmed))) {
+    return 'override';
+  }
+
+  // Default: always extend
+  return 'extend';
+}
+
+/**
+ * Analyze all lines and return categorized results
+ */
+export function analyzePromptContent(content: string): {
+  extends: string[];
+  excludes: string[];
+  overrides: string[];
+} {
+  const result = {
+    extends: [] as string[],
+    excludes: [] as string[],
+    overrides: [] as string[],
+  };
+
+  const lines = content.trim().split('\n');
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const intent = detectPromptIntent(trimmed);
+    
+    switch (intent) {
+      case 'exclude':
+        result.excludes.push(trimmed);
+        break;
+      case 'override':
+        result.overrides.push(trimmed);
+        break;
+      default:
+        result.extends.push(trimmed);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Extract the target of an exclusion statement
+ * "Não use emojis" -> "emojis"
+ * "Nunca mencione concorrentes" -> "concorrentes"
+ */
+export function extractExclusionTarget(line: string): string {
+  return line
+    .replace(/^(não|nunca|jamais|evite|ignore|remova)\s+/i, '')
+    .replace(/(faça|use|mencione|fale sobre|fale de|fale)\s*/i, '')
+    .replace(/^(sem usar|sem mencionar|sem falar sobre|sem falar de)\s*/i, '')
+    .trim();
+}
+
 /**
  * Apply exclusions to a prompt by removing specific patterns or phrases
  */
@@ -42,14 +128,17 @@ function applyExclusions(prompt: string, excludes: string[]): string {
   let result = prompt;
   
   for (const exclusion of excludes) {
+    const target = extractExclusionTarget(exclusion);
+    if (!target) continue;
+
     // Create variations of the exclusion pattern
     const patterns = [
       // Exact match (case insensitive)
-      new RegExp(exclusion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'),
-      // Match sentences containing the exclusion
-      new RegExp(`[^.]*${exclusion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^.]*\\.`, 'gi'),
-      // Match bullet points containing the exclusion
-      new RegExp(`[-•*]\\s*[^\\n]*${exclusion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\\n]*\\n?`, 'gi'),
+      new RegExp(target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'),
+      // Match sentences containing the target
+      new RegExp(`[^.]*${target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^.]*\\.`, 'gi'),
+      // Match bullet points containing the target
+      new RegExp(`[-•*]\\s*[^\\n]*${target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\\n]*\\n?`, 'gi'),
     ];
     
     for (const pattern of patterns) {
@@ -67,12 +156,46 @@ function applyExclusions(prompt: string, excludes: string[]): string {
 }
 
 /**
+ * Apply smart replacement for override statements
+ * Tries to find and replace similar concepts in the base
+ */
+function applySmartReplacement(base: string, replacement: string): string {
+  // For now, just prepend the replacement (it takes priority)
+  // In a more sophisticated version, this could identify and replace specific sections
+  return `${replacement}\n\n${base}`;
+}
+
+/**
+ * Smart merge prompt content with intelligent detection
+ */
+export function smartMergePrompt(base: string, addition: string): string {
+  if (!addition.trim()) return base;
+  if (!base.trim()) return addition;
+
+  const analysis = analyzePromptContent(addition);
+  let result = base;
+
+  // 1. Apply exclusions (remove from base)
+  if (analysis.excludes.length > 0) {
+    result = applyExclusions(result, analysis.excludes);
+  }
+
+  // 2. Apply overrides (prepend to take priority)
+  for (const replacement of analysis.overrides) {
+    result = applySmartReplacement(result, replacement);
+  }
+
+  // 3. Add extensions (append as complementary)
+  if (analysis.extends.length > 0) {
+    result = `${result}\n\n---\n\n### Complementos Específicos:\n${analysis.extends.join('\n')}`;
+  }
+
+  return result;
+}
+
+/**
  * Compose prompts by combining base prompts with template-specific additions
- * 
- * Modes:
- * - inherit: Use base prompt exactly as-is
- * - extend: Append template content to base prompt (default behavior)
- * - override: Replace base prompt entirely with template content
+ * Now with intelligent auto-detection
  */
 export function composePrompts(
   basePrompts: BasePrompts,
@@ -80,7 +203,6 @@ export function composePrompts(
 ): ComposedPrompts {
   const result: ComposedPrompts = {};
   
-  // Get all prompt sections from base prompts
   const sections = [
     'system_prompt',
     'greeting',
@@ -95,43 +217,22 @@ export function composePrompts(
     const baseContent = basePrompts[baseKey] || '';
     const templateConfig = templatePrompts?.[section];
     
-    // If no template config, inherit base
-    if (!templateConfig || !templateConfig.mode) {
+    // If no template config or no content, inherit base
+    if (!templateConfig || !templateConfig.content?.trim()) {
       result[section] = baseContent;
       continue;
     }
-    
-    switch (templateConfig.mode) {
-      case 'inherit':
-        // Use base prompt exactly
-        result[section] = baseContent;
-        break;
-        
-      case 'extend':
-        // Combine base with template additions
-        let composed = baseContent;
-        
-        if (templateConfig.content && templateConfig.content.trim()) {
-          composed = `${baseContent}\n\n---\n\nAdições específicas do template:\n\n${templateConfig.content}`;
-        }
-        
-        // Apply exclusions if any
-        if (templateConfig.excludes && templateConfig.excludes.length > 0) {
-          composed = applyExclusions(composed, templateConfig.excludes);
-        }
-        
-        result[section] = composed;
-        break;
-        
-      case 'override':
-        // Replace entirely with template content
-        result[section] = templateConfig.content || baseContent;
-        break;
-        
-      default:
-        // Default to inheritance
-        result[section] = baseContent;
+
+    const content = templateConfig.content;
+
+    // If explicitly set to override mode, replace entirely
+    if (templateConfig.mode === 'override') {
+      result[section] = content;
+      continue;
     }
+
+    // Default behavior: intelligent merge
+    result[section] = smartMergePrompt(baseContent, content);
   }
   
   return result;
@@ -161,10 +262,9 @@ export function composePromptsLegacy(
     const baseContent = basePrompts[baseKey] || '';
     const legacyContent = legacyPrompts?.[section];
     
-    // If legacy content exists and is non-empty, use it (override behavior)
-    // Otherwise, use base
+    // For legacy content, use intelligent merge instead of pure override
     if (legacyContent && typeof legacyContent === 'string' && legacyContent.trim()) {
-      result[section] = legacyContent;
+      result[section] = smartMergePrompt(baseContent, legacyContent);
     } else {
       result[section] = baseContent;
     }
