@@ -373,10 +373,45 @@ serve(async (req) => {
         }
       }
 
-      logStep('Tenant creation complete', { tenantId: newTenant.id });
+      logStep('Tenant creation complete in Master', { tenantId: newTenant.id });
+
+      // Sync tenant to CRM
+      let crmSyncResult = null;
+      try {
+        logStep('Syncing tenant to CRM...');
+        const syncResponse = await fetch(
+          `${Deno.env.get('SUPABASE_URL')}/functions/v1/sync-tenant-to-crm`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'create',
+              tenant_id: newTenant.id,
+            }),
+          }
+        );
+
+        if (syncResponse.ok) {
+          crmSyncResult = await syncResponse.json();
+          logStep('CRM sync successful', { crmTenantId: crmSyncResult?.crm_tenant_id, apiUrl: crmSyncResult?.api_url });
+        } else {
+          const errorText = await syncResponse.text();
+          logStep('CRM sync failed (non-critical)', { status: syncResponse.status, error: errorText });
+        }
+      } catch (syncError) {
+        logStep('CRM sync exception (non-critical)', { error: (syncError as Error).message });
+      }
 
       return new Response(
-        JSON.stringify({ ...newTenant, is_active: true, slug: newTenant.subdomain }),
+        JSON.stringify({ 
+          ...newTenant, 
+          is_active: true, 
+          slug: newTenant.subdomain,
+          crm_sync: crmSyncResult,
+        }),
         { status: 201, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

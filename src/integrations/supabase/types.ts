@@ -3550,6 +3550,61 @@ export type Database = {
           },
         ]
       }
+      tenant_crm_sync: {
+        Row: {
+          created_at: string | null
+          crm_tenant_id: string | null
+          id: string
+          last_synced_at: string | null
+          master_tenant_id: string
+          sync_error: string | null
+          sync_status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          crm_tenant_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          master_tenant_id: string
+          sync_error?: string | null
+          sync_status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          crm_tenant_id?: string | null
+          id?: string
+          last_synced_at?: string | null
+          master_tenant_id?: string
+          sync_error?: string | null
+          sync_status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_crm_sync_master_tenant_id_fkey"
+            columns: ["master_tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_crm_sync_master_tenant_id_fkey"
+            columns: ["master_tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_crm_sync_master_tenant_id_fkey"
+            columns: ["master_tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       tenant_domains: {
         Row: {
           created_at: string
