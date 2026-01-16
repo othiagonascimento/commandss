@@ -32,6 +32,8 @@ import {
   Sparkles,
   ChevronDown,
   Cpu,
+  Globe,
+  Info,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -39,6 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useGroupedModels } from '@/hooks/useAvailableModels';
 import type { TemplateFormData, CustomerPersona, FAQItem, ConversationExample, ProhibitedPhrase } from '@/types/templates';
 
 const PERSONA_EMOJIS = ['👨‍💼', '👩‍💼', '🧑‍💻', '👨‍🔧', '👩‍🏫', '🧑‍⚕️', '👨‍🍳', '👩‍🎨', '🧑‍🔬', '👨‍✈️', '👩‍🌾', '🧑‍🏭'];
@@ -61,6 +64,9 @@ export function UopaAICoreEditor() {
   const conversationExamples = uopaCore?.conversation_examples || [];
   const prohibitedPhrases = uopaCore?.prohibited_phrases || [];
   const confidentialTopics = uopaCore?.confidential_topics || [];
+
+  // Load available AI models dynamically
+  const { grouped: availableModels, isLoading: modelsLoading } = useGroupedModels();
 
   const currentTabData = TABS.find(t => t.value === activeTab);
 
@@ -283,6 +289,15 @@ export function UopaAICoreEditor() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Inheritance Info */}
+              <div className="p-3 bg-muted/50 rounded-lg border border-dashed flex items-start gap-2">
+                <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Campos com "Herdar do Global" usarão as configurações definidas no Master. 
+                  Preencha apenas para sobrescrever.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2">
@@ -290,16 +305,25 @@ export function UopaAICoreEditor() {
                     Camada 1 - Router
                   </Label>
                   <Select 
-                    value={uopaCore?.layer_1_model || 'gemini-1.5-flash'} 
-                    onValueChange={(value) => setValue('uopa_ai_core.layer_1_model', value)}
+                    value={uopaCore?.layer_1_model || ''} 
+                    onValueChange={(value) => setValue('uopa_ai_core.layer_1_model', value || undefined)}
+                    disabled={modelsLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Herdar do Global" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash</SelectItem>
-                      <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
-                      <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                      <SelectItem value="">
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <Globe className="h-4 w-4" />
+                          Herdar do Global
+                        </span>
+                      </SelectItem>
+                      {availableModels.router.map((model) => (
+                        <SelectItem key={model.id} value={model.model_id}>
+                          {model.display_name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
@@ -313,16 +337,25 @@ export function UopaAICoreEditor() {
                     Camada 2 - Standard
                   </Label>
                   <Select 
-                    value={uopaCore?.layer_2_model || 'gemini-1.5-pro'} 
-                    onValueChange={(value) => setValue('uopa_ai_core.layer_2_model', value)}
+                    value={uopaCore?.layer_2_model || ''} 
+                    onValueChange={(value) => setValue('uopa_ai_core.layer_2_model', value || undefined)}
+                    disabled={modelsLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Herdar do Global" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
-                      <SelectItem value="claude-3.5-sonnet">Claude 3.5 Sonnet</SelectItem>
-                      <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                      <SelectItem value="">
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <Globe className="h-4 w-4" />
+                          Herdar do Global
+                        </span>
+                      </SelectItem>
+                      {availableModels.standard.map((model) => (
+                        <SelectItem key={model.id} value={model.model_id}>
+                          {model.display_name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
@@ -336,17 +369,25 @@ export function UopaAICoreEditor() {
                     Camada 3 - Elite
                   </Label>
                   <Select 
-                    value={(uopaCore as { layer_3_model?: string })?.layer_3_model || 'gpt-4o'} 
-                    onValueChange={(value) => setValue('uopa_ai_core.layer_2_model', value)} // Will be stored in layer_2 for now
+                    value={(uopaCore as { layer_3_model?: string })?.layer_3_model || ''} 
+                    onValueChange={(value) => setValue('uopa_ai_core.layer_3_model', value || undefined)}
+                    disabled={modelsLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Herdar do Global" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                      <SelectItem value="claude-3.5-sonnet">Claude 3.5 Sonnet</SelectItem>
-                      <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
-                      <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro</SelectItem>
+                      <SelectItem value="">
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <Globe className="h-4 w-4" />
+                          Herdar do Global
+                        </span>
+                      </SelectItem>
+                      {availableModels.elite.map((model) => (
+                        <SelectItem key={model.id} value={model.model_id}>
+                          {model.display_name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">

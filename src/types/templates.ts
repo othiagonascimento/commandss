@@ -535,6 +535,7 @@ export interface TemplateFormData {
     language_regionalism: string;
     layer_1_model?: string;
     layer_2_model?: string;
+    layer_3_model?: string;
     personas: CustomerPersona[];
     knowledge_base: FAQItem[];
     conversation_examples: ConversationExample[];
