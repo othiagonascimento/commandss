@@ -678,10 +678,11 @@ export const defaultTemplateFormData: TemplateFormData = {
   
   funnel_stages: [
     { name: 'Novos', slug: 'novos', color: '#3B82F6', sort_order: 1, is_won: false, is_lost: false, is_system: true },
-    { name: 'Em Negociação', slug: 'negociacao', color: '#F59E0B', sort_order: 2, is_won: false, is_lost: false },
-    { name: 'Proposta Enviada', slug: 'proposta', color: '#8B5CF6', sort_order: 3, is_won: false, is_lost: false },
-    { name: 'Ganho', slug: 'ganho', color: '#10B981', sort_order: 4, is_won: true, is_lost: false, is_system: true },
-    { name: 'Perdido', slug: 'perdido', color: '#EF4444', sort_order: 5, is_won: false, is_lost: true, is_system: true },
+    { name: 'Frio', slug: 'frio', color: '#06B6D4', sort_order: 2, is_won: false, is_lost: false },
+    { name: 'Morno', slug: 'morno', color: '#F59E0B', sort_order: 3, is_won: false, is_lost: false },
+    { name: 'Quente', slug: 'quente', color: '#EF4444', sort_order: 4, is_won: false, is_lost: false },
+    { name: 'Ganho', slug: 'ganho', color: '#10B981', sort_order: 5, is_won: true, is_lost: false, is_system: true },
+    { name: 'Perdido', slug: 'perdido', color: '#6B7280', sort_order: 6, is_won: false, is_lost: true, is_system: true },
   ],
   tag_categories: [
     { name: 'Interesse', color: '#10B981', tags: ['alto', 'médio', 'baixo'] },
