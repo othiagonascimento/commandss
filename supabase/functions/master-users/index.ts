@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix',
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
   'Access-Control-Max-Age': '86400',
 };
@@ -55,8 +55,19 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
-    const tenantId = pathParts[1];
-    const targetUserId = pathParts[2];
+    // Support both URL path and x-path-suffix header
+    const pathSuffix = req.headers.get('x-path-suffix');
+    let tenantId: string | undefined;
+    let targetUserId: string | undefined;
+    
+    if (pathSuffix) {
+      const suffixParts = pathSuffix.split('/').filter(Boolean);
+      tenantId = suffixParts[0];
+      targetUserId = suffixParts[1];
+    } else {
+      tenantId = pathParts[1];
+      targetUserId = pathParts[2];
+    }
     const method = req.method;
 
     if (!tenantId) {
@@ -66,7 +77,7 @@ serve(async (req) => {
       );
     }
 
-    logStep(`${method} request`, { tenantId, targetUserId });
+    logStep(`${method} request`, { tenantId, targetUserId, pathSuffix });
 
     // GET /master-users/:tenantId - List users of a tenant
     if (method === 'GET' && !targetUserId) {

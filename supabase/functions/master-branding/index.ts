@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix',
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -36,7 +36,9 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
-    const tenantId = pathParts[1];
+    // Support both URL path and x-path-suffix header
+    const pathSuffix = req.headers.get('x-path-suffix');
+    const tenantId = pathSuffix || pathParts[1];
     const method = req.method;
 
     if (!tenantId) {
@@ -46,7 +48,7 @@ serve(async (req) => {
       );
     }
 
-    logStep(`${method} request`, { tenantId });
+    logStep(`${method} request`, { tenantId, pathSuffix });
 
     // GET /master-branding/:tenantId
     if (method === 'GET') {
