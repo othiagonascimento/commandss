@@ -12,12 +12,22 @@ async function callMasterApi<T>(
   body?: unknown
 ): Promise<ApiResponse<T>> {
   try {
-    // Build the full path for the function URL
-    const functionPath = pathSuffix ? `${functionName}/${pathSuffix}` : functionName;
+    // Build headers with query params for path-based routing
+    const headers: Record<string, string> = {};
     
-    const { data, error } = await supabase.functions.invoke(functionPath, {
+    // For GET requests with path suffix, pass it as a query parameter
+    // For other methods, include it in the body
+    let requestBody = body;
+    
+    if (pathSuffix) {
+      // Pass pathSuffix as a header that the edge function can read
+      headers['x-path-suffix'] = pathSuffix;
+    }
+
+    const { data, error } = await supabase.functions.invoke(functionName, {
       method,
-      body: body || undefined,
+      headers,
+      body: requestBody || undefined,
     });
 
     if (error) {

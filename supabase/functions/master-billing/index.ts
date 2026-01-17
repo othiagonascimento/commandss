@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix',
 };
 
 Deno.serve(async (req) => {
@@ -53,10 +53,21 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
     const functionIndex = pathParts.indexOf('master-billing');
-    const tenantId = pathParts[functionIndex + 1];
-    const action = pathParts[functionIndex + 2];
+    // Support both URL path and x-path-suffix header
+    const pathSuffix = req.headers.get('x-path-suffix');
+    let tenantId: string | undefined;
+    let action: string | undefined;
+    
+    if (pathSuffix) {
+      const suffixParts = pathSuffix.split('/').filter(Boolean);
+      tenantId = suffixParts[0];
+      action = suffixParts[1];
+    } else {
+      tenantId = pathParts[functionIndex + 1];
+      action = pathParts[functionIndex + 2];
+    }
 
-    console.log(`[master-billing] ${req.method} tenantId=${tenantId} action=${action}`);
+    console.log(`[master-billing] ${req.method} tenantId=${tenantId} action=${action} pathSuffix=${pathSuffix}`);
 
     // GET /master-billing/:tenantId - Get billing subscription
     if (req.method === 'GET' && tenantId && !action) {

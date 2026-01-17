@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
@@ -54,10 +54,21 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
     const functionIndex = pathParts.indexOf('master-tenant-features');
-    const tenantId = pathParts[functionIndex + 1];
-    const action = pathParts[functionIndex + 2]; // for 'override' or 'resolved-config'
+    // Support both URL path and x-path-suffix header
+    const pathSuffix = req.headers.get('x-path-suffix');
+    let tenantId: string | undefined;
+    let action: string | undefined;
+    
+    if (pathSuffix) {
+      const suffixParts = pathSuffix.split('/').filter(Boolean);
+      tenantId = suffixParts[0];
+      action = suffixParts[1];
+    } else {
+      tenantId = pathParts[functionIndex + 1];
+      action = pathParts[functionIndex + 2];
+    }
 
-    console.log(`[master-tenant-features] ${req.method} tenantId=${tenantId} action=${action}`);
+    console.log(`[master-tenant-features] ${req.method} tenantId=${tenantId} action=${action} pathSuffix=${pathSuffix}`);
 
     // GET /master-tenant-features/:tenantId/resolved-config - Get resolved AI config with inheritance
     if (req.method === 'GET' && tenantId && action === 'resolved-config') {

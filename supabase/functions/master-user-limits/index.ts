@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix',
 };
 
 Deno.serve(async (req) => {
@@ -53,10 +53,21 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
     const functionIndex = pathParts.indexOf('master-user-limits');
-    const tenantId = pathParts[functionIndex + 1];
-    const userId = pathParts[functionIndex + 2];
+    // Support both URL path and x-path-suffix header
+    const pathSuffix = req.headers.get('x-path-suffix');
+    let tenantId: string | undefined;
+    let userId: string | undefined;
+    
+    if (pathSuffix) {
+      const suffixParts = pathSuffix.split('/').filter(Boolean);
+      tenantId = suffixParts[0];
+      userId = suffixParts[1];
+    } else {
+      tenantId = pathParts[functionIndex + 1];
+      userId = pathParts[functionIndex + 2];
+    }
 
-    console.log(`[master-user-limits] ${req.method} tenantId=${tenantId} userId=${userId}`);
+    console.log(`[master-user-limits] ${req.method} tenantId=${tenantId} userId=${userId} pathSuffix=${pathSuffix}`);
 
     // GET /master-user-limits/:tenantId - List all user limits for a tenant
     if (req.method === 'GET' && tenantId && !userId) {

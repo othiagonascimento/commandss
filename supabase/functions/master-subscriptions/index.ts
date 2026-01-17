@@ -4,7 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix',
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -48,8 +48,19 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
-    const tenantId = pathParts[1];
-    const action = pathParts[2]; // upgrade, downgrade, cancel, reactivate
+    // Support both URL path and x-path-suffix header
+    const pathSuffix = req.headers.get('x-path-suffix');
+    let tenantId: string | undefined;
+    let action: string | undefined;
+    
+    if (pathSuffix) {
+      const suffixParts = pathSuffix.split('/').filter(Boolean);
+      tenantId = suffixParts[0];
+      action = suffixParts[1];
+    } else {
+      tenantId = pathParts[1];
+      action = pathParts[2];
+    }
     const method = req.method;
 
     if (!tenantId) {
@@ -59,7 +70,7 @@ serve(async (req) => {
       );
     }
 
-    logStep(`${method} request`, { tenantId, action });
+    logStep(`${method} request`, { tenantId, action, pathSuffix });
 
     // Get tenant from database
     const { data: tenant, error: tenantError } = await supabaseAdmin
