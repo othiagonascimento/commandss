@@ -180,26 +180,38 @@ export default function Settings() {
     },
   });
 
-  // Save AI Engine settings
+  // Save AI Engine settings via Edge Function (triggers webhook to tenants)
   const saveAiEngineMutation = useMutation({
     mutationFn: async () => {
       setIsSavingAiEngine(true);
-      const { error } = await supabase
-        .from('master_settings')
-        .update({
-          ai_layer_1_model: aiLayer1Model,
-          ai_layer_1_instructions: aiLayer1Instructions,
-          ai_layer_2_model: aiLayer2Model,
-          ai_layer_2_instructions: aiLayer2Instructions,
-          ai_layer_3_model: aiLayer3Model,
-          ai_layer_3_instructions: aiLayer3Instructions,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('key', 'ai_global_engine');
-      if (error) throw error;
+      // Use Edge Function PATCH to trigger webhook propagation to tenants
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || 'https://btoyclznuuwvxbsacemw.supabase.co'}/functions/v1/master-settings`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            key: 'ai_global_engine',
+            ai_layer_1_model: aiLayer1Model,
+            ai_layer_1_instructions: aiLayer1Instructions,
+            ai_layer_2_model: aiLayer2Model,
+            ai_layer_2_instructions: aiLayer2Instructions,
+            ai_layer_3_model: aiLayer3Model,
+            ai_layer_3_instructions: aiLayer3Instructions,
+          }),
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save AI settings');
+      }
+      return response.json();
     },
     onSuccess: () => {
-      toast.success('Configurações do Motor de IA salvas com sucesso!');
+      toast.success('Configurações do Motor de IA salvas e propagadas aos tenants!');
       queryClient.invalidateQueries({ queryKey: ['ai-engine-settings'] });
       setIsSavingAiEngine(false);
     },

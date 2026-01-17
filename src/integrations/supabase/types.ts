@@ -3281,10 +3281,14 @@ export type Database = {
           id: string
           lead_id: string | null
           priority: string | null
+          recurrence: Database["public"]["Enums"]["task_recurrence"] | null
+          recurrence_end_date: string | null
           reminder_before_days: number | null
+          reminder_before_minutes: number | null
           reminder_sent_at: string | null
           reminder_time_sent_at: string | null
           status: string | null
+          task_type: string | null
           tenant_id: string
           title: string
           updated_at: string | null
@@ -3300,10 +3304,14 @@ export type Database = {
           id?: string
           lead_id?: string | null
           priority?: string | null
+          recurrence?: Database["public"]["Enums"]["task_recurrence"] | null
+          recurrence_end_date?: string | null
           reminder_before_days?: number | null
+          reminder_before_minutes?: number | null
           reminder_sent_at?: string | null
           reminder_time_sent_at?: string | null
           status?: string | null
+          task_type?: string | null
           tenant_id: string
           title: string
           updated_at?: string | null
@@ -3319,10 +3327,14 @@ export type Database = {
           id?: string
           lead_id?: string | null
           priority?: string | null
+          recurrence?: Database["public"]["Enums"]["task_recurrence"] | null
+          recurrence_end_date?: string | null
           reminder_before_days?: number | null
+          reminder_before_minutes?: number | null
           reminder_sent_at?: string | null
           reminder_time_sent_at?: string | null
           status?: string | null
+          task_type?: string | null
           tenant_id?: string
           title?: string
           updated_at?: string | null
@@ -4044,6 +4056,7 @@ export type Database = {
       tenant_usage: {
         Row: {
           active_users: number | null
+          ai_credits_remaining: number | null
           ai_tokens_used: number | null
           api_calls: number | null
           campaign_messages_month: number | null
@@ -4066,6 +4079,7 @@ export type Database = {
         }
         Insert: {
           active_users?: number | null
+          ai_credits_remaining?: number | null
           ai_tokens_used?: number | null
           api_calls?: number | null
           campaign_messages_month?: number | null
@@ -4088,6 +4102,7 @@ export type Database = {
         }
         Update: {
           active_users?: number | null
+          ai_credits_remaining?: number | null
           ai_tokens_used?: number | null
           api_calls?: number | null
           campaign_messages_month?: number | null
@@ -5207,6 +5222,10 @@ export type Database = {
         Args: { _permission_code: string; _user_id: string }
         Returns: boolean
       }
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -5263,6 +5282,19 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "admin" | "manager" | "viewer"
+      campaign_channel: "whatsapp" | "email" | "sms"
+      campaign_objective:
+        | "promotion"
+        | "notification"
+        | "reactivation"
+        | "custom"
+      campaign_status:
+        | "draft"
+        | "scheduled"
+        | "sending"
+        | "paused"
+        | "completed"
+        | "cancelled"
       onboarding_status:
         | "pending"
         | "configuring"
@@ -5278,6 +5310,17 @@ export type Database = {
         | "send_messages"
         | "manage_integrations"
         | "manage_store"
+      plan_type: "trial" | "basic" | "pro" | "enterprise"
+      recipient_status:
+        | "pending"
+        | "sent"
+        | "delivered"
+        | "read"
+        | "replied"
+        | "failed"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_recurrence: "none" | "daily" | "weekly" | "monthly"
+      task_status: "pending" | "in_progress" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5406,6 +5449,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "manager", "viewer"],
+      campaign_channel: ["whatsapp", "email", "sms"],
+      campaign_objective: [
+        "promotion",
+        "notification",
+        "reactivation",
+        "custom",
+      ],
+      campaign_status: [
+        "draft",
+        "scheduled",
+        "sending",
+        "paused",
+        "completed",
+        "cancelled",
+      ],
       onboarding_status: [
         "pending",
         "configuring",
@@ -5423,6 +5481,18 @@ export const Constants = {
         "manage_integrations",
         "manage_store",
       ],
+      plan_type: ["trial", "basic", "pro", "enterprise"],
+      recipient_status: [
+        "pending",
+        "sent",
+        "delivered",
+        "read",
+        "replied",
+        "failed",
+      ],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_recurrence: ["none", "daily", "weekly", "monthly"],
+      task_status: ["pending", "in_progress", "completed", "cancelled"],
     },
   },
 } as const
