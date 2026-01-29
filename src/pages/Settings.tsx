@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useGroupedModels } from '@/hooks/useAvailableModels';
+import { ModelCatalogManager } from '@/components/ai-engine/ModelCatalogManager';
 import { 
   Settings as SettingsIcon,
   Bell,
@@ -417,222 +418,235 @@ export default function Settings() {
 
           {/* AI Engine Tab */}
           <TabsContent value="ai-engine">
-            <div className="space-y-6">
-              {/* Header with Save Button */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-primary" />
-                    Motor de IA Global
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Configure os modelos e instruções de IA que afetam todos os tenants
-                  </p>
+            <Tabs defaultValue="config" className="space-y-6">
+              <TabsList>
+                <TabsTrigger value="config">Configuração</TabsTrigger>
+                <TabsTrigger value="catalog">Catálogo de Modelos</TabsTrigger>
+              </TabsList>
+
+              {/* Config Sub-Tab */}
+              <TabsContent value="config" className="space-y-6 mt-0">
+                {/* Header with Save Button */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <Brain className="w-5 h-5 text-primary" />
+                      Motor de IA Global
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Configure os modelos e instruções de IA que afetam todos os tenants
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => saveAiEngineMutation.mutate()}
+                    disabled={isSavingAiEngine}
+                  >
+                    {isSavingAiEngine ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    Salvar Configurações
+                  </Button>
                 </div>
-                <Button 
-                  onClick={() => saveAiEngineMutation.mutate()}
-                  disabled={isSavingAiEngine}
-                >
-                  {isSavingAiEngine ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Salvar Configurações
-                </Button>
-              </div>
 
-              {isLoadingAiSettings ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : (
-                <div className="grid gap-6">
-                  {/* Layer 1 - Router */}
-                  <Card className="border-l-4 border-l-blue-500">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                          <Cpu className="w-4 h-4 text-blue-500" />
-                        </div>
-                        <div>
-                          <span>Camada 1 - Router</span>
-                          <p className="text-sm font-normal text-muted-foreground">
-                            Modelo rápido para triagem e roteamento de mensagens
+                {isLoadingAiSettings ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="grid gap-6">
+                    {/* Layer 1 - Router */}
+                    <Card className="border-l-4 border-l-blue-500">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                            <Cpu className="w-4 h-4 text-blue-500" />
+                          </div>
+                          <div>
+                            <span>Camada 1 - Router</span>
+                            <p className="text-sm font-normal text-muted-foreground">
+                              Modelo rápido para triagem e roteamento de mensagens
+                            </p>
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="layer1Model">Modelo</Label>
+                          <Select
+                            value={aiLayer1Model}
+                            onValueChange={setAiLayer1Model}
+                          >
+                            <SelectTrigger id="layer1Model">
+                              <SelectValue placeholder="Selecione um modelo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {modelsByCategory.router.map((model) => (
+                                <SelectItem key={model.id} value={model.model_id}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{model.display_name}</span>
+                                    <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Recomendado: modelo leve e rápido para decisões simples
                           </p>
                         </div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="layer1Model">Modelo</Label>
-                        <Select
-                          value={aiLayer1Model}
-                          onValueChange={setAiLayer1Model}
-                        >
-                          <SelectTrigger id="layer1Model">
-                            <SelectValue placeholder="Selecione um modelo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {modelsByCategory.router.map((model) => (
-                              <SelectItem key={model.id} value={model.model_id}>
-                                <div className="flex items-center gap-2">
-                                  <span>{model.display_name}</span>
-                                  <span className="text-xs text-muted-foreground">({model.provider})</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Recomendado: modelo leve e rápido para decisões simples
-                        </p>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="layer1Instructions">Instruções do Sistema</Label>
-                        <Textarea
-                          id="layer1Instructions"
-                          value={aiLayer1Instructions}
-                          onChange={(e) => setAiLayer1Instructions(e.target.value)}
-                          placeholder="Você é um assistente que classifica mensagens..."
-                          rows={8}
-                          className="font-mono text-sm"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Layer 2 - Standard */}
-                  <Card className="border-l-4 border-l-amber-500">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
-                          <Zap className="w-4 h-4 text-amber-500" />
+                        <div className="grid gap-2">
+                          <Label htmlFor="layer1Instructions">Instruções do Sistema</Label>
+                          <Textarea
+                            id="layer1Instructions"
+                            value={aiLayer1Instructions}
+                            onChange={(e) => setAiLayer1Instructions(e.target.value)}
+                            placeholder="Você é um assistente que classifica mensagens..."
+                            rows={8}
+                            className="font-mono text-sm"
+                          />
                         </div>
-                        <div>
-                          <span>Camada 2 - Standard</span>
-                          <p className="text-sm font-normal text-muted-foreground">
-                            Modelo balanceado para interações comuns
+                      </CardContent>
+                    </Card>
+
+                    {/* Layer 2 - Standard */}
+                    <Card className="border-l-4 border-l-amber-500">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
+                            <Zap className="w-4 h-4 text-amber-500" />
+                          </div>
+                          <div>
+                            <span>Camada 2 - Standard</span>
+                            <p className="text-sm font-normal text-muted-foreground">
+                              Modelo balanceado para interações comuns
+                            </p>
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="layer2Model">Modelo</Label>
+                          <Select
+                            value={aiLayer2Model}
+                            onValueChange={setAiLayer2Model}
+                          >
+                            <SelectTrigger id="layer2Model">
+                              <SelectValue placeholder="Selecione um modelo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {modelsByCategory.standard.map((model) => (
+                                <SelectItem key={model.id} value={model.model_id}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{model.display_name}</span>
+                                    <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Recomendado: modelo versátil com bom custo-benefício
                           </p>
                         </div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="layer2Model">Modelo</Label>
-                        <Select
-                          value={aiLayer2Model}
-                          onValueChange={setAiLayer2Model}
-                        >
-                          <SelectTrigger id="layer2Model">
-                            <SelectValue placeholder="Selecione um modelo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {modelsByCategory.standard.map((model) => (
-                              <SelectItem key={model.id} value={model.model_id}>
-                                <div className="flex items-center gap-2">
-                                  <span>{model.display_name}</span>
-                                  <span className="text-xs text-muted-foreground">({model.provider})</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Recomendado: modelo versátil com bom custo-benefício
-                        </p>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="layer2Instructions">Instruções do Sistema</Label>
-                        <Textarea
-                          id="layer2Instructions"
-                          value={aiLayer2Instructions}
-                          onChange={(e) => setAiLayer2Instructions(e.target.value)}
-                          placeholder="Você é um vendedor experiente..."
-                          rows={8}
-                          className="font-mono text-sm"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Layer 3 - Elite */}
-                  <Card className="border-l-4 border-l-purple-500">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
-                          <Sparkles className="w-4 h-4 text-purple-500" />
+                        <div className="grid gap-2">
+                          <Label htmlFor="layer2Instructions">Instruções do Sistema</Label>
+                          <Textarea
+                            id="layer2Instructions"
+                            value={aiLayer2Instructions}
+                            onChange={(e) => setAiLayer2Instructions(e.target.value)}
+                            placeholder="Você é um vendedor experiente..."
+                            rows={8}
+                            className="font-mono text-sm"
+                          />
                         </div>
-                        <div>
-                          <span>Camada 3 - Elite (Vendedor)</span>
-                          <p className="text-sm font-normal text-muted-foreground">
-                            Modelo premium para objeções complexas e fechamento
+                      </CardContent>
+                    </Card>
+
+                    {/* Layer 3 - Elite */}
+                    <Card className="border-l-4 border-l-purple-500">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+                            <Sparkles className="w-4 h-4 text-purple-500" />
+                          </div>
+                          <div>
+                            <span>Camada 3 - Elite (Vendedor)</span>
+                            <p className="text-sm font-normal text-muted-foreground">
+                              Modelo premium para objeções complexas e fechamento
+                            </p>
+                          </div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="layer3Model">Modelo</Label>
+                          <Select
+                            value={aiLayer3Model}
+                            onValueChange={setAiLayer3Model}
+                          >
+                            <SelectTrigger id="layer3Model">
+                              <SelectValue placeholder="Selecione um modelo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {modelsByCategory.elite.map((model) => (
+                                <SelectItem key={model.id} value={model.model_id}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{model.display_name}</span>
+                                    <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Recomendado: modelo mais capaz para situações críticas
                           </p>
                         </div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="layer3Model">Modelo</Label>
-                        <Select
-                          value={aiLayer3Model}
-                          onValueChange={setAiLayer3Model}
-                        >
-                          <SelectTrigger id="layer3Model">
-                            <SelectValue placeholder="Selecione um modelo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {modelsByCategory.elite.map((model) => (
-                              <SelectItem key={model.id} value={model.model_id}>
-                                <div className="flex items-center gap-2">
-                                  <span>{model.display_name}</span>
-                                  <span className="text-xs text-muted-foreground">({model.provider})</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Recomendado: modelo mais capaz para situações críticas
-                        </p>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="layer3Instructions">Instruções do Sistema</Label>
-                        <Textarea
-                          id="layer3Instructions"
-                          value={aiLayer3Instructions}
-                          onChange={(e) => setAiLayer3Instructions(e.target.value)}
-                          placeholder="Você é um vendedor de elite..."
-                          rows={10}
-                          className="font-mono text-sm"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Info Box */}
-                  <Card className="bg-muted/50">
-                    <CardContent className="pt-6">
-                      <div className="flex items-start gap-3">
-                        <Brain className="w-5 h-5 text-primary mt-0.5" />
-                        <div>
-                          <p className="font-medium">Como funciona o Motor de IA</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            As configurações definidas aqui são aplicadas globalmente a todos os tenants. 
-                            Cada camada é acionada conforme a complexidade da conversa:
-                          </p>
-                          <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
-                            <li><strong>Router:</strong> Triagem rápida e classificação de intenção</li>
-                            <li><strong>Standard:</strong> Respostas de atendimento e vendas comuns</li>
-                            <li><strong>Elite:</strong> Objeções complexas, negociação e fechamento</li>
-                          </ul>
+                        <div className="grid gap-2">
+                          <Label htmlFor="layer3Instructions">Instruções do Sistema</Label>
+                          <Textarea
+                            id="layer3Instructions"
+                            value={aiLayer3Instructions}
+                            onChange={(e) => setAiLayer3Instructions(e.target.value)}
+                            placeholder="Você é um vendedor de elite..."
+                            rows={10}
+                            className="font-mono text-sm"
+                          />
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-            </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Info Box */}
+                    <Card className="bg-muted/50">
+                      <CardContent className="pt-6">
+                        <div className="flex items-start gap-3">
+                          <Brain className="w-5 h-5 text-primary mt-0.5" />
+                          <div>
+                            <p className="font-medium">Como funciona o Motor de IA</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              As configurações definidas aqui são aplicadas globalmente a todos os tenants. 
+                              Cada camada é acionada conforme a complexidade da conversa:
+                            </p>
+                            <ul className="text-sm text-muted-foreground mt-2 space-y-1 list-disc list-inside">
+                              <li><strong>Router:</strong> Triagem rápida e classificação de intenção</li>
+                              <li><strong>Standard:</strong> Respostas de atendimento e vendas comuns</li>
+                              <li><strong>Elite:</strong> Objeções complexas, negociação e fechamento</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Catalog Sub-Tab */}
+              <TabsContent value="catalog" className="mt-0">
+                <ModelCatalogManager />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* Base Prompts Tab */}
