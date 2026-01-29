@@ -297,9 +297,12 @@ export function ModelCatalogManager() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir modelo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O modelo será removido permanentemente do catálogo.
-              Tenants que estejam usando este modelo podem ter problemas de funcionamento.
+            <AlertDialogDescription className="space-y-2">
+              <p>Esta ação não pode ser desfeita. O modelo será removido permanentemente do catálogo.</p>
+              <p className="text-destructive font-medium">
+                ⚠️ Tenants que estejam usando este modelo podem ter problemas de funcionamento.
+                Considere desativar o modelo em vez de excluí-lo.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -311,7 +314,7 @@ export function ModelCatalogManager() {
               {deleteMutation.isPending ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : null}
-              Excluir
+              Excluir Permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

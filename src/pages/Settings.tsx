@@ -478,7 +478,7 @@ export default function Settings() {
                             value={aiLayer1Model}
                             onValueChange={setAiLayer1Model}
                           >
-                            <SelectTrigger id="layer1Model">
+                            <SelectTrigger id="layer1Model" className={aiLayer1Model && !modelsByCategory.router.some(m => m.model_id === aiLayer1Model) ? 'border-destructive' : ''}>
                               <SelectValue placeholder="Selecione um modelo" />
                             </SelectTrigger>
                             <SelectContent>
@@ -492,6 +492,11 @@ export default function Settings() {
                               ))}
                             </SelectContent>
                           </Select>
+                          {aiLayer1Model && !modelsByCategory.router.some(m => m.model_id === aiLayer1Model) && (
+                            <p className="text-xs text-destructive">
+                              ⚠️ Modelo "{aiLayer1Model}" foi desativado ou removido. Selecione outro.
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             Recomendado: modelo leve e rápido para decisões simples
                           </p>
@@ -532,7 +537,7 @@ export default function Settings() {
                             value={aiLayer2Model}
                             onValueChange={setAiLayer2Model}
                           >
-                            <SelectTrigger id="layer2Model">
+                            <SelectTrigger id="layer2Model" className={aiLayer2Model && !modelsByCategory.standard.some(m => m.model_id === aiLayer2Model) ? 'border-destructive' : ''}>
                               <SelectValue placeholder="Selecione um modelo" />
                             </SelectTrigger>
                             <SelectContent>
@@ -546,6 +551,11 @@ export default function Settings() {
                               ))}
                             </SelectContent>
                           </Select>
+                          {aiLayer2Model && !modelsByCategory.standard.some(m => m.model_id === aiLayer2Model) && (
+                            <p className="text-xs text-destructive">
+                              ⚠️ Modelo "{aiLayer2Model}" foi desativado ou removido. Selecione outro.
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             Recomendado: modelo versátil com bom custo-benefício
                           </p>
@@ -586,7 +596,7 @@ export default function Settings() {
                             value={aiLayer3Model}
                             onValueChange={setAiLayer3Model}
                           >
-                            <SelectTrigger id="layer3Model">
+                            <SelectTrigger id="layer3Model" className={aiLayer3Model && !modelsByCategory.elite.some(m => m.model_id === aiLayer3Model) ? 'border-destructive' : ''}>
                               <SelectValue placeholder="Selecione um modelo" />
                             </SelectTrigger>
                             <SelectContent>
@@ -600,6 +610,11 @@ export default function Settings() {
                               ))}
                             </SelectContent>
                           </Select>
+                          {aiLayer3Model && !modelsByCategory.elite.some(m => m.model_id === aiLayer3Model) && (
+                            <p className="text-xs text-destructive">
+                              ⚠️ Modelo "{aiLayer3Model}" foi desativado ou removido. Selecione outro.
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             Recomendado: modelo mais capaz para situações críticas
                           </p>
