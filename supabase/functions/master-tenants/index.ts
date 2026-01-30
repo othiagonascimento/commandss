@@ -43,13 +43,8 @@ serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
     
-    // Create a client with the user's token for validation
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Try getUser with explicit token (required when verify_jwt = false)
-    const { data: userData, error: userError } = await supabaseUser.auth.getUser(token);
+    // Use admin client to validate token (required for Lovable Cloud ES256 tokens)
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
     
     if (userError || !userData?.user) {
       logStep('ERROR', { message: 'Invalid token', details: userError?.message });
