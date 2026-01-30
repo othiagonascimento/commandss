@@ -113,13 +113,15 @@ export default function Settings() {
 
   // Update AI state when settings load
   useEffect(() => {
-    if (aiEngineSettings) {
-      setAiLayer1Model(aiEngineSettings.ai_layer_1_model || '');
-      setAiLayer1Instructions(aiEngineSettings.ai_layer_1_instructions || '');
-      setAiLayer2Model(aiEngineSettings.ai_layer_2_model || '');
-      setAiLayer2Instructions(aiEngineSettings.ai_layer_2_instructions || '');
-      setAiLayer3Model(aiEngineSettings.ai_layer_3_model || '');
-      setAiLayer3Instructions(aiEngineSettings.ai_layer_3_instructions || '');
+    if (aiEngineSettings?.value) {
+      // AI settings are stored in the JSONB 'value' field
+      const v = aiEngineSettings.value as Record<string, string>;
+      setAiLayer1Model(v.ai_layer_1_model || '');
+      setAiLayer1Instructions(v.ai_layer_1_instructions || '');
+      setAiLayer2Model(v.ai_layer_2_model || '');
+      setAiLayer2Instructions(v.ai_layer_2_instructions || '');
+      setAiLayer3Model(v.ai_layer_3_model || '');
+      setAiLayer3Instructions(v.ai_layer_3_instructions || '');
     }
   }, [aiEngineSettings]);
 
