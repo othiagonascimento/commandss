@@ -127,7 +127,7 @@ export const usersApi = {
   create: (tenantId: string, data: CreateUserPayload) => 
     callMasterApi<TenantUser>('master-users', 'POST', tenantId, data),
   
-  update: (tenantId: string, userId: string, data: Partial<TenantUser>) => 
+  update: (tenantId: string, userId: string, data: Partial<TenantUser> & { password?: string }) => 
     callMasterApi<TenantUser>('master-users', 'PATCH', `${tenantId}/${userId}`, data),
   
   deactivate: (tenantId: string, userId: string) => 

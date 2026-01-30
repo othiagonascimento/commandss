@@ -300,6 +300,24 @@ serve(async (req) => {
         }
       }
 
+      // Update password if provided
+      if (body.password) {
+        logStep('Updating password for user', { targetUserId });
+        const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(
+          targetUserId,
+          { password: body.password }
+        );
+        
+        if (passwordError) {
+          logStep('Password update failed', { error: passwordError.message });
+          return new Response(
+            JSON.stringify({ error: 'Failed to update password: ' + passwordError.message }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        logStep('Password updated successfully');
+      }
+
       logStep('User updated', { targetUserId, tenantId });
 
       return new Response(
