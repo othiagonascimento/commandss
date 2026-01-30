@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { tenantsApi, domainsApi, CreateTenantPayload } from '@/services/masterApi';
@@ -81,12 +81,14 @@ function formatLimit(value: number | null): string {
 
 export default function CreateTenant() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [subdomainStatus, setSubdomainStatus] = useState<{
     checking: boolean;
     available: boolean | null;
     suggestion?: string;
   }>({ checking: false, available: null });
+  const [prefillApplied, setPrefillApplied] = useState(false);
   
   // Fetch plans
   const { data: plans, isLoading: plansLoading } = useQuery({
@@ -178,6 +180,33 @@ export default function CreateTenant() {
       setFormData(prev => ({ ...prev, plan_id: defaultPlan.id }));
     }
   }, [plans, formData.plan_id]);
+
+  // Pre-fill form from query params (from onboarding submission)
+  useEffect(() => {
+    if (prefillApplied) return;
+    
+    const isPrefill = searchParams.get('prefill') === 'true';
+    if (!isPrefill) return;
+
+    const name = searchParams.get('name');
+    const slug = searchParams.get('slug');
+    const email = searchParams.get('email');
+    const adminName = searchParams.get('admin_name');
+    const primaryColor = searchParams.get('primary_color');
+
+    setFormData(prev => ({
+      ...prev,
+      name: name || prev.name,
+      slug: slug || prev.slug,
+      contact_email: email || prev.contact_email,
+      admin_email: email || prev.admin_email,
+      admin_name: adminName || prev.admin_name,
+      primary_color: primaryColor || prev.primary_color,
+      company_name: name || prev.company_name,
+    }));
+
+    setPrefillApplied(true);
+  }, [searchParams, prefillApplied]);
 
   const selectedPlan = plans?.find(p => p.id === formData.plan_id);
   const selectedTemplate = templates?.find(t => t.id === formData.template_id);

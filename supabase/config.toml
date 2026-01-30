@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.sync-tenant-to-crm]
 verify_jwt = false
+
+[functions.master-onboarding]
+verify_jwt = false
