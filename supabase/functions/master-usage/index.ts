@@ -124,16 +124,18 @@ Deno.serve(async (req) => {
         .eq('tenant_id', tenantId)
         .eq('category', 'product');
 
-      // Sum AI tokens from user_usage
+      // Sum AI tokens and credits from user_usage
       const { data: localUserUsageData } = await supabase
         .from('user_usage')
-        .select('ai_tokens_month, storage_bytes')
+        .select('ai_tokens_month, credits_consumed, storage_bytes')
         .eq('tenant_id', tenantId);
 
       let localAiTokens = 0;
+      let localAiCredits = 0;
       let localStorageMb = 0;
       if (localUserUsageData && localUserUsageData.length > 0) {
         localAiTokens = localUserUsageData.reduce((sum, u) => sum + (u.ai_tokens_month || 0), 0);
+        localAiCredits = localUserUsageData.reduce((sum, u) => sum + (u.credits_consumed || 0), 0);
         const totalBytes = localUserUsageData.reduce((sum, u) => sum + (u.storage_bytes || 0), 0);
         localStorageMb = Math.round(totalBytes / 1048576);
       }
@@ -145,6 +147,7 @@ Deno.serve(async (req) => {
       let remoteWhatsappCount = 0;
       let remoteStorageMb = 0;
       let remoteAiTokens = 0;
+      let remoteAiCredits = 0;
       let remoteMessagesSent = 0;
       let useRemoteData = false;
 
@@ -188,14 +191,15 @@ Deno.serve(async (req) => {
             .eq('tenant_id', tenantId);
           remoteWhatsappCount = whatsappInstancesCount || 0;
 
-          // Sum AI tokens from user_usage
+          // Sum AI tokens and credits from user_usage
           const { data: userUsageData } = await remoteSupabase
             .from('user_usage')
-            .select('ai_tokens_month, storage_bytes')
+            .select('ai_tokens_month, credits_consumed, storage_bytes')
             .eq('tenant_id', tenantId);
 
           if (userUsageData && userUsageData.length > 0) {
             remoteAiTokens = userUsageData.reduce((sum, u) => sum + (u.ai_tokens_month || 0), 0);
+            remoteAiCredits = userUsageData.reduce((sum, u) => sum + (u.credits_consumed || 0), 0);
             const totalBytes = userUsageData.reduce((sum, u) => sum + (u.storage_bytes || 0), 0);
             remoteStorageMb = Math.round(totalBytes / 1048576);
           }
@@ -218,6 +222,7 @@ Deno.serve(async (req) => {
             products: remoteProductsCount,
             whatsapp: remoteWhatsappCount,
             ai_tokens: remoteAiTokens,
+            ai_credits: remoteAiCredits,
             storage_mb: remoteStorageMb,
             messages: remoteMessagesSent,
           });
@@ -239,6 +244,7 @@ Deno.serve(async (req) => {
         products: localProductsCount,
         whatsapp: localWhatsappCount || 0,
         ai_tokens: localAiTokens,
+        ai_credits: localAiCredits,
         storage_mb: localStorageMb,
       });
 
@@ -283,6 +289,11 @@ Deno.serve(async (req) => {
           localAiTokens,
           localUsage?.ai_tokens_used || 0
         ),
+        ai_credits_used: Math.max(
+          useRemoteData ? remoteAiCredits : 0,
+          localAiCredits,
+          localUsage?.ai_credits_used || localUsage?.credits_consumed || 0
+        ),
         storage_used_mb: Math.max(
           useRemoteData ? remoteStorageMb : 0,
           localStorageMb,
@@ -311,13 +322,18 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Calculate total credits limit based on credits_per_user × active users
+      const creditsPerUser = features?.credits_per_user || 500;
+      const totalCreditsLimit = creditsPerUser * Math.max(currentUsage.users_count, 1);
+
       const response = {
         usage: {
           users: currentUsage.users_count,
           leads: currentUsage.leads_count,
           products: currentUsage.products_count,
           whatsapp_instances: currentUsage.whatsapp_instances_count,
-          ai_tokens: currentUsage.ai_tokens_used,
+          ai_credits: currentUsage.ai_credits_used,  // Primary metric
+          ai_tokens: currentUsage.ai_tokens_used,    // Secondary/internal metric
           storage_mb: currentUsage.storage_used_mb,
           messages: currentUsage.messages_sent,
           active_users: currentUsage.active_users,
@@ -327,14 +343,17 @@ Deno.serve(async (req) => {
           leads: effectiveLimits.limit_leads,
           products: effectiveLimits.limit_products,
           whatsapp_instances: effectiveLimits.limit_whatsapp_instances,
-          ai_tokens: effectiveLimits.limit_ai_tokens_monthly,
+          ai_credits: totalCreditsLimit,                    // Calculated from credits_per_user × users
+          ai_tokens: effectiveLimits.limit_ai_tokens_monthly, // Legacy/internal
           storage_mb: effectiveLimits.limit_storage_mb,
+          credits_per_user: creditsPerUser,                 // For display purposes
         },
         percentages: {
           users: calculatePercentage(currentUsage.users_count, effectiveLimits.limit_users),
           leads: calculatePercentage(currentUsage.leads_count, effectiveLimits.limit_leads),
           products: calculatePercentage(currentUsage.products_count, effectiveLimits.limit_products),
           whatsapp_instances: calculatePercentage(currentUsage.whatsapp_instances_count, effectiveLimits.limit_whatsapp_instances),
+          ai_credits: calculatePercentage(currentUsage.ai_credits_used, totalCreditsLimit),
           ai_tokens: calculatePercentage(currentUsage.ai_tokens_used, effectiveLimits.limit_ai_tokens_monthly),
           storage_mb: calculatePercentage(currentUsage.storage_used_mb, effectiveLimits.limit_storage_mb),
         },

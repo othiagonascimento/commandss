@@ -31,7 +31,7 @@ const usageConfig = [
   { key: 'leads', label: 'Leads', icon: Target, format: (v: number) => v.toLocaleString() },
   { key: 'products', label: 'Produtos', icon: Package, format: (v: number) => v.toLocaleString() },
   { key: 'whatsapp_instances', label: 'WhatsApp', icon: Smartphone, format: (v: number) => v.toLocaleString() },
-  { key: 'ai_tokens', label: 'Créditos IA', icon: Cpu, format: (v: number) => v.toLocaleString('pt-BR') },
+  { key: 'ai_credits', label: 'Créditos IA', icon: Cpu, format: (v: number) => v.toLocaleString('pt-BR'), secondaryKey: 'ai_tokens', secondaryLabel: 'Tokens' },
   { key: 'storage_mb', label: 'Storage', icon: HardDrive, format: (v: number) => v >= 1024 ? `${(v/1024).toFixed(1)} GB` : `${v} MB` },
 ] as const;
 
@@ -169,12 +169,23 @@ export function TenantUsageProgress({ usage, isLoading, onRecalculate }: TenantU
             const isUnlimited = limit === -1;
             const Icon = config.icon;
             
+            // Get secondary metric (tokens) for AI credits row
+            const hasSecondary = 'secondaryKey' in config && config.secondaryKey;
+            const secondaryUsed = hasSecondary ? (usage.usage[config.secondaryKey as keyof typeof usage.usage] || 0) : 0;
+            const secondaryLimit = hasSecondary ? (usage.limits[config.secondaryKey as keyof typeof usage.limits] || 0) : 0;
+            const creditsPerUser = usage.limits.credits_per_user;
+            
             return (
               <div key={config.key} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Icon className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm font-medium">{config.label}</span>
+                    {hasSecondary && creditsPerUser && (
+                      <span className="text-xs text-muted-foreground">
+                        ({creditsPerUser.toLocaleString()}/usuário)
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {getStatusIcon(isUnlimited ? 0 : percentage)}
@@ -198,24 +209,36 @@ export function TenantUsageProgress({ usage, isLoading, onRecalculate }: TenantU
                       />
                     </div>
                   </div>
-                  <div className="text-sm text-right min-w-[100px]">
-                    <span className="font-medium">{config.format(used)}</span>
-                    <span className="text-muted-foreground">
-                      {' / '}
-                      {isUnlimited ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Infinity className="w-3 h-3" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="text-sm text-right min-w-[100px] cursor-help">
+                        <span className="font-medium">{config.format(used)}</span>
+                        <span className="text-muted-foreground">
+                          {' / '}
+                          {isUnlimited ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Infinity className="w-3 h-3" />
+                            </span>
+                          ) : (
+                            config.format(limit)
+                          )}
                         </span>
-                      ) : (
-                        config.format(limit)
-                      )}
-                    </span>
-                    {!isUnlimited && (
-                      <span className="text-muted-foreground ml-1">
-                        ({percentage}%)
-                      </span>
+                        {!isUnlimited && (
+                          <span className="text-muted-foreground ml-1">
+                            ({percentage}%)
+                          </span>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    {hasSecondary && (
+                      <TooltipContent side="left" className="text-xs">
+                        <div className="space-y-1">
+                          <p className="font-medium">Controle Interno</p>
+                          <p>Tokens: {secondaryUsed.toLocaleString('pt-BR')} / {secondaryLimit.toLocaleString('pt-BR')}</p>
+                        </div>
+                      </TooltipContent>
                     )}
-                  </div>
+                  </Tooltip>
                 </div>
               </div>
             );
