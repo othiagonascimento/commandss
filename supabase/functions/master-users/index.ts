@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
+declare const EdgeRuntime: { waitUntil: (promise: Promise<unknown>) => void };
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -25,6 +27,38 @@ function mapToValidRole(role: string | undefined): AppRole {
   if (role === 'user' || role === 'viewer') return 'seller';
   if (role === 'super_admin') return 'admin';
   return 'seller';
+}
+
+// Background task to send welcome email
+async function sendWelcomeEmail(email: string, name: string, tenantId: string) {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    
+    logStep('Sending welcome email', { email, name, tenantId });
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-welcome-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
+      body: JSON.stringify({
+        email,
+        name,
+        tenant_id: tenantId,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      logStep('Welcome email failed', { status: response.status, error: errorText });
+    } else {
+      logStep('Welcome email sent successfully', { email });
+    }
+  } catch (error) {
+    logStep('Welcome email error', { error: error instanceof Error ? error.message : 'Unknown error' });
+  }
 }
 
 serve(async (req) => {
@@ -252,8 +286,15 @@ serve(async (req) => {
         logStep('User role upsert failed', { error: roleError.message });
         // Continue anyway, role can be set later
       } else {
-        logStep('User role upserted', { role: appRole });
+      logStep('User role upserted', { role: appRole });
       }
+
+      // Send welcome email in background (non-blocking)
+      EdgeRuntime.waitUntil(sendWelcomeEmail(
+        body.email,
+        body.full_name || body.name || '',
+        tenantId
+      ));
 
       return new Response(
         JSON.stringify({
