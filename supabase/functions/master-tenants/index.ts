@@ -55,7 +55,14 @@ serve(async (req) => {
     const pathParts = url.pathname.split('/').filter(Boolean);
     // Support both URL path and x-path-suffix header for tenant ID
     const pathSuffix = req.headers.get('x-path-suffix');
-    const tenantId = pathSuffix || pathParts[1];
+    // Filter out query params from pathSuffix - only use valid UUIDs
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let tenantId: string | null = null;
+    if (pathSuffix && uuidRegex.test(pathSuffix)) {
+      tenantId = pathSuffix;
+    } else if (pathParts[1] && uuidRegex.test(pathParts[1])) {
+      tenantId = pathParts[1];
+    }
     const method = req.method;
 
     logStep(`${method} request`, { tenantId: tenantId || 'list', pathSuffix });
