@@ -181,15 +181,12 @@ Deno.serve(async (req) => {
             .eq('category', 'product');
           remoteProductsCount = productsCount || 0;
 
-          // Count WhatsApp instances - check tenant config or count from a dedicated table
-          const { data: remoteTenantConfig } = await remoteSupabase
-            .from('tenants')
-            .select('config, extra_channels')
-            .eq('id', tenantId)
-            .single();
-          
-          // Base WhatsApp + extra channels
-          remoteWhatsappCount = 1 + (remoteTenantConfig?.extra_channels || 0);
+          // Count WhatsApp instances from whatsapp_instances table
+          const { count: whatsappInstancesCount } = await remoteSupabase
+            .from('whatsapp_instances')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', tenantId);
+          remoteWhatsappCount = whatsappInstancesCount || 0;
 
           // Sum AI tokens from user_usage
           const { data: userUsageData } = await remoteSupabase
@@ -230,11 +227,17 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Count local WhatsApp instances
+      const { count: localWhatsappCount } = await supabase
+        .from('whatsapp_instances')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId);
+
       console.log('[master-usage] Local data:', {
         users: localUserCount,
         leads: localLeadsCount,
         products: localProductsCount,
-        whatsapp: 1 + (tenantConfig?.extra_channels || 0),
+        whatsapp: localWhatsappCount || 0,
         ai_tokens: localAiTokens,
         storage_mb: localStorageMb,
       });
@@ -253,7 +256,6 @@ Deno.serve(async (req) => {
       
       // Use remote data if available AND it has more data, otherwise use local
       // Priority: use the source that has actual data (non-zero values)
-      const whatsappCount = 1 + (tenantConfig?.extra_channels || 0);
       
       const currentUsage = {
         users_count: Math.max(
@@ -272,8 +274,8 @@ Deno.serve(async (req) => {
           localUsage?.products_count || 0
         ),
         whatsapp_instances_count: Math.max(
-          useRemoteData ? remoteWhatsappCount : whatsappCount,
-          whatsappCount,
+          useRemoteData ? remoteWhatsappCount : 0,
+          localWhatsappCount || 0,
           localUsage?.whatsapp_instances_count || 0
         ),
         ai_tokens_used: Math.max(
@@ -474,13 +476,11 @@ Deno.serve(async (req) => {
             .eq('tenant_id', tenantId)
             .eq('category', 'product');
 
-          // Get WhatsApp count
-          const { data: tenantConfig } = await remoteSupabase
-            .from('tenants')
-            .select('extra_channels')
-            .eq('id', tenantId)
-            .single();
-          const whatsappCount = 1 + (tenantConfig?.extra_channels || 0);
+          // Count WhatsApp instances from whatsapp_instances table
+          const { count: whatsappCount } = await remoteSupabase
+            .from('whatsapp_instances')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', tenantId);
 
           // Sum AI tokens and storage from user_usage
           const { data: userUsageData } = await remoteSupabase
@@ -517,7 +517,7 @@ Deno.serve(async (req) => {
               users_count: usersCount || 0,
               leads_count: leadsCount || 0,
               products_count: productsCount || 0,
-              whatsapp_instances_count: whatsappCount,
+              whatsapp_instances_count: whatsappCount || 0,
               ai_tokens_used: aiTokens,
               storage_used_mb: storageMb,
               messages_sent: messagesCount || 0,
@@ -541,7 +541,7 @@ Deno.serve(async (req) => {
               users_count: usersCount || 0,
               leads_count: leadsCount || 0,
               products_count: productsCount || 0,
-              whatsapp_instances_count: whatsappCount,
+              whatsapp_instances_count: whatsappCount || 0,
               ai_tokens_used: aiTokens,
               storage_used_mb: storageMb,
               messages_sent: messagesCount || 0,
