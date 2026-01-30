@@ -110,11 +110,8 @@ const limitConfig: LimitConfig[] = [
   },
 ];
 
-// Legacy fields mapping - these are kept for backwards compatibility
-const legacyFieldsMap: Record<string, string> = {
-  'limit_ai_tokens_monthly': 'credits_per_user',
-  'limit_storage_mb': 'storage_mb_per_user',
-};
+// NOTE: credits_per_user and storage_mb_per_user are independent fields
+// limit_ai_tokens_monthly is a legacy field that should NOT be synced with credits
 
 export function TenantLimitsEditor({ limits, onChange, disabled, usersCount = 0 }: TenantLimitsEditorProps) {
   const [localLimits, setLocalLimits] = useState(() => ({
@@ -133,14 +130,7 @@ export function TenantLimitsEditor({ limits, onChange, disabled, usersCount = 0 
 
   const handleChange = (key: keyof typeof localLimits, value: number) => {
     const updated = { ...localLimits, [key]: value };
-    
-    // Also update legacy fields for backwards compatibility
-    if (key === 'credits_per_user') {
-      updated.limit_ai_tokens_monthly = value;
-    } else if (key === 'storage_mb_per_user') {
-      updated.limit_storage_mb = value;
-    }
-    
+    // Credits and tokens are independent - no cross-syncing
     setLocalLimits(updated);
     onChange(updated);
   };
