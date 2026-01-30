@@ -37,107 +37,73 @@ export function usePermissions() {
       if (!user?.id) return null;
       
       try {
-        // Try to fetch via edge function first (bypasses RLS)
-        const { data: fnData, error: fnError } = await supabase.functions.invoke('master-users', {
-          method: 'GET',
-          headers: { 'x-path-suffix': `check/${user.id}` }
+        const { data, error } = await supabase.functions.invoke('master-data', {
+          headers: { 'x-path-suffix': 'master-user' }
         });
         
-        if (!fnError && fnData?.user) {
-          return fnData.user as MasterUser;
-        }
-        
-        // Fallback to direct query (may fail due to RLS)
-        const { data, error } = await supabase
-          .from('master_users')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_active', true)
-          .maybeSingle();
-        
         if (error) {
-          // If RLS error, log it but don't throw - treat user as non-master user
-          console.warn('[usePermissions] RLS error on master_users, treating as non-master user:', error.code);
+          console.warn('[usePermissions] Error fetching master user:', error);
           return null;
         }
         
-        return data as MasterUser | null;
+        return data?.data as MasterUser | null;
       } catch (err) {
         console.warn('[usePermissions] Error fetching master user:', err);
         return null;
       }
     },
     enabled: !!user?.id,
-    retry: false, // Don't retry on RLS errors
+    retry: false,
   });
 
-  // Fetch user's roles
+  // Fetch user's roles via edge function
   const { data: userRoles = [], isLoading: rolesLoading } = useQuery({
     queryKey: ['master-user-roles', masterUser?.id],
     queryFn: async () => {
       if (!masterUser?.id) return [];
       
-      const { data: userRolesData, error: userRolesError } = await supabase
-        .from('master_user_roles')
-        .select('role_id')
-        .eq('master_user_id', masterUser.id);
-      
-      if (userRolesError) {
-        console.error('[usePermissions] Error fetching user roles:', userRolesError);
+      try {
+        const { data, error } = await supabase.functions.invoke('master-data', {
+          headers: { 'x-path-suffix': `master-roles/${masterUser.id}` }
+        });
+        
+        if (error) {
+          console.error('[usePermissions] Error fetching user roles:', error);
+          return [];
+        }
+
+        return (data?.data || []) as MasterRole[];
+      } catch (err) {
+        console.error('[usePermissions] Error fetching user roles:', err);
         return [];
       }
-
-      const roleIds = userRolesData.map(ur => ur.role_id);
-      if (roleIds.length === 0) return [];
-
-      const { data: roles, error: rolesError } = await supabase
-        .from('master_roles')
-        .select('*')
-        .in('id', roleIds)
-        .eq('is_active', true);
-
-      if (rolesError) {
-        console.error('[usePermissions] Error fetching roles:', rolesError);
-        return [];
-      }
-
-      return roles as MasterRole[];
     },
     enabled: !!masterUser?.id,
   });
 
-  // Fetch permissions for user's roles
+  // Fetch permissions for user's roles via edge function
   const { data: userPermissions = [], isLoading: permissionsLoading } = useQuery({
     queryKey: ['master-user-permissions', userRoles.map(r => r.id).join(',')],
     queryFn: async () => {
       if (userRoles.length === 0) return [];
 
-      const roleIds = userRoles.map(r => r.id);
+      const roleIds = userRoles.map(r => r.id).join(',');
 
-      const { data: rolePerms, error: rolePermsError } = await supabase
-        .from('master_role_permissions')
-        .select('permission_id')
-        .in('role_id', roleIds);
+      try {
+        const { data, error } = await supabase.functions.invoke('master-data', {
+          headers: { 'x-path-suffix': `master-permissions/${roleIds}` }
+        });
 
-      if (rolePermsError) {
-        console.error('[usePermissions] Error fetching role permissions:', rolePermsError);
+        if (error) {
+          console.error('[usePermissions] Error fetching permissions:', error);
+          return [];
+        }
+
+        return (data?.data || []) as MasterPermission[];
+      } catch (err) {
+        console.error('[usePermissions] Error fetching permissions:', err);
         return [];
       }
-
-      const permissionIds = [...new Set(rolePerms.map(rp => rp.permission_id))];
-      if (permissionIds.length === 0) return [];
-
-      const { data: permissions, error: permsError } = await supabase
-        .from('master_permissions')
-        .select('*')
-        .in('id', permissionIds);
-
-      if (permsError) {
-        console.error('[usePermissions] Error fetching permissions:', permsError);
-        return [];
-      }
-
-      return permissions as MasterPermission[];
     },
     enabled: userRoles.length > 0,
   });

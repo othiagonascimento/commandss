@@ -90,33 +90,29 @@ export default function CreateTenant() {
   }>({ checking: false, available: null });
   const [prefillApplied, setPrefillApplied] = useState(false);
   
-  // Fetch plans
+  // Fetch plans via Edge Function to bypass RLS
   const { data: plans, isLoading: plansLoading } = useQuery({
     queryKey: ['plans-active'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('plans')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+      const { data, error } = await supabase.functions.invoke('master-data', {
+        headers: { 'x-path-suffix': 'plans' }
+      });
       
       if (error) throw error;
-      return data as Plan[];
+      return data?.data as Plan[];
     },
   });
 
-  // Fetch niche templates
+  // Fetch niche templates via Edge Function to bypass RLS
   const { data: templates, isLoading: templatesLoading } = useQuery({
     queryKey: ['niche-templates'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('niche_templates')
-        .select('*')
-        .eq('is_active', true)
-        .order('name');
+      const { data, error } = await supabase.functions.invoke('master-data', {
+        headers: { 'x-path-suffix': 'niche-templates' }
+      });
       
       if (error) throw error;
-      return data as NicheTemplate[];
+      return data?.data as NicheTemplate[];
     },
   });
 
