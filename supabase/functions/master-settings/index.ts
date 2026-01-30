@@ -197,9 +197,17 @@ serve(async (req) => {
     // PATCH /master-settings - Update single setting (AI Engine uses this)
     if (method === 'PATCH') {
       const body = await req.json();
+      logStep('PATCH body received', { 
+        key: body.key,
+        hasLayer1Model: !!body.ai_layer_1_model,
+        hasLayer2Model: !!body.ai_layer_2_model,
+        hasLayer3Model: !!body.ai_layer_3_model,
+      });
+      
       const { key, value, ai_layer_1_model, ai_layer_2_model, ai_layer_3_model, ai_layer_1_instructions, ai_layer_2_instructions, ai_layer_3_instructions } = body;
 
       if (!key) {
+        logStep('Key missing in PATCH request');
         return new Response(
           JSON.stringify({ error: 'Key is required' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -222,6 +230,8 @@ serve(async (req) => {
           updated_by: userId,
         };
 
+        logStep('Updating AI Engine settings', { updateData });
+
         const { data, error } = await supabaseAdmin
           .from('master_settings')
           .update(updateData)
@@ -229,7 +239,10 @@ serve(async (req) => {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          logStep('Update failed', { error: error.message, code: error.code, details: error.details });
+          throw error;
+        }
 
         logStep('AI Engine settings updated', { key });
 
