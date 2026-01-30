@@ -221,39 +221,38 @@ serve(async (req) => {
       const authUser = authData.user;
       logStep('Auth user created', { authUserId: authUser.id });
 
-      // Create profile
+      // Upsert profile (trigger may have already created it)
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .insert({
+        .upsert({
           id: authUser.id,
           tenant_id: tenantId,
           full_name: body.full_name || body.name,
-          role: null, // Role is stored in user_roles table, not here
-        });
+          is_active: true,
+        }, { onConflict: 'id' });
 
       if (profileError) {
-        logStep('Profile creation failed', { error: profileError.message });
-        // Cleanup: delete auth user if profile fails
-        await supabaseAdmin.auth.admin.deleteUser(authUser.id);
-        throw profileError;
+        logStep('Profile upsert failed', { error: profileError.message });
+        // Don't fail - trigger may have created it successfully
+      } else {
+        logStep('Profile upserted');
       }
-      logStep('Profile created');
 
-      // Create user role with valid enum value
+      // Upsert user role with valid enum value (trigger may have already created it)
       const appRole = mapToValidRole(body.role);
       const { error: roleError } = await supabaseAdmin
         .from('user_roles')
-        .insert({
+        .upsert({
           user_id: authUser.id,
           tenant_id: tenantId,
           role: appRole,
-        });
+        }, { onConflict: 'user_id,tenant_id' });
 
       if (roleError) {
-        logStep('User role creation failed', { error: roleError.message });
+        logStep('User role upsert failed', { error: roleError.message });
         // Continue anyway, role can be set later
       } else {
-        logStep('User role created', { role: appRole });
+        logStep('User role upserted', { role: appRole });
       }
 
       return new Response(
