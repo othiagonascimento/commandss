@@ -53,6 +53,12 @@ const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error) => {
       console.error('[QueryCache] Error:', error);
+      // Ignore RLS configuration errors - they're handled by retrying via Edge Functions
+      const errorMessage = error instanceof Error ? error.message : '';
+      if (errorMessage.includes('configuration parameter') || errorMessage.includes('42602')) {
+        console.warn('[QueryCache] RLS configuration error - this should be handled by Edge Functions');
+        return;
+      }
       const message = error instanceof Error ? error.message : 'Erro ao carregar dados';
       toast.error(message);
     },
