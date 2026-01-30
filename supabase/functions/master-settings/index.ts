@@ -194,7 +194,7 @@ serve(async (req) => {
       );
     }
 
-    // PATCH /master-settings - Update single setting
+    // PATCH /master-settings - Update single setting (AI Engine uses this)
     if (method === 'PATCH') {
       const body = await req.json();
       const { key, value, ai_layer_1_model, ai_layer_2_model, ai_layer_3_model, ai_layer_1_instructions, ai_layer_2_instructions, ai_layer_3_instructions } = body;
@@ -206,27 +206,65 @@ serve(async (req) => {
         );
       }
 
-      // Construir objeto de atualização
-      const updateData: Record<string, unknown> = {
-        value,
+      // Para AI Engine settings, armazenar tudo no campo JSONB 'value'
+      // (as colunas separadas ai_layer_X_model não existem na tabela)
+      let valueToSave = value;
+      
+      if (key === 'ai_global_engine') {
+        // Construir objeto JSONB com todos os dados de AI
+        valueToSave = {
+          ai_layer_1_model: ai_layer_1_model || null,
+          ai_layer_2_model: ai_layer_2_model || null,
+          ai_layer_3_model: ai_layer_3_model || null,
+          ai_layer_1_instructions: ai_layer_1_instructions || null,
+          ai_layer_2_instructions: ai_layer_2_instructions || null,
+          ai_layer_3_instructions: ai_layer_3_instructions || null,
+        };
+      }
+
+      // Apenas atualizar os campos que existem na tabela: value, updated_at, updated_by
+      const updateData = {
+        value: valueToSave,
         updated_at: new Date().toISOString(),
         updated_by: userId,
       };
 
-      // Adicionar campos de AI se fornecidos
-      if (ai_layer_1_model !== undefined) updateData.ai_layer_1_model = ai_layer_1_model;
-      if (ai_layer_2_model !== undefined) updateData.ai_layer_2_model = ai_layer_2_model;
-      if (ai_layer_3_model !== undefined) updateData.ai_layer_3_model = ai_layer_3_model;
-      if (ai_layer_1_instructions !== undefined) updateData.ai_layer_1_instructions = ai_layer_1_instructions;
-      if (ai_layer_2_instructions !== undefined) updateData.ai_layer_2_instructions = ai_layer_2_instructions;
-      if (ai_layer_3_instructions !== undefined) updateData.ai_layer_3_instructions = ai_layer_3_instructions;
-
-      const { data, error } = await supabaseAdmin
+      // Verificar se o registro existe
+      const { data: existing, error: existingError } = await supabaseAdmin
         .from('master_settings')
-        .update(updateData)
+        .select('id')
         .eq('key', key)
-        .select()
         .single();
+
+      let data;
+      let error;
+
+      if (existingError || !existing) {
+        // Criar novo registro se não existe
+        const result = await supabaseAdmin
+          .from('master_settings')
+          .insert({
+            key,
+            category: 'ai',
+            description: 'Configuração global do Motor de IA',
+            value: valueToSave,
+            updated_by: userId,
+          })
+          .select()
+          .single();
+        data = result.data;
+        error = result.error;
+      } else {
+        // Atualizar registro existente
+        const result = await supabaseAdmin
+          .from('master_settings')
+          .update(updateData)
+          .eq('key', key)
+          .select()
+          .single();
+        data = result.data;
+        error = result.error;
+      }
 
       if (error) throw error;
 
@@ -236,16 +274,18 @@ serve(async (req) => {
       if (key === 'ai_global_engine') {
         logStep('AI settings updated, notifying tenants...');
         
+        // Usar os valores do body diretamente para notificação
+        const aiSettings: AISettings = {
+          ai_layer_1_model,
+          ai_layer_2_model,
+          ai_layer_3_model,
+          ai_layer_1_instructions,
+          ai_layer_2_instructions,
+          ai_layer_3_instructions,
+        };
+        
         // Executar notificação em background (não bloquear resposta)
-        const settingsData = data as AISettings;
-        notifyTenantsAISettingsUpdated(supabaseAdmin, {
-          ai_layer_1_model: settingsData.ai_layer_1_model,
-          ai_layer_2_model: settingsData.ai_layer_2_model,
-          ai_layer_3_model: settingsData.ai_layer_3_model,
-          ai_layer_1_instructions: settingsData.ai_layer_1_instructions,
-          ai_layer_2_instructions: settingsData.ai_layer_2_instructions,
-          ai_layer_3_instructions: settingsData.ai_layer_3_instructions,
-        });
+        notifyTenantsAISettingsUpdated(supabaseAdmin, aiSettings);
       }
 
       return new Response(
