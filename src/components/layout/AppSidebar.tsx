@@ -24,6 +24,7 @@ import {
   Package,
   Trophy,
   Bell,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -177,6 +178,13 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           path: '/invite-links',
           description: 'Links comerciais',
           permissionCheck: permissions.canViewInviteLinks,
+        },
+        {
+          icon: ClipboardList,
+          label: 'Cadastros',
+          path: '/admin/cadastros',
+          description: 'Submissões de onboarding',
+          permissionCheck: permissions.canViewTenants,
         },
         {
           icon: Bell,
