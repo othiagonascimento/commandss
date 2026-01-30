@@ -645,7 +645,8 @@ export interface TenantUsageDetail {
     leads: number;
     products: number;
     whatsapp_instances: number;
-    ai_tokens: number;
+    ai_credits: number;    // Primary metric (credits consumed)
+    ai_tokens: number;     // Secondary/internal metric
     storage_mb: number;
     messages: number;
     active_users: number;
@@ -655,19 +656,23 @@ export interface TenantUsageDetail {
     leads: number;
     products: number;
     whatsapp_instances: number;
-    ai_tokens: number;
+    ai_credits: number;       // Total credits limit (credits_per_user × users)
+    ai_tokens: number;        // Legacy/internal limit
     storage_mb: number;
+    credits_per_user?: number; // Per-user quota for display
   };
   percentages: {
     users: number;
     leads: number;
     products: number;
     whatsapp_instances: number;
+    ai_credits: number;
     ai_tokens: number;
     storage_mb: number;
   };
   alerts: string[];
   last_calculated_at: string | null;
+  data_source?: 'remote' | 'local';
 }
 
 export interface UserUsageListResponse {
