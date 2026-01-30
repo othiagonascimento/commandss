@@ -1,149 +1,205 @@
 
-# Plano: Reformulação da Página de Cadastros
 
-## Contexto do Problema
+# Plano: Sincronização de IDs Master → CRM via Webhook
 
-### 1. Erro ao Carregar Dados
-O erro "Erro ao carregar dados" ocorre porque a política RLS da tabela `onboarding_submissions` requer que `is_master_tenant()` retorne `true` para permitir SELECT. O console mostra um erro relacionado ao parâmetro de role que está quebrando a verificacao de permissao.
+## Problema Identificado
 
-**A tabela tem dados** - confirmei 5 cadastros reais:
-- Magnata Consultoria & Mentoria
-- Erika Joias
-- Portal Medianeira
-- Protagonismo RH
-- E outros...
+Na edge function `sync-tenant-to-crm` (linhas 124-144), ao criar um tenant no CRM, o código **não inclui o campo `id`**:
 
-### 2. Interface em JSON Ilegivel
-Atualmente os dados sao exibidos em formato JSON bruto na aba secundaria, e a aba de dados formatados nao esta bem estruturada para copiar facilmente.
-
----
-
-## Solucao Proposta
-
-### Parte 1: Corrigir a Leitura de Dados
-
-Vou criar uma **Edge Function dedicada** (`master-onboarding`) para buscar os cadastros usando `SUPABASE_SERVICE_ROLE_KEY`, contornando as limitacoes de RLS do cliente frontend.
-
-**Rota GET**: Retorna todos os cadastros ordenados por data
-**Rota POST com action=update_status**: Atualiza o status do cadastro
-
-### Parte 2: Redesign da Interface
-
-#### 2.1 Tela Principal (Lista)
-- Tabela com colunas: Empresa, Responsavel, Email, WhatsApps, Data, Status
-- Badge de status colorido (Pendente/Aprovado/Rejeitado)
-- Botao "Visualizar" para abrir o painel lateral
-- Botao "Criar Tenant" que abre CreateTenant pre-preenchido
-
-#### 2.2 Painel de Detalhes (Sheet)
-Organizacao em secoes com **botao de copiar** em cada campo:
-
-```text
-+------------------------------------------+
-|  [Logo]  NOME DA EMPRESA                 |
-|  Status: [Pendente] [Aprovar] [Rejeitar] |
-+------------------------------------------+
-|                                          |
-|  IDENTIDADE                    [Copiar]  |
-|  Nome: Magnata Consultoria               |
-|  Nome Curto: Magnata                     |
-|  Slogan: -                               |
-|                                          |
-|  RESPONSAVEL                   [Copiar]  |
-|  Nome: Herika Lima Souza                 |
-|  Email: carla@gmail.com                  |
-|  Telefone: (99) 98403-2219               |
-|  Atua em vendas: Sim                     |
-|                                          |
-|  OPERACAO                      [Copiar]  |
-|  Atendimentos/mes: 50                    |
-|  Produtos: 3                             |
-|  WhatsApps: 2                            |
-|  Nicho: Consultoria Empresarial          |
-|                                          |
-|  IA                            [Copiar]  |
-|  Personalidade: Consultivo...            |
-|  Responde fora do horario: Sim           |
-|  Horarios: Seg-Sex 09:00-18:00           |
-|                                          |
-+------------------------------------------+
-|  [Copiar Tudo JSON]  [Criar Tenant ->]   |
-+------------------------------------------+
+```typescript
+const { data: newCrmTenant, error: createError } = await crmSupabase
+  .from('tenants')
+  .insert({
+    // ❌ FALTA: id: masterTenant.id
+    name: masterTenant.name,
+    subdomain: masterTenant.subdomain,
+    ...
+  })
 ```
 
-#### 2.3 Funcionalidade "Criar Tenant"
-Botao que redireciona para `/tenants/new` com query params pre-preenchidos:
-- `?name=NomeDaEmpresa`
-- `&slug=slug-sugerido`
-- `&email=email@responsavel.com`
-- `&contact_name=NomeDoResponsavel`
+Isso faz com que o Supabase do CRM gere um **novo UUID**, criando a dessincronização.
 
-O `CreateTenant.tsx` sera atualizado para ler esses params e preencher os campos automaticamente.
+## Solução
 
----
+### Mudança 1: Corrigir `sync-tenant-to-crm` para Passar o Mesmo ID
 
-## Arquivos a Criar/Modificar
+Modificar o INSERT para incluir `id: masterTenant.id`:
 
-### Novos Arquivos
-1. `supabase/functions/master-onboarding/index.ts` - Edge Function para CRUD de cadastros
-
-### Arquivos a Modificar
-1. `src/pages/AdminCadastros.tsx` - Redesign completo da interface
-2. `src/pages/CreateTenant.tsx` - Ler query params para pre-preenchimento
-3. `supabase/config.toml` - Registrar a nova Edge Function
-
----
-
-## Detalhes Tecnicos
-
-### Edge Function: master-onboarding
-
-```text
-GET /master-onboarding
-  - Retorna lista de onboarding_submissions
-  - Ordenado por created_at DESC
-
-POST /master-onboarding
-  Body: { action: "update_status", id: "uuid", status: "approved"|"rejected" }
-  - Atualiza status do cadastro
+```typescript
+.insert({
+  id: masterTenant.id,  // ← ADICIONAR
+  name: masterTenant.name,
+  subdomain: masterTenant.subdomain,
+  ...
+})
 ```
 
-### Componente de Copia
-Cada secao tera um botao que copia os dados formatados:
+### Mudança 2: Usar `masterTenant.id` nas Tabelas Satélite
 
-```text
-IDENTIDADE
-Nome: Magnata Consultoria
-Nome Curto: Magnata
-Slogan: -
+Atualmente o código usa `crmTenantId` (que vem do retorno do INSERT). Após a correção, garantir consistência:
+
+| Linha | Tabela | Antes | Depois |
+|-------|--------|-------|--------|
+| 166 | `tenant_branding` | `tenant_id: crmTenantId` | `tenant_id: masterTenant.id` |
+| 188 | `tenant_features` | `tenant_id: crmTenantId` | `tenant_id: masterTenant.id` |
+| 221 | `ai_agent_config` | `tenant_id: crmTenantId` | `tenant_id: masterTenant.id` |
+| 242 | `tenant_usage` | `tenant_id: crmTenantId` | `tenant_id: masterTenant.id` |
+
+### Mudança 3: Adicionar Chamada ao Webhook `tenant.provision` (Opcional/Alternativo)
+
+O CRM agora tem um endpoint para provisionamento via webhook. Podemos adicionar uma chamada adicional como backup:
+
+```typescript
+// Após sync bem-sucedido, notificar via webhook
+const MASTER_WEBHOOK_SECRET = Deno.env.get('MASTER_WEBHOOK_SECRET');
+if (MASTER_WEBHOOK_SECRET) {
+  const payload = JSON.stringify({
+    event: 'tenant.provision',
+    data: {
+      id: masterTenant.id,
+      name: masterTenant.name,
+      subdomain: masterTenant.subdomain,
+      plan_type: masterTenant.plan_type,
+      owner_email: masterTenant.contact_email
+    }
+  });
+  
+  const signature = btoa(MASTER_WEBHOOK_SECRET + payload.substring(0, 32));
+  
+  await fetch('https://btoyclznuuwvxbsacemw.supabase.co/functions/v1/master-core', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-webhook-signature': signature,
+      'x-webhook-action': 'webhooks'
+    },
+    body: payload
+  });
+}
 ```
 
-### Pre-preenchimento do Tenant
-URL gerada: `/tenants/new?prefill=true&name=...&slug=...&email=...`
+## Fluxo Corrigido
 
-O CreateTenant verificara `searchParams.get('prefill')` e populara o form.
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                     MASTER PANEL                                 │
+│  1. POST /master-tenants → cria tenant (id: ABC-123)             │
+│  2. Chama sync-tenant-to-crm                                     │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  sync-tenant-to-crm                              │
+│  3. INSERT no CRM com id: ABC-123 (MESMO ID!)                   │
+│  4. Cria tabelas satélite com tenant_id: ABC-123                │
+│  5. (Opcional) Chama webhook tenant.provision                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     CRM EXTERNO                                  │
+│  Tenant criado com ID ABC-123                                   │
+│  Usuário faz cadastro → metadata.tenant_id: ABC-123             │
+│  Trigger handle_new_user → profile vinculado ao tenant correto  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
----
+## Arquivos a Modificar
 
-## Mapeamento Cadastro -> Tenant
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/sync-tenant-to-crm/index.ts` | Adicionar `id: masterTenant.id` no INSERT e usar `masterTenant.id` nas tabelas satélite |
 
-| Campo do Cadastro       | Campo do Tenant          |
-|-------------------------|--------------------------|
-| company_name            | name                     |
-| short_name (slugified)  | slug/subdomain           |
-| owner_email             | contact_email            |
-| owner_name              | admin_name               |
-| owner_email             | admin_email              |
-| niche                   | Sugestao de template     |
-| logo_url                | branding.logo_url        |
-| primary_color (se tiver)| branding.primary_color   |
+## Configuração Necessária
 
----
+A secret `MASTER_WEBHOOK_SECRET` **não está configurada** atualmente. Se quiser usar o webhook como backup, será necessário adicionar a secret.
 
-## Beneficios
+**Secrets existentes:**
+- `REMOTE_SUPABASE_URL` ✅
+- `REMOTE_SUPABASE_SERVICE_ROLE_KEY` ✅
+- `MASTER_WEBHOOK_SECRET` ❌ (não existe)
 
-1. **Sem erros de RLS** - Edge Function usa service role
-2. **Interface intuitiva** - Dados organizados em secoes claras
-3. **Copiar com 1 clique** - Cada secao ou campo individual
-4. **Fluxo integrado** - Botao direto para criar tenant pre-preenchido
-5. **Alinhado com tenant config** - Mapeamento claro de campos
+## Seção Técnica
+
+### Código Atual (Problemático)
+
+```typescript
+// Linha 124-144 de sync-tenant-to-crm/index.ts
+const { data: newCrmTenant, error: createError } = await crmSupabase
+  .from('tenants')
+  .insert({
+    name: masterTenant.name,           // ❌ Falta id
+    subdomain: masterTenant.subdomain,
+    contact_email: masterTenant.contact_email,
+    // ... outros campos
+  })
+  .select()
+  .single();
+
+crmTenantId = newCrmTenant.id;  // ← ID gerado pelo CRM (ERRADO!)
+```
+
+### Código Corrigido
+
+```typescript
+const { data: newCrmTenant, error: createError } = await crmSupabase
+  .from('tenants')
+  .insert({
+    id: masterTenant.id,  // ← FORÇAR MESMO ID DO MASTER
+    name: masterTenant.name,
+    subdomain: masterTenant.subdomain,
+    contact_email: masterTenant.contact_email,
+    // ... outros campos
+  })
+  .select()
+  .single();
+
+// Usar masterTenant.id em vez de crmTenantId para consistência
+const syncTenantId = masterTenant.id;
+```
+
+### Mudanças Adicionais nas Tabelas Satélite
+
+```typescript
+// Linha 163-174: tenant_branding
+await crmSupabase
+  .from('tenant_branding')
+  .upsert({
+    tenant_id: masterTenant.id,  // ← ANTES: crmTenantId
+    company_name: masterBranding.company_name,
+    // ...
+  });
+
+// Linha 185-206: tenant_features
+await crmSupabase
+  .from('tenant_features')
+  .upsert({
+    tenant_id: masterTenant.id,  // ← ANTES: crmTenantId
+    // ...
+  });
+
+// Linha 218-226: ai_agent_config
+await crmSupabase
+  .from('ai_agent_config')
+  .upsert({
+    tenant_id: masterTenant.id,  // ← ANTES: crmTenantId
+    // ...
+  });
+
+// Linha 239-253: tenant_usage
+await crmSupabase
+  .from('tenant_usage')
+  .upsert({
+    tenant_id: masterTenant.id,  // ← ANTES: crmTenantId
+    // ...
+  });
+```
+
+## Impacto
+
+Após esta mudança:
+- Tenants criados no Master terão **exatamente o mesmo ID** no CRM
+- O trigger `handle_new_user` no CRM conseguirá encontrar o tenant pelo `tenant_id` do metadata
+- Profiles e roles serão vinculados corretamente
+- Fim da dessincronização de IDs
+
