@@ -8485,7 +8485,13 @@ export type Database = {
       ab_test_status: "running" | "finished" | "archived"
       ab_test_type: "message_body" | "media" | "cta" | "timing"
       ab_test_winner: "a" | "b" | "tie"
-      app_role: "super_admin" | "admin" | "manager" | "viewer" | "moderator"
+      app_role:
+        | "super_admin"
+        | "admin"
+        | "manager"
+        | "viewer"
+        | "moderator"
+        | "seller"
       campaign_channel: "whatsapp" | "email" | "sms"
       campaign_objective:
         | "promotion"
@@ -8662,7 +8668,14 @@ export const Constants = {
       ab_test_status: ["running", "finished", "archived"],
       ab_test_type: ["message_body", "media", "cta", "timing"],
       ab_test_winner: ["a", "b", "tie"],
-      app_role: ["super_admin", "admin", "manager", "viewer", "moderator"],
+      app_role: [
+        "super_admin",
+        "admin",
+        "manager",
+        "viewer",
+        "moderator",
+        "seller",
+      ],
       campaign_channel: ["whatsapp", "email", "sms"],
       campaign_objective: [
         "promotion",

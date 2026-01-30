@@ -124,6 +124,7 @@ serve(async (req) => {
         const { data: newCrmTenant, error: createError } = await crmSupabase
           .from('tenants')
           .insert({
+            id: masterTenant.id, // FORÇAR MESMO ID DO MASTER
             name: masterTenant.name,
             subdomain: masterTenant.subdomain,
             contact_email: masterTenant.contact_email,
@@ -148,8 +149,9 @@ serve(async (req) => {
           throw createError;
         }
 
-        crmTenantId = newCrmTenant.id;
-        logStep('CRM tenant created', { crmId: crmTenantId });
+        // Usar masterTenant.id para garantir consistência (mesmo ID em ambos sistemas)
+        crmTenantId = masterTenant.id;
+        logStep('CRM tenant created with Master ID', { crmId: crmTenantId });
 
         // Create related records in CRM
         // 1. tenant_branding
@@ -163,14 +165,14 @@ serve(async (req) => {
           await crmSupabase
             .from('tenant_branding')
             .upsert({
-              tenant_id: crmTenantId,
+              tenant_id: masterTenant.id, // Usar ID do Master diretamente
               company_name: masterBranding.company_name,
               primary_color: masterBranding.primary_color,
               logo_url: masterBranding.logo_url,
               logo_white_url: masterBranding.logo_white_url,
               icon_url: masterBranding.icon_url,
               favicon_url: masterBranding.favicon_url,
-            });
+            }, { onConflict: 'tenant_id' });
           logStep('CRM branding created');
         }
 
@@ -185,7 +187,7 @@ serve(async (req) => {
           await crmSupabase
             .from('tenant_features')
             .upsert({
-              tenant_id: crmTenantId,
+              tenant_id: masterTenant.id, // Usar ID do Master diretamente
               module_ai_agent: masterFeatures.module_ai_agent,
               module_ai_transcription: masterFeatures.module_ai_transcription,
               module_automation_flows: masterFeatures.module_automation_flows,
@@ -203,7 +205,7 @@ serve(async (req) => {
               limit_storage_mb: masterFeatures.limit_storage_mb,
               ai_use_global_config: masterFeatures.ai_use_global_config,
               overrides: masterFeatures.overrides,
-            });
+            }, { onConflict: 'tenant_id' });
           logStep('CRM features created');
         }
 
@@ -218,12 +220,12 @@ serve(async (req) => {
           await crmSupabase
             .from('ai_agent_config')
             .upsert({
-              tenant_id: crmTenantId,
+              tenant_id: masterTenant.id, // Usar ID do Master diretamente
               is_enabled: true,
               layer_1_model: globalSettings?.ai_layer_1_model || 'gemini-2.0-flash',
               layer_2_model: globalSettings?.ai_layer_2_model || 'gpt-4o-mini',
               layer_3_model: globalSettings?.ai_layer_3_model || 'claude-3-5-sonnet-20241022',
-            });
+            }, { onConflict: 'tenant_id' });
           logStep('CRM AI config created from global settings', { 
             layer_1: globalSettings?.ai_layer_1_model,
             layer_2: globalSettings?.ai_layer_2_model,
@@ -239,7 +241,7 @@ serve(async (req) => {
         await crmSupabase
           .from('tenant_usage')
           .upsert({
-            tenant_id: crmTenantId,
+            tenant_id: masterTenant.id, // Usar ID do Master diretamente
             period_start: periodStart,
             period_end: periodEnd,
             active_users: 0,
@@ -250,7 +252,7 @@ serve(async (req) => {
             ai_tokens_used: 0,
             api_calls: 0,
             estimated_cost_brl: 0,
-          });
+          }, { onConflict: 'tenant_id' });
         logStep('CRM usage record created');
       }
 
