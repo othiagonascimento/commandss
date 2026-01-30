@@ -50,11 +50,11 @@ import { z } from 'zod';
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrador',
   manager: 'Gerente',
+  seller: 'Vendedor',
   viewer: 'Visualizador',
   moderator: 'Moderador',
   super_admin: 'Super Admin',
   user: 'Usuário',
-  seller: 'Vendedor',
 };
 
 const getRoleLabel = (role: string): string => {
@@ -71,7 +71,7 @@ const createUserSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-  role: z.enum(['admin', 'manager', 'viewer']),
+  role: z.enum(['admin', 'manager', 'seller']),
 });
 
 type CreateUserFormData = z.infer<typeof createUserSchema>;
@@ -88,7 +88,7 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
     name: '',
     email: '',
     password: '',
-    role: 'viewer',
+    role: 'seller',
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -162,7 +162,7 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
   });
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', password: '', role: 'viewer' });
+    setFormData({ name: '', email: '', password: '', role: 'seller' });
     setFormError(null);
   };
 
@@ -200,9 +200,10 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
   const handleOpenEdit = (user: TenantUser) => {
     setEditingUser(user);
     // Map user role to valid form role
-    let formRole: 'admin' | 'manager' | 'viewer' = 'viewer';
+    let formRole: 'admin' | 'manager' | 'seller' = 'seller';
     if (user.role === 'admin') formRole = 'admin';
     else if (user.role === 'manager') formRole = 'manager';
+    else if (user.role === 'seller') formRole = 'seller';
     
     setFormData({
       name: user.name || user.full_name || '',
@@ -312,7 +313,7 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
                   <Label htmlFor="role">Função</Label>
                   <Select
                     value={formData.role}
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, role: v as 'admin' | 'manager' | 'viewer' }))}
+                    onValueChange={(v) => setFormData(prev => ({ ...prev, role: v as 'admin' | 'manager' | 'seller' }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -320,7 +321,7 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
                       <SelectItem value="manager">Gerente</SelectItem>
-                      <SelectItem value="viewer">Visualizador</SelectItem>
+                      <SelectItem value="seller">Vendedor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

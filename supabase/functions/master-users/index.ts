@@ -14,7 +14,7 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 // Valid app_role enum values
-const VALID_ROLES = ['admin', 'manager', 'viewer'] as const;
+const VALID_ROLES = ['admin', 'manager', 'seller'] as const;
 type AppRole = typeof VALID_ROLES[number];
 
 function mapToValidRole(role: string | undefined): AppRole {
@@ -22,9 +22,9 @@ function mapToValidRole(role: string | undefined): AppRole {
     return role as AppRole;
   }
   // Map legacy roles
-  if (role === 'user' || role === 'seller') return 'viewer';
+  if (role === 'user' || role === 'viewer') return 'seller';
   if (role === 'super_admin') return 'admin';
-  return 'viewer';
+  return 'seller';
 }
 
 serve(async (req) => {

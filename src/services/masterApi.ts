@@ -397,7 +397,7 @@ export interface CreateUserPayload {
   name: string;
   full_name?: string;
   password: string;
-  role: 'admin' | 'manager' | 'viewer';
+  role: 'admin' | 'manager' | 'seller';
 }
 
 export interface BrandingData {
