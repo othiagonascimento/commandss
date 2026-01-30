@@ -219,18 +219,27 @@ serve(async (req) => {
       
       if (key === 'ai_global_engine') {
         // Usar colunas separadas para AI settings
-        const updateData = {
+        // NOTA: Incluir campos com e sem prefixo 'ai_' para compatibilidade com triggers existentes
+        const updateData: Record<string, unknown> = {
+          // Colunas com prefixo ai_ (schema atual)
           ai_layer_1_model: ai_layer_1_model || null,
           ai_layer_2_model: ai_layer_2_model || null,
           ai_layer_3_model: ai_layer_3_model || null,
           ai_layer_1_instructions: ai_layer_1_instructions || null,
           ai_layer_2_instructions: ai_layer_2_instructions || null,
           ai_layer_3_instructions: ai_layer_3_instructions || null,
+          // Colunas sem prefixo (compatibilidade com trigger legado - se existirem)
+          layer_1_model: ai_layer_1_model || null,
+          layer_2_model: ai_layer_2_model || null,
+          layer_3_model: ai_layer_3_model || null,
+          layer_1_instructions: ai_layer_1_instructions || null,
+          layer_2_instructions: ai_layer_2_instructions || null,
+          layer_3_instructions: ai_layer_3_instructions || null,
           updated_at: new Date().toISOString(),
           updated_by: userId,
         };
 
-        logStep('Updating AI Engine settings', { updateData });
+        logStep('Updating AI Engine settings', { key });
 
         const { data, error } = await supabaseAdmin
           .from('master_settings')
@@ -240,6 +249,51 @@ serve(async (req) => {
           .single();
 
         if (error) {
+          // Se falhar por colunas inexistentes, tentar só com as colunas ai_
+          if (error.code === '42703') {
+            logStep('Retrying with ai_ prefixed columns only');
+            const fallbackData = {
+              ai_layer_1_model: ai_layer_1_model || null,
+              ai_layer_2_model: ai_layer_2_model || null,
+              ai_layer_3_model: ai_layer_3_model || null,
+              ai_layer_1_instructions: ai_layer_1_instructions || null,
+              ai_layer_2_instructions: ai_layer_2_instructions || null,
+              ai_layer_3_instructions: ai_layer_3_instructions || null,
+              updated_at: new Date().toISOString(),
+              updated_by: userId,
+            };
+            
+            const { data: retryData, error: retryError } = await supabaseAdmin
+              .from('master_settings')
+              .update(fallbackData)
+              .eq('key', key)
+              .select()
+              .single();
+              
+            if (retryError) {
+              logStep('Fallback update also failed', { error: retryError.message, code: retryError.code });
+              throw retryError;
+            }
+            
+            logStep('AI Engine settings updated via fallback', { key });
+            
+            // Notificar tenants
+            const aiSettings: AISettings = {
+              ai_layer_1_model,
+              ai_layer_2_model,
+              ai_layer_3_model,
+              ai_layer_1_instructions,
+              ai_layer_2_instructions,
+              ai_layer_3_instructions,
+            };
+            notifyTenantsAISettingsUpdated(supabaseAdmin, aiSettings);
+
+            return new Response(
+              JSON.stringify(retryData),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          
           logStep('Update failed', { error: error.message, code: error.code, details: error.details });
           throw error;
         }
