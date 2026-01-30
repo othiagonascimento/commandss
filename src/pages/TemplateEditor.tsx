@@ -143,6 +143,7 @@ export default function TemplateEditor() {
   const handlePublish = () => {
     const formData = methods.getValues();
     
+    // Apenas nome e slug são REALMENTE obrigatórios
     if (!formData.slug || !/^[a-z0-9-]+$/.test(formData.slug)) {
       toast.error('Slug inválido. Use apenas letras minúsculas, números e hífens.');
       setActiveTab('identity');
@@ -155,46 +156,43 @@ export default function TemplateEditor() {
       return;
     }
 
-    if (formData.funnel_stages.length < 3) {
-      toast.error('O funil precisa ter pelo menos 3 etapas (incluindo Novos, Ganho e Perdido)');
-      setActiveTab('funnel');
-      return;
+    // Validação de funil SÓ SE tiver customização além do padrão
+    const defaultSlugs = ['novos', 'frio', 'morno', 'quente', 'ganho', 'perdido'];
+    const currentSlugs = formData.funnel_stages.map(s => s.slug);
+    const hasCustomFunnel = JSON.stringify(currentSlugs) !== JSON.stringify(defaultSlugs);
+
+    if (hasCustomFunnel && formData.funnel_stages.length > 0) {
+      if (formData.funnel_stages.length < 3) {
+        toast.error('Funil customizado precisa ter pelo menos 3 etapas');
+        setActiveTab('funnel');
+        return;
+      }
+
+      const hasWonStage = formData.funnel_stages.some(s => s.is_won === true);
+      const hasLostStage = formData.funnel_stages.some(s => s.is_lost === true);
+      const hasEntryStage = formData.funnel_stages.some(s => !s.is_won && !s.is_lost);
+
+      if (!hasWonStage) {
+        toast.error('Funil customizado precisa ter uma etapa de "Ganho" 🏆');
+        setActiveTab('funnel');
+        return;
+      }
+
+      if (!hasLostStage) {
+        toast.error('Funil customizado precisa ter uma etapa de "Perdido" ❌');
+        setActiveTab('funnel');
+        return;
+      }
+
+      if (!hasEntryStage) {
+        toast.error('Funil customizado precisa ter pelo menos uma etapa de entrada');
+        setActiveTab('funnel');
+        return;
+      }
     }
 
-    // Validate required system stages
-    const hasWonStage = formData.funnel_stages.some(s => s.is_won === true);
-    const hasLostStage = formData.funnel_stages.some(s => s.is_lost === true);
-    const hasEntryStage = formData.funnel_stages.some(s => !s.is_won && !s.is_lost);
-
-    if (!hasWonStage) {
-      toast.error('O funil precisa ter pelo menos uma etapa marcada como "Ganho" 🏆');
-      setActiveTab('funnel');
-      return;
-    }
-
-    if (!hasLostStage) {
-      toast.error('O funil precisa ter pelo menos uma etapa marcada como "Perdido" ❌');
-      setActiveTab('funnel');
-      return;
-    }
-
-    if (!hasEntryStage) {
-      toast.error('O funil precisa ter pelo menos uma etapa de entrada (não marcada como Ganho ou Perdido)');
-      setActiveTab('funnel');
-      return;
-    }
-
-    if (!formData.prompts.greeting) {
-      toast.error('Mensagem de saudação é obrigatória');
-      setActiveTab('uopa-core');
-      return;
-    }
-
-    if (!formData.prompts.system_prompt) {
-      toast.error('System prompt é obrigatório');
-      setActiveTab('uopa-core');
-      return;
-    }
+    // Prompts NÃO são mais obrigatórios - herdam do global automaticamente
+    // Se vazios, o sistema usa as configurações globais do Master
 
     setShowPublishModal(true);
   };
