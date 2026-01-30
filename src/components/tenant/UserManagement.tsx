@@ -40,7 +40,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Plus, Loader2, Edit, Power, Trash2 } from 'lucide-react';
+import { Plus, Loader2, Edit, Power, Trash2, Key } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -64,7 +64,11 @@ type CreateUserFormData = z.infer<typeof createUserSchema>;
 export function UserManagement({ tenantId, users, isLoading }: UserManagementProps) {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<TenantUser | null>(null);
+  const [passwordUser, setPasswordUser] = useState<TenantUser | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [formData, setFormData] = useState<CreateUserFormData>({
     name: '',
     email: '',
@@ -72,6 +76,7 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
     role: 'viewer',
   });
   const [formError, setFormError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const createMutation = useMutation({
     mutationFn: async (data: CreateUserPayload) => {
@@ -122,9 +127,53 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: async ({ userId, password }: { userId: string; password: string }) => {
+      const result = await usersApi.update(tenantId, userId, { password });
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Senha alterada com sucesso!');
+      setIsPasswordDialogOpen(false);
+      setPasswordUser(null);
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordError(null);
+    },
+    onError: (err: Error) => {
+      setPasswordError(err.message);
+    },
+  });
+
   const resetForm = () => {
     setFormData({ name: '', email: '', password: '', role: 'viewer' });
     setFormError(null);
+  };
+
+  const handleOpenChangePassword = (user: TenantUser) => {
+    setPasswordUser(user);
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError(null);
+    setIsPasswordDialogOpen(true);
+  };
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+
+    if (newPassword.length < 6) {
+      setPasswordError('A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('As senhas não coincidem');
+      return;
+    }
+    if (!passwordUser) return;
+
+    changePasswordMutation.mutate({ userId: passwordUser.id, password: newPassword });
   };
 
   const handleOpenCreate = () => {
@@ -279,6 +328,63 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Password Change Dialog */}
+        <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+          <DialogContent>
+            <form onSubmit={handlePasswordSubmit}>
+              <DialogHeader>
+                <DialogTitle>Alterar Senha</DialogTitle>
+                <DialogDescription>
+                  Defina uma nova senha para {passwordUser?.name || passwordUser?.email}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                {passwordError && (
+                  <p className="text-sm text-destructive">{passwordError}</p>
+                )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">Nova Senha</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={changePasswordMutation.isPending}>
+                  {changePasswordMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    'Salvar Senha'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {isLoading ? (
@@ -320,14 +426,24 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
                       variant="ghost"
                       size="icon"
                       onClick={() => handleOpenEdit(user)}
+                      title="Editar usuário"
                     >
                       <Edit className="w-4 h-4" />
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenChangePassword(user)}
+                      title="Alterar senha"
+                    >
+                      <Key className="w-4 h-4" />
                     </Button>
                     
                     {user.is_active && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive">
+                          <Button variant="ghost" size="icon" className="text-destructive" title="Desativar usuário">
                             <Power className="w-4 h-4" />
                           </Button>
                         </AlertDialogTrigger>
