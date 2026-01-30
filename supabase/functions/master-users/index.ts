@@ -174,7 +174,7 @@ serve(async (req) => {
     // POST /master-users/:tenantId - Create user for tenant
     if (method === 'POST') {
       const body = await req.json();
-      logStep('Creating user', { email: body.email, role: body.role });
+      logStep('Creating user', { email: body.email, role: body.role, tenantId });
 
       // Validate required fields
       if (!body.email || !body.password) {
@@ -184,19 +184,39 @@ serve(async (req) => {
         );
       }
 
-      // Create auth user
+      // Check if user with this email already exists
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find(u => u.email === body.email);
+      if (existingUser) {
+        logStep('User already exists', { email: body.email, existingUserId: existingUser.id });
+        return new Response(
+          JSON.stringify({ error: 'Um usuário com este email já existe' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Create auth user with tenant_id in metadata
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: body.email,
         password: body.password,
         email_confirm: true,
         user_metadata: {
           full_name: body.full_name || body.name,
+          tenant_id: tenantId,
         },
       });
 
       if (authError) {
-        logStep('Auth user creation failed', { error: authError.message });
-        throw authError;
+        logStep('Auth user creation failed', { 
+          error: authError.message, 
+          code: authError.code,
+          status: authError.status,
+          details: JSON.stringify(authError)
+        });
+        return new Response(
+          JSON.stringify({ error: `Erro ao criar usuário: ${authError.message}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
       const authUser = authData.user;
       logStep('Auth user created', { authUserId: authUser.id });
