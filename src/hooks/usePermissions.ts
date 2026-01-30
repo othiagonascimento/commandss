@@ -30,27 +30,45 @@ interface MasterUser {
 export function usePermissions() {
   const { user } = useAuth();
 
-  // Fetch current user's master user record
+  // Fetch current user's master user record via edge function to bypass RLS issues
   const { data: masterUser, isLoading: masterUserLoading } = useQuery({
     queryKey: ['master-user-current', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
       
-      const { data, error } = await supabase
-        .from('master_users')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .single();
-      
-      if (error) {
-        console.log('[usePermissions] No master user found:', error.message);
+      try {
+        // Try to fetch via edge function first (bypasses RLS)
+        const { data: fnData, error: fnError } = await supabase.functions.invoke('master-users', {
+          method: 'GET',
+          headers: { 'x-path-suffix': `check/${user.id}` }
+        });
+        
+        if (!fnError && fnData?.user) {
+          return fnData.user as MasterUser;
+        }
+        
+        // Fallback to direct query (may fail due to RLS)
+        const { data, error } = await supabase
+          .from('master_users')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (error) {
+          // If RLS error, log it but don't throw - treat user as non-master user
+          console.warn('[usePermissions] RLS error on master_users, treating as non-master user:', error.code);
+          return null;
+        }
+        
+        return data as MasterUser | null;
+      } catch (err) {
+        console.warn('[usePermissions] Error fetching master user:', err);
         return null;
       }
-      
-      return data as MasterUser;
     },
     enabled: !!user?.id,
+    retry: false, // Don't retry on RLS errors
   });
 
   // Fetch user's roles
