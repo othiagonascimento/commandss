@@ -206,75 +206,34 @@ serve(async (req) => {
         );
       }
 
-      // Para AI Engine settings, armazenar tudo no campo JSONB 'value'
-      // (as colunas separadas ai_layer_X_model não existem na tabela)
-      let valueToSave = value;
+      // Para AI Engine settings, usar as colunas separadas (não o JSONB 'value')
+      // A tabela master_settings tem colunas: ai_layer_X_model, ai_layer_X_instructions
       
       if (key === 'ai_global_engine') {
-        // Construir objeto JSONB com todos os dados de AI
-        valueToSave = {
+        // Usar colunas separadas para AI settings
+        const updateData = {
           ai_layer_1_model: ai_layer_1_model || null,
           ai_layer_2_model: ai_layer_2_model || null,
           ai_layer_3_model: ai_layer_3_model || null,
           ai_layer_1_instructions: ai_layer_1_instructions || null,
           ai_layer_2_instructions: ai_layer_2_instructions || null,
           ai_layer_3_instructions: ai_layer_3_instructions || null,
+          updated_at: new Date().toISOString(),
+          updated_by: userId,
         };
-      }
 
-      // Apenas atualizar os campos que existem na tabela: value, updated_at, updated_by
-      const updateData = {
-        value: valueToSave,
-        updated_at: new Date().toISOString(),
-        updated_by: userId,
-      };
-
-      // Verificar se o registro existe
-      const { data: existing, error: existingError } = await supabaseAdmin
-        .from('master_settings')
-        .select('id')
-        .eq('key', key)
-        .single();
-
-      let data;
-      let error;
-
-      if (existingError || !existing) {
-        // Criar novo registro se não existe
-        const result = await supabaseAdmin
-          .from('master_settings')
-          .insert({
-            key,
-            category: 'ai',
-            description: 'Configuração global do Motor de IA',
-            value: valueToSave,
-            updated_by: userId,
-          })
-          .select()
-          .single();
-        data = result.data;
-        error = result.error;
-      } else {
-        // Atualizar registro existente
-        const result = await supabaseAdmin
+        const { data, error } = await supabaseAdmin
           .from('master_settings')
           .update(updateData)
           .eq('key', key)
           .select()
           .single();
-        data = result.data;
-        error = result.error;
-      }
 
-      if (error) throw error;
+        if (error) throw error;
 
-      logStep('Setting updated', { key });
+        logStep('AI Engine settings updated', { key });
 
-      // Se for uma atualização de settings de IA, notificar os tenants
-      if (key === 'ai_global_engine') {
-        logStep('AI settings updated, notifying tenants...');
-        
-        // Usar os valores do body diretamente para notificação
+        // Notificar os tenants sobre a mudança
         const aiSettings: AISettings = {
           ai_layer_1_model,
           ai_layer_2_model,
@@ -284,9 +243,32 @@ serve(async (req) => {
           ai_layer_3_instructions,
         };
         
-        // Executar notificação em background (não bloquear resposta)
         notifyTenantsAISettingsUpdated(supabaseAdmin, aiSettings);
+
+        return new Response(
+          JSON.stringify(data),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
+
+      // Para outras settings, usar o campo JSONB 'value'
+      const updateData = {
+        value: value,
+        updated_at: new Date().toISOString(),
+        updated_by: userId,
+      };
+
+      // Atualizar registro existente para outras settings
+      const { data, error } = await supabaseAdmin
+        .from('master_settings')
+        .update(updateData)
+        .eq('key', key)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      logStep('Setting updated', { key });
 
       return new Response(
         JSON.stringify(data),
