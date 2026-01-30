@@ -677,6 +677,7 @@ export const defaultTemplateFormData: TemplateFormData = {
   
   business_context: defaultBusinessContext,
   
+  // Funil padrão - templates podem usar ou customizar
   funnel_stages: [
     { name: 'Novos', slug: 'novos', color: '#3B82F6', sort_order: 1, is_won: false, is_lost: false, is_system: true },
     { name: 'Frio', slug: 'frio', color: '#06B6D4', sort_order: 2, is_won: false, is_lost: false },
@@ -712,12 +713,11 @@ export const defaultTemplateFormData: TemplateFormData = {
     closing_scripts: [],
   },
   
-  quick_replies: [
-    { id: 'qr_1', label: 'Saudação', trigger: 'oi', message: 'Olá! Como posso ajudar você hoje?', technique: 'Rapport' },
-  ],
+  quick_replies: [],
+  // Prompts vazios por padrão - herdam do global automaticamente
   prompts: {
-    greeting: 'Olá! Bem-vindo. Como posso ajudar?',
-    system_prompt: 'Você é um assistente de vendas prestativo e profissional.',
+    greeting: '',
+    system_prompt: '',
     objection_handlers: {},
     qualification_criteria: {},
   },
