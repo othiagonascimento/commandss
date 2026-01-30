@@ -4574,6 +4574,7 @@ export type Database = {
           created_at: string | null
           department: string | null
           email: string | null
+          first_login_at: string | null
           full_name: string | null
           id: string
           is_active: boolean | null
@@ -4582,6 +4583,7 @@ export type Database = {
           name: string | null
           notify_all_new_messages: boolean | null
           onboarding_completed_at: string | null
+          onboarding_progress: Json | null
           participates_in_rotation: boolean | null
           pause_reason: string | null
           pause_until: string | null
@@ -4598,6 +4600,7 @@ export type Database = {
           created_at?: string | null
           department?: string | null
           email?: string | null
+          first_login_at?: string | null
           full_name?: string | null
           id: string
           is_active?: boolean | null
@@ -4606,6 +4609,7 @@ export type Database = {
           name?: string | null
           notify_all_new_messages?: boolean | null
           onboarding_completed_at?: string | null
+          onboarding_progress?: Json | null
           participates_in_rotation?: boolean | null
           pause_reason?: string | null
           pause_until?: string | null
@@ -4622,6 +4626,7 @@ export type Database = {
           created_at?: string | null
           department?: string | null
           email?: string | null
+          first_login_at?: string | null
           full_name?: string | null
           id?: string
           is_active?: boolean | null
@@ -4630,6 +4635,7 @@ export type Database = {
           name?: string | null
           notify_all_new_messages?: boolean | null
           onboarding_completed_at?: string | null
+          onboarding_progress?: Json | null
           participates_in_rotation?: boolean | null
           pause_reason?: string | null
           pause_until?: string | null
