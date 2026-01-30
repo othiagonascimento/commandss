@@ -84,8 +84,8 @@ serve(async (req) => {
     const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
     if (userError || !userData.user) throw new Error('Invalid token');
 
-    const userId = userData.user.id;
-    logStep('User authenticated', { userId });
+    const currentUserId = userData.user.id;
+    logStep('User authenticated', { userId: currentUserId });
 
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
@@ -93,16 +93,59 @@ serve(async (req) => {
     const pathSuffix = req.headers.get('x-path-suffix');
     let tenantId: string | undefined;
     let targetUserId: string | undefined;
+    let isCheckRoute = false;
     
     if (pathSuffix) {
       const suffixParts = pathSuffix.split('/').filter(Boolean);
-      tenantId = suffixParts[0];
-      targetUserId = suffixParts[1];
+      // Check for special "check/{userId}" route for master user verification
+      if (suffixParts[0] === 'check') {
+        isCheckRoute = true;
+        targetUserId = suffixParts[1];
+      } else {
+        tenantId = suffixParts[0];
+        targetUserId = suffixParts[1];
+      }
     } else {
-      tenantId = pathParts[1];
-      targetUserId = pathParts[2];
+      if (pathParts[1] === 'check') {
+        isCheckRoute = true;
+        targetUserId = pathParts[2];
+      } else {
+        tenantId = pathParts[1];
+        targetUserId = pathParts[2];
+      }
     }
     const method = req.method;
+
+    // Handle check route: GET /master-users/check/{userId}
+    // This verifies if a user is a master_user (bypasses RLS)
+    if (isCheckRoute && method === 'GET' && targetUserId) {
+      logStep('Checking master user status', { targetUserId });
+      
+      const { data: masterUser, error: masterError } = await supabaseAdmin
+        .from('master_users')
+        .select('*')
+        .eq('user_id', targetUserId)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (masterError) {
+        logStep('Master user check failed', { error: masterError.message });
+        return new Response(
+          JSON.stringify({ user: null, isMasterUser: false }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      logStep('Master user check result', { found: !!masterUser });
+      
+      return new Response(
+        JSON.stringify({ 
+          user: masterUser, 
+          isMasterUser: !!masterUser 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!tenantId) {
       return new Response(

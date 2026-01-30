@@ -1603,6 +1603,77 @@ export type Database = {
           },
         ]
       }
+      conversation_observers: {
+        Row: {
+          added_by: string
+          can_send_messages: boolean | null
+          conversation_id: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          observer_id: string
+          reason: string | null
+          removed_at: string | null
+          removed_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          added_by: string
+          can_send_messages?: boolean | null
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          observer_id: string
+          reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          tenant_id: string
+        }
+        Update: {
+          added_by?: string
+          can_send_messages?: boolean | null
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          observer_id?: string
+          reason?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_observers_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_observers_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_observers_observer_id_fkey"
+            columns: ["observer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_observers_removed_by_fkey"
+            columns: ["removed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           ai_allowed_modes: Json | null
