@@ -312,9 +312,13 @@ serve(async (req) => {
           active_users: 0,
           users_count: 0,
           leads_count: 0,
+          products_count: 0,
+          whatsapp_instances_count: 0,
           messages_sent: 0,
           storage_used_mb: 0,
           ai_tokens_used: 0,
+          ai_credits_used: 0,
+          credits_consumed: 0,
           api_calls: 0,
           estimated_cost_brl: 0,
         });
