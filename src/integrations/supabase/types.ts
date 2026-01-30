@@ -1871,51 +1871,228 @@ export type Database = {
       ecommerce_config: {
         Row: {
           accent_color: string | null
+          benefit_delivery_text: string | null
+          benefit_installment_text: string | null
+          benefit_shipping_text: string | null
+          benefit_warranty_text: string | null
           business_address: string | null
           business_hours: Json | null
+          button_style: string | null
+          catalog_columns_desktop: number | null
+          catalog_columns_mobile: number | null
+          catalog_default_sort: string | null
           created_at: string | null
+          enable_catalog_filters: boolean | null
+          enable_stock: boolean | null
+          enable_variants: boolean | null
           favicon_url: string | null
+          financing_enabled: boolean | null
+          financing_label: string | null
+          financing_max_installments: number | null
+          financing_simulator_default_entry_percent: number | null
+          financing_simulator_enabled: boolean | null
+          financing_simulator_interest_rate: number | null
+          financing_simulator_max_entry_percent: number | null
+          financing_simulator_min_entry_percent: number | null
+          financing_simulator_title: string | null
+          font_family: string | null
+          footer_city_state: string | null
+          footer_cta_enabled: boolean | null
+          footer_cta_link: string | null
+          footer_cta_text: string | null
+          footer_cta_type: string | null
+          footer_description: string | null
+          footer_links: Json | null
+          footer_show_social: boolean | null
+          footer_show_trust_badges: boolean | null
+          footer_social_facebook: string | null
+          footer_social_instagram: string | null
+          footer_social_tiktok: string | null
+          footer_social_youtube: string | null
+          footer_trust_badges: Json | null
           id: string
+          installment_enabled: boolean | null
+          installment_max_without_interest: number | null
+          installment_min_value: number | null
+          is_enabled: boolean | null
+          layout_template: string | null
+          logo_size: string | null
           logo_url: string | null
+          low_stock_threshold: number | null
+          mobile_fixed_cta: boolean | null
+          policy_faq_content: string | null
+          policy_privacy_content: string | null
+          policy_returns_content: string | null
+          policy_terms_content: string | null
           primary_color: string | null
+          product_cta_text: string | null
+          product_cta_type: string | null
+          product_faq: Json | null
+          require_wholesale_approval: boolean | null
           secondary_color: string | null
+          show_benefits_bar: boolean | null
+          show_descriptions: boolean | null
+          show_prices: boolean | null
+          show_product_faq: boolean | null
+          show_stock_status: boolean | null
+          show_trust_badges: boolean | null
+          show_urgency_indicators: boolean | null
           store_name: string | null
           tenant_id: string
           updated_at: string | null
           welcome_message: string | null
           whatsapp_number: string | null
+          wholesale_price_label: string | null
         }
         Insert: {
           accent_color?: string | null
+          benefit_delivery_text?: string | null
+          benefit_installment_text?: string | null
+          benefit_shipping_text?: string | null
+          benefit_warranty_text?: string | null
           business_address?: string | null
           business_hours?: Json | null
+          button_style?: string | null
+          catalog_columns_desktop?: number | null
+          catalog_columns_mobile?: number | null
+          catalog_default_sort?: string | null
           created_at?: string | null
+          enable_catalog_filters?: boolean | null
+          enable_stock?: boolean | null
+          enable_variants?: boolean | null
           favicon_url?: string | null
+          financing_enabled?: boolean | null
+          financing_label?: string | null
+          financing_max_installments?: number | null
+          financing_simulator_default_entry_percent?: number | null
+          financing_simulator_enabled?: boolean | null
+          financing_simulator_interest_rate?: number | null
+          financing_simulator_max_entry_percent?: number | null
+          financing_simulator_min_entry_percent?: number | null
+          financing_simulator_title?: string | null
+          font_family?: string | null
+          footer_city_state?: string | null
+          footer_cta_enabled?: boolean | null
+          footer_cta_link?: string | null
+          footer_cta_text?: string | null
+          footer_cta_type?: string | null
+          footer_description?: string | null
+          footer_links?: Json | null
+          footer_show_social?: boolean | null
+          footer_show_trust_badges?: boolean | null
+          footer_social_facebook?: string | null
+          footer_social_instagram?: string | null
+          footer_social_tiktok?: string | null
+          footer_social_youtube?: string | null
+          footer_trust_badges?: Json | null
           id?: string
+          installment_enabled?: boolean | null
+          installment_max_without_interest?: number | null
+          installment_min_value?: number | null
+          is_enabled?: boolean | null
+          layout_template?: string | null
+          logo_size?: string | null
           logo_url?: string | null
+          low_stock_threshold?: number | null
+          mobile_fixed_cta?: boolean | null
+          policy_faq_content?: string | null
+          policy_privacy_content?: string | null
+          policy_returns_content?: string | null
+          policy_terms_content?: string | null
           primary_color?: string | null
+          product_cta_text?: string | null
+          product_cta_type?: string | null
+          product_faq?: Json | null
+          require_wholesale_approval?: boolean | null
           secondary_color?: string | null
+          show_benefits_bar?: boolean | null
+          show_descriptions?: boolean | null
+          show_prices?: boolean | null
+          show_product_faq?: boolean | null
+          show_stock_status?: boolean | null
+          show_trust_badges?: boolean | null
+          show_urgency_indicators?: boolean | null
           store_name?: string | null
           tenant_id: string
           updated_at?: string | null
           welcome_message?: string | null
           whatsapp_number?: string | null
+          wholesale_price_label?: string | null
         }
         Update: {
           accent_color?: string | null
+          benefit_delivery_text?: string | null
+          benefit_installment_text?: string | null
+          benefit_shipping_text?: string | null
+          benefit_warranty_text?: string | null
           business_address?: string | null
           business_hours?: Json | null
+          button_style?: string | null
+          catalog_columns_desktop?: number | null
+          catalog_columns_mobile?: number | null
+          catalog_default_sort?: string | null
           created_at?: string | null
+          enable_catalog_filters?: boolean | null
+          enable_stock?: boolean | null
+          enable_variants?: boolean | null
           favicon_url?: string | null
+          financing_enabled?: boolean | null
+          financing_label?: string | null
+          financing_max_installments?: number | null
+          financing_simulator_default_entry_percent?: number | null
+          financing_simulator_enabled?: boolean | null
+          financing_simulator_interest_rate?: number | null
+          financing_simulator_max_entry_percent?: number | null
+          financing_simulator_min_entry_percent?: number | null
+          financing_simulator_title?: string | null
+          font_family?: string | null
+          footer_city_state?: string | null
+          footer_cta_enabled?: boolean | null
+          footer_cta_link?: string | null
+          footer_cta_text?: string | null
+          footer_cta_type?: string | null
+          footer_description?: string | null
+          footer_links?: Json | null
+          footer_show_social?: boolean | null
+          footer_show_trust_badges?: boolean | null
+          footer_social_facebook?: string | null
+          footer_social_instagram?: string | null
+          footer_social_tiktok?: string | null
+          footer_social_youtube?: string | null
+          footer_trust_badges?: Json | null
           id?: string
+          installment_enabled?: boolean | null
+          installment_max_without_interest?: number | null
+          installment_min_value?: number | null
+          is_enabled?: boolean | null
+          layout_template?: string | null
+          logo_size?: string | null
           logo_url?: string | null
+          low_stock_threshold?: number | null
+          mobile_fixed_cta?: boolean | null
+          policy_faq_content?: string | null
+          policy_privacy_content?: string | null
+          policy_returns_content?: string | null
+          policy_terms_content?: string | null
           primary_color?: string | null
+          product_cta_text?: string | null
+          product_cta_type?: string | null
+          product_faq?: Json | null
+          require_wholesale_approval?: boolean | null
           secondary_color?: string | null
+          show_benefits_bar?: boolean | null
+          show_descriptions?: boolean | null
+          show_prices?: boolean | null
+          show_product_faq?: boolean | null
+          show_stock_status?: boolean | null
+          show_trust_badges?: boolean | null
+          show_urgency_indicators?: boolean | null
           store_name?: string | null
           tenant_id?: string
           updated_at?: string | null
           welcome_message?: string | null
           whatsapp_number?: string | null
+          wholesale_price_label?: string | null
         }
         Relationships: [
           {
@@ -4126,6 +4303,7 @@ export type Database = {
           form_data: Json | null
           id: string
           status: string | null
+          tenant_id: string | null
         }
         Insert: {
           company_name?: string | null
@@ -4133,6 +4311,7 @@ export type Database = {
           form_data?: Json | null
           id?: string
           status?: string | null
+          tenant_id?: string | null
         }
         Update: {
           company_name?: string | null
@@ -4140,8 +4319,31 @@ export type Database = {
           form_data?: Json | null
           id?: string
           status?: string | null
+          tenant_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "onboarding_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
       orchestrator_logs: {
         Row: {
@@ -4157,6 +4359,7 @@ export type Database = {
           lead_id: string | null
           message_id: string | null
           processing_time_ms: number | null
+          tenant_id: string | null
         }
         Insert: {
           ai_mode?: string | null
@@ -4171,6 +4374,7 @@ export type Database = {
           lead_id?: string | null
           message_id?: string | null
           processing_time_ms?: number | null
+          tenant_id?: string | null
         }
         Update: {
           ai_mode?: string | null
@@ -4185,6 +4389,7 @@ export type Database = {
           lead_id?: string | null
           message_id?: string | null
           processing_time_ms?: number | null
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -4200,6 +4405,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orchestrator_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orchestrator_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "orchestrator_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
           },
         ]
       }
@@ -5229,48 +5455,180 @@ export type Database = {
       }
       store_banners: {
         Row: {
+          campaign_id: string | null
           created_at: string | null
+          cta_action: string | null
+          cta_target: string | null
+          cta_text: string | null
           ends_at: string | null
+          headline: string | null
           id: string
           image_url: string
           is_active: boolean | null
           link_action: string | null
           link_target: string | null
+          mobile_image_url: string | null
           sort_order: number | null
           starts_at: string | null
+          subheadline: string | null
           subtitle: string | null
           tenant_id: string
           title: string | null
           updated_at: string | null
         }
         Insert: {
+          campaign_id?: string | null
           created_at?: string | null
+          cta_action?: string | null
+          cta_target?: string | null
+          cta_text?: string | null
           ends_at?: string | null
+          headline?: string | null
           id?: string
           image_url: string
           is_active?: boolean | null
           link_action?: string | null
           link_target?: string | null
+          mobile_image_url?: string | null
           sort_order?: number | null
           starts_at?: string | null
+          subheadline?: string | null
           subtitle?: string | null
           tenant_id: string
           title?: string | null
           updated_at?: string | null
         }
         Update: {
+          campaign_id?: string | null
           created_at?: string | null
+          cta_action?: string | null
+          cta_target?: string | null
+          cta_text?: string | null
           ends_at?: string | null
+          headline?: string | null
           id?: string
           image_url?: string
           is_active?: boolean | null
           link_action?: string | null
           link_target?: string | null
+          mobile_image_url?: string | null
           sort_order?: number | null
           starts_at?: string | null
+          subheadline?: string | null
           subtitle?: string | null
           tenant_id?: string
           title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      store_campaigns: {
+        Row: {
+          banner_image_url: string | null
+          banner_mobile_image_url: string | null
+          category_ids: string[] | null
+          created_at: string | null
+          crm_campaign_id: string | null
+          description: string | null
+          discount_type: string | null
+          discount_value: number | null
+          ends_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          product_ids: string[] | null
+          promotional_message: string | null
+          slug: string
+          starts_at: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          banner_image_url?: string | null
+          banner_mobile_image_url?: string | null
+          category_ids?: string[] | null
+          created_at?: string | null
+          crm_campaign_id?: string | null
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          ends_at: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          product_ids?: string[] | null
+          promotional_message?: string | null
+          slug: string
+          starts_at: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          banner_image_url?: string | null
+          banner_mobile_image_url?: string | null
+          category_ids?: string[] | null
+          created_at?: string | null
+          crm_campaign_id?: string | null
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
+          ends_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          product_ids?: string[] | null
+          promotional_message?: string | null
+          slug?: string
+          starts_at?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      store_promotional_bar: {
+        Row: {
+          animation_type: string | null
+          background_color: string | null
+          created_at: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean | null
+          link_action: string | null
+          link_target: string | null
+          starts_at: string | null
+          tenant_id: string
+          text: string
+          text_color: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          animation_type?: string | null
+          background_color?: string | null
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          link_action?: string | null
+          link_target?: string | null
+          starts_at?: string | null
+          tenant_id?: string
+          text: string
+          text_color?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          animation_type?: string | null
+          background_color?: string | null
+          created_at?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          link_action?: string | null
+          link_target?: string | null
+          starts_at?: string | null
+          tenant_id?: string
+          text?: string
+          text_color?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -7476,74 +7834,20 @@ export type Database = {
         Row: {
           category: string | null
           category_id: string | null
+          category_name: string | null
           created_at: string | null
-          custom_fields: Json | null
           description: string | null
           display_size: string | null
           id: string | null
           images: string[] | null
           is_featured: boolean | null
           is_published: boolean | null
-          item_type: string | null
-          low_stock_alert: number | null
           name: string | null
           price: number | null
-          price_max: number | null
-          pricing_type: string | null
           status: string | null
-          stock_quantity: number | null
           tenant_id: string | null
-          track_stock: boolean | null
           updated_at: string | null
           wholesale_price: number | null
-        }
-        Insert: {
-          category?: string | null
-          category_id?: string | null
-          created_at?: string | null
-          custom_fields?: Json | null
-          description?: string | null
-          display_size?: string | null
-          id?: string | null
-          images?: string[] | null
-          is_featured?: boolean | null
-          is_published?: boolean | null
-          item_type?: string | null
-          low_stock_alert?: never
-          name?: string | null
-          price?: number | null
-          price_max?: number | null
-          pricing_type?: string | null
-          status?: string | null
-          stock_quantity?: never
-          tenant_id?: string | null
-          track_stock?: boolean | null
-          updated_at?: string | null
-          wholesale_price?: number | null
-        }
-        Update: {
-          category?: string | null
-          category_id?: string | null
-          created_at?: string | null
-          custom_fields?: Json | null
-          description?: string | null
-          display_size?: string | null
-          id?: string | null
-          images?: string[] | null
-          is_featured?: boolean | null
-          is_published?: boolean | null
-          item_type?: string | null
-          low_stock_alert?: never
-          name?: string | null
-          price?: number | null
-          price_max?: number | null
-          pricing_type?: string | null
-          status?: string | null
-          stock_quantity?: never
-          tenant_id?: string | null
-          track_stock?: boolean | null
-          updated_at?: string | null
-          wholesale_price?: number | null
         }
         Relationships: [
           {
@@ -7737,6 +8041,7 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: undefined
       }
+      can_view_wholesale_prices: { Args: never; Returns: boolean }
       check_instance_capacity: {
         Args: { p_instance_id: string }
         Returns: Json
@@ -7812,6 +8117,132 @@ export type Database = {
           whatsapp_instance_id: string
         }[]
       }
+      get_product_with_wholesale: {
+        Args: { p_id: string }
+        Returns: {
+          id: string
+          name: string
+          price: number
+          wholesale_price: number
+        }[]
+      }
+      get_public_banners: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          campaign_id: string
+          cta_action: string
+          cta_target: string
+          cta_text: string
+          headline: string
+          id: string
+          image_url: string
+          mobile_image_url: string
+          sort_order: number
+          subheadline: string
+        }[]
+      }
+      get_public_campaigns: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          banner_image_url: string
+          banner_mobile_image_url: string
+          category_ids: string[]
+          description: string
+          discount_type: string
+          discount_value: number
+          ends_at: string
+          id: string
+          name: string
+          product_ids: string[]
+          promotional_message: string
+          slug: string
+          starts_at: string
+        }[]
+      }
+      get_public_catalog: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          category: string
+          category_id: string
+          category_name: string
+          created_at: string
+          custom_fields: Json
+          description: string
+          display_size: string
+          id: string
+          images: string[]
+          is_featured: boolean
+          item_type: string
+          low_stock_alert: number
+          name: string
+          price: number
+          price_max: number
+          pricing_type: string
+          status: string
+          stock_quantity: number
+          track_stock: boolean
+          updated_at: string
+        }[]
+      }
+      get_public_promotional_bar: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          animation_type: string
+          background_color: string
+          id: string
+          link_action: string
+          link_target: string
+          text: string
+          text_color: string
+        }[]
+      }
+      get_public_store_config: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          accent_color: string
+          benefit_delivery_text: string
+          benefit_installment_text: string
+          benefit_shipping_text: string
+          benefit_warranty_text: string
+          business_address: string
+          business_hours: string
+          button_style: string
+          catalog_columns_desktop: number
+          catalog_columns_mobile: number
+          favicon_url: string
+          financing_enabled: boolean
+          financing_label: string
+          financing_max_installments: number
+          financing_simulator_enabled: boolean
+          financing_simulator_interest_rate: number
+          financing_simulator_title: string
+          font_family: string
+          footer_city_state: string
+          footer_description: string
+          footer_show_social: boolean
+          footer_social_facebook: string
+          footer_social_instagram: string
+          footer_social_tiktok: string
+          footer_social_youtube: string
+          installment_enabled: boolean
+          installment_max_without_interest: number
+          layout_template: string
+          logo_size: string
+          logo_url: string
+          mobile_fixed_cta: boolean
+          primary_color: string
+          product_cta_text: string
+          product_cta_type: string
+          secondary_color: string
+          show_benefits_bar: boolean
+          show_descriptions: boolean
+          show_prices: boolean
+          show_stock_status: boolean
+          store_name: string
+          welcome_message: string
+          whatsapp_number: string
+        }[]
+      }
       get_queue_stats: { Args: { p_tenant_id: string }; Returns: Json }
       get_tenant_smart_timing_stats: {
         Args: { p_tenant_id: string }
@@ -7821,6 +8252,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_user_tenant_id: { Args: { p_user_id: string }; Returns: string }
       has_master_permission: {
         Args: { _permission_code: string; _user_id: string }
         Returns: boolean
