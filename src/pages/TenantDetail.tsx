@@ -545,10 +545,10 @@ export default function TenantDetail() {
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardDescription>Créditos IA</CardDescription>
+                  <CardDescription>Créditos IA (por Usuário)</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold">{tenant.ai_credits}</p>
+                  <p className="text-3xl font-bold">{features?.credits_per_user ?? 500}</p>
                 </CardContent>
               </Card>
             </div>
