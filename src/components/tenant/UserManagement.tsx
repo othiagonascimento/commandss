@@ -46,6 +46,21 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+// Map role codes to friendly Portuguese names
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Administrador',
+  manager: 'Gerente',
+  viewer: 'Visualizador',
+  moderator: 'Moderador',
+  super_admin: 'Super Admin',
+  user: 'Usuário',
+  seller: 'Vendedor',
+};
+
+const getRoleLabel = (role: string): string => {
+  return ROLE_LABELS[role] || role;
+};
+
 interface UserManagementProps {
   tenantId: string;
   users: TenantUser[] | null | undefined;
@@ -410,7 +425,7 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{user.role}</Badge>
+                  <Badge variant="outline">{getRoleLabel(user.role)}</Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant={user.is_active ? 'default' : 'secondary'}>
