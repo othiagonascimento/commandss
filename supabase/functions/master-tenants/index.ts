@@ -42,9 +42,16 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    logStep('Token received', { tokenLength: token.length, tokenPrefix: token.substring(0, 20) + '...' });
     
-    // Use admin client to validate token (required for Lovable Cloud ES256 tokens)
+    // Use admin client to validate token
     const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    
+    logStep('Auth validation result', { 
+      hasUser: !!userData?.user, 
+      errorMessage: userError?.message,
+      errorStatus: userError?.status 
+    });
     
     if (userError || !userData?.user) {
       logStep('ERROR', { message: 'Invalid token', details: userError?.message });
