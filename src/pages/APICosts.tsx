@@ -59,6 +59,7 @@ interface CostConfig {
   markup_percent: number;
   is_active: boolean;
   updated_at: string;
+  layer_category?: 'layer_1' | 'layer_2' | 'layer_3' | null;
 }
 
 const PROVIDERS = ['openai', 'anthropic', 'google'];
@@ -278,6 +279,7 @@ export default function APICosts() {
                 <TableRow>
                   <TableHead>Provedor</TableHead>
                   <TableHead>Modelo</TableHead>
+                  <TableHead>Camada</TableHead>
                   <TableHead>Operação</TableHead>
                   <TableHead className="text-right">Input/1M (USD)</TableHead>
                   <TableHead className="text-right">Output/1M (USD)</TableHead>
@@ -308,6 +310,23 @@ export default function APICosts() {
                       </TableCell>
                       <TableCell className="font-medium">
                         {config.display_name || config.model}
+                      </TableCell>
+                      <TableCell>
+                        {config.layer_category ? (
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              'font-medium',
+                              config.layer_category === 'layer_1' && 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800',
+                              config.layer_category === 'layer_2' && 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800',
+                              config.layer_category === 'layer_3' && 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800',
+                            )}
+                          >
+                            {config.layer_category.replace('layer_', 'Layer ')}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="capitalize text-muted-foreground">
                         {config.operation}
