@@ -38,6 +38,7 @@ export function CreditZonesWidget() {
     queryFn: async (): Promise<ZoneSummary> => {
       // Call Edge Function to get zones from external Supabase
       const { data, error } = await supabase.functions.invoke('master-usage', {
+        method: 'GET',
         headers: { 'x-path-suffix': 'zones' },
       });
 

@@ -48,6 +48,7 @@ export function useGlobalCredits(filter?: GlobalCreditsFilter) {
       const pathSuffix = params.toString() ? `global-summary?${params.toString()}` : 'global-summary';
 
       const { data, error } = await supabase.functions.invoke('master-usage', {
+        method: 'GET',
         headers: { 'x-path-suffix': pathSuffix },
       });
 
