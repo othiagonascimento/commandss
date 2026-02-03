@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
+// Version marker for deployment verification
+const VERSION = "v2.1.0-elite";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix',
@@ -9,7 +12,7 @@ const corsHeaders = {
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[MASTER-DATA] ${step}${detailsStr}`);
+  console.log(`[MASTER-DATA ${VERSION}] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
