@@ -1,107 +1,151 @@
 
-# Plano: Correção dos Erros do Dashboard Master
+# Plano: Corrigir Dashboard para usar Supabase Externo
 
-## Diagnóstico
+## Diagnóstico Definitivo
 
-### Erro 1: "Erro ao carregar zonas de crédito"
-**Causa**: O PostgREST não consegue fazer join de `tenant_usage` → `tenant_features` porque não existe uma Foreign Key entre essas tabelas. O código atual usa a sintaxe:
+### ❌ Problema Principal
+O `CreditZonesWidget` (e possivelmente outros widgets) está fazendo **query DIRETA** ao Supabase local:
 
 ```typescript
-.select(`
-  tenant_id,
-  ai_credits_used,
-  tenants:tenant_id (id, name),
-  tenant_features:tenant_id (credits_per_user)  // ❌ Join inválido!
-`)
+// CreditZonesWidget.tsx - Linha 2
+import { supabase } from '@/integrations/supabase/client';
+
+// Fazendo query nas tabelas LOCAIS (que estão VAZIAS):
+supabase.from('tenant_usage')
+supabase.from('tenant_features')
+supabase.from('profiles')
 ```
 
-**Solução**: Separar as queries - buscar `tenant_usage` + `tenants`, depois buscar `tenant_features` separadamente e combinar no JavaScript.
+O `supabase client` aponta para o projeto Lovable, onde as tabelas estão **vazias**. Os dados reais estão no **Supabase externo** (btoyclznuuwvxbsacemw).
 
-### Erro 2: "Erro ao carregar dados" 
-**Causa**: Também relacionado à Edge Function `master-analytics` ou chamadas internas que podem ter problemas similares.
+### ✅ Padrão Correto (já existe no sistema)
+As Edge Functions como `master-usage` e `master-analytics` já buscam do lugar certo:
+- Usam `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` para o banco Master
+- Usam `REMOTE_SUPABASE_URL` + `REMOTE_SUPABASE_ANON_KEY` para dados do CRM
 
-### Por que só 3 tenants no SQL?
-O SQL que você executou (`ai_agent_config`) mostra apenas os tenants que têm configuração de IA habilitada - os outros 4 tenants existem mas não têm registro em `ai_agent_config`. O dashboard mostra todos os tenants corretamente.
+O hook `useGlobalCredits` usa RPC corretamente, mas **depende das funções SQL estarem instaladas** no banco Master.
+
+---
+
+## Resumo dos Problemas
+
+| Widget | Problema | Solução |
+|--------|----------|---------|
+| `CreditZonesWidget` | Query direta em tabelas locais vazias | Usar Edge Function `master-usage/zones` |
+| `useGlobalCredits` | RPC no banco certo, mas pode falhar se RPC não existe | Adicionar fallback para Edge Function |
+| `useMasterDashboard` | Usa Edge Functions ✅ | OK, já correto |
 
 ---
 
 ## Implementação
 
-### Arquivo: `src/components/dashboard/CreditZonesWidget.tsx`
+### Fase 1: Adicionar endpoint `/zones` na Edge Function `master-usage`
 
-Refatorar para fazer queries separadas:
+**Arquivo**: `supabase/functions/master-usage/index.ts`
+
+Criar novo endpoint que:
+1. Busca `tenant_usage` do banco Master
+2. Busca `tenant_features` para limites
+3. Conta usuários por tenant
+4. Calcula zonas (Verde/Amarelo/Vermelho) corretamente
+5. Retorna dados agregados
 
 ```text
-ANTES (incorreto):
-tenant_usage → tenants + tenant_features (join direto)
+GET /master-usage/zones
 
-DEPOIS (correto):
-1. Query tenant_usage com join apenas para tenants
-2. Query separada de tenant_features para os tenant_ids
-3. Query separada de profiles para contagem de usuários
-4. Combinar os dados no JavaScript
+Response:
+{
+  zones: {
+    green: 5,    // 0-100%
+    yellow: 1,   // 100-115%
+    red: 1       // >115% (degradados)
+  },
+  degradedTenants: [
+    { tenant_id, tenant_name, usage_percent, is_degraded }
+  ],
+  totalTenants: 7
+}
 ```
 
-### Lógica Corrigida
+### Fase 2: Refatorar CreditZonesWidget para usar Edge Function
 
+**Arquivo**: `src/components/dashboard/CreditZonesWidget.tsx`
+
+Mudar de:
 ```typescript
-// 1. Buscar tenant_usage com join apenas para tenants
-const { data: tenantUsages } = await supabase
-  .from('tenant_usage')
-  .select(`
-    tenant_id,
-    ai_credits_used,
-    tenants:tenant_id (id, name)
-  `)
-  .lte('period_start', today)
-  .gte('period_end', today);
+// ❌ Query direta (errada)
+const { data } = await supabase.from('tenant_usage').select(...)
+```
 
-// 2. Buscar tenant_features separadamente
-const tenantIds = tenantUsages.map(u => u.tenant_id);
-const { data: features } = await supabase
-  .from('tenant_features')
-  .select('tenant_id, credits_per_user')
-  .in('tenant_id', tenantIds);
-
-// 3. Criar mapa de features por tenant
-const featuresMap = features.reduce((acc, f) => {
-  acc[f.tenant_id] = f;
-  return acc;
-}, {});
-
-// 4. Buscar contagem de usuários
-const { data: profiles } = await supabase
-  .from('profiles')
-  .select('tenant_id')
-  .in('tenant_id', tenantIds);
-
-// 5. Agregar usuários
-const usersPerTenant = profiles.reduce((acc, p) => {
-  acc[p.tenant_id] = (acc[p.tenant_id] || 0) + 1;
-  return acc;
-}, {});
-
-// 6. Calcular zonas usando o mapa de features
-tenantUsages.forEach((usage) => {
-  const features = featuresMap[usage.tenant_id];
-  const creditsPerUser = features?.credits_per_user || 500;
-  const usersCount = usersPerTenant[usage.tenant_id] || 1;
-  const creditsLimit = creditsPerUser * Math.max(usersCount, 1);
-  // ...
+Para:
+```typescript
+// ✅ Via Edge Function (correto)
+const { data } = await supabase.functions.invoke('master-usage', {
+  headers: { 'x-path-suffix': 'zones' }
 });
+```
+
+### Fase 3: Adicionar fallback no useGlobalCredits
+
+**Arquivo**: `src/hooks/useGlobalCredits.ts`
+
+Se a RPC falhar, tentar buscar via Edge Function como fallback:
+```typescript
+try {
+  // Tenta RPC primeiro
+  const { data, error } = await supabase.rpc('get_global_credits_summary', {...});
+  if (error) throw error;
+  return data;
+} catch (e) {
+  // Fallback: Edge Function
+  console.warn('[useGlobalCredits] RPC failed, trying edge function...');
+  const { data } = await supabase.functions.invoke('master-usage', {
+    headers: { 'x-path-suffix': 'global-summary' },
+    body: { periodStart, periodEnd }
+  });
+  return data;
+}
 ```
 
 ---
 
-## Resumo das Mudanças
+## Arquivos a Modificar
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/dashboard/CreditZonesWidget.tsx` | Separar query de tenant_features para evitar erro de join |
+| `supabase/functions/master-usage/index.ts` | Adicionar endpoint `GET /zones` e `GET /global-summary` |
+| `src/components/dashboard/CreditZonesWidget.tsx` | Usar Edge Function em vez de query direta |
+| `src/hooks/useGlobalCredits.ts` | Adicionar fallback para Edge Function |
+| `src/services/masterApi.ts` | Adicionar métodos `getZones()` e `getGlobalSummary()` na usageApi |
+
+---
 
 ## Resultado Esperado
 
-- Widget "Saúde dos Créditos" carrega sem erros
-- Todas as zonas (Verde/Amarelo/Vermelho) calculadas corretamente
-- Tenants sem registro em tenant_features usam valor padrão (500 créditos/usuário)
-- O erro "column tenants_1.credits_per_user does not exist" é eliminado
+- Dashboard carrega todos os dados do Supabase externo corretamente
+- Widget "Saúde dos Créditos" mostra zonas Verde/Amarelo/Vermelho reais
+- Métricas de créditos consumidos refletem dados reais do CRM
+- Todos os tenants, usuários e dados de uso são buscados corretamente
+- Sistema híbrido de filtros funcionando (granularidade por período)
+
+---
+
+## Fluxo de Dados Corrigido
+
+```text
+Frontend (Lovable)
+       │
+       ▼
+Edge Functions (Supabase do Lovable)
+       │
+       ├──► Master DB (btoyclznuuwvxbsacemw)
+       │    - tenants
+       │    - tenant_usage
+       │    - tenant_features
+       │    - profiles
+       │
+       └──► Remote CRM (REMOTE_SUPABASE_URL)
+            - user_usage
+            - api_usage_logs
+            - ai_orchestration_logs
+```
