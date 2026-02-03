@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
 Deno.serve(async (req) => {
@@ -77,8 +77,9 @@ Deno.serve(async (req) => {
 
     console.log(`[master-usage] ${req.method} tenantId=${tenantId} subPath=${subPath} pathSuffix=${pathSuffix}`);
 
-    // GET /master-usage/zones - Get credit zones summary for all tenants (DASHBOARD)
-    if (req.method === 'GET' && tenantId === 'zones') {
+    // GET|POST /master-usage/zones - Get credit zones summary for all tenants (DASHBOARD)
+    // (We accept POST too because functions.invoke defaults to POST in some call-sites.)
+    if ((req.method === 'GET' || req.method === 'POST') && tenantId === 'zones') {
       console.log('[master-usage] Fetching credit zones summary...');
       
       // Get current period dates
@@ -219,13 +220,28 @@ Deno.serve(async (req) => {
       });
     }
 
-    // GET /master-usage/global-summary - Get global credits summary (DASHBOARD)
-    if (req.method === 'GET' && tenantId === 'global-summary') {
+    // GET|POST /master-usage/global-summary - Get global credits summary (DASHBOARD)
+    if ((req.method === 'GET' || req.method === 'POST') && tenantId === 'global-summary') {
       console.log('[master-usage] Fetching global credits summary...');
       
       const urlParams = new URL(req.url).searchParams;
-      const periodStart = urlParams.get('periodStart');
-      const periodEnd = urlParams.get('periodEnd');
+      let periodStart = urlParams.get('periodStart');
+      let periodEnd = urlParams.get('periodEnd');
+
+      // If called with POST, also allow JSON body { periodStart, periodEnd }
+      if (req.method === 'POST') {
+        try {
+          const body = await req.json().catch(() => null);
+          if (body && typeof body === 'object') {
+            // deno-lint-ignore no-explicit-any
+            const b = body as any;
+            if (!periodStart && typeof b.periodStart === 'string') periodStart = b.periodStart;
+            if (!periodEnd && typeof b.periodEnd === 'string') periodEnd = b.periodEnd;
+          }
+        } catch (e) {
+          console.warn('[master-usage] global-summary POST body parse failed:', e);
+        }
+      }
 
       // Default to current month if no period specified
       const now = new Date();
@@ -285,7 +301,13 @@ Deno.serve(async (req) => {
     }
 
     // GET /master-usage/:tenantId - Get tenant usage with limits comparison
-    if (req.method === 'GET' && tenantId && !subPath) {
+    // Avoid catching special dashboard/list routes.
+    if (
+      req.method === 'GET' &&
+      tenantId &&
+      !subPath &&
+      !['alerts', 'zones', 'global-summary'].includes(tenantId)
+    ) {
       // Get tenant features (limits) from local database
       const { data: features, error: featuresError } = await supabase
         .from('tenant_features')
