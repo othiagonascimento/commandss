@@ -95,37 +95,32 @@ export function usePermissions() {
         return { data: null, roles: [], permissions: [], isMasterUser: false };
       }
       
-      try {
-        const { data, error } = await supabase.functions.invoke('master-data', {
-          headers: { 'x-path-suffix': 'master-user-full' },
-        });
+      const { data, error } = await supabase.functions.invoke('master-data', {
+        headers: { 'x-path-suffix': 'master-user-full' },
+      });
 
-        if (error) {
-          const msg = (error as { message?: string })?.message || '';
-          // Backward compatible fallback for older deployed master-data versions
-          if (msg.includes('Unknown resource: master-user-full')) {
-            return await fetchConsolidatedUserDataFallback();
-          }
+      // Check if response contains error (500 returns error in body, not in error object)
+      const responseError = (data as Record<string, unknown>)?.error as string | undefined;
+      const errorMsg = (error as { message?: string })?.message || responseError || '';
 
-          console.warn('[usePermissions] Error fetching consolidated user data:', error);
-          return { data: null, roles: [], permissions: [], isMasterUser: false };
-        }
+      // Fallback for older deployed versions without master-user-full
+      if (errorMsg.includes('Unknown resource') || responseError) {
+        console.log('[usePermissions] master-user-full not available, using fallback');
+        return await fetchConsolidatedUserDataFallback();
+      }
 
-        return {
-          data: (data?.data as MasterUser | null) ?? null,
-          roles: ((data?.roles || []) as MasterRole[]) ?? [],
-          permissions: ((data?.permissions || []) as MasterPermission[]) ?? [],
-          isMasterUser: !!data?.isMasterUser,
-        };
-      } catch (err) {
-        const msg = (err as { message?: string })?.message || '';
-        if (msg.includes('Unknown resource: master-user-full')) {
-          return await fetchConsolidatedUserDataFallback();
-        }
-
-        console.warn('[usePermissions] Error fetching consolidated user data:', err);
+      if (error) {
+        console.warn('[usePermissions] Error fetching consolidated user data:', error);
         return { data: null, roles: [], permissions: [], isMasterUser: false };
       }
+
+      // Success case
+      return {
+        data: (data?.data as MasterUser | null) ?? null,
+        roles: ((data?.roles || []) as MasterRole[]) ?? [],
+        permissions: ((data?.permissions || []) as MasterPermission[]) ?? [],
+        isMasterUser: !!data?.isMasterUser,
+      };
     },
     enabled: !!user?.id,
     staleTime: 60000, // Cache for 1 minute - prevents refetch on every navigation
