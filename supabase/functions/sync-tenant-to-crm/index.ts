@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { sendTenantProvisionWebhook } from "../_shared/webhookSignature.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -152,6 +153,28 @@ serve(async (req) => {
         // Usar masterTenant.id para garantir consistência (mesmo ID em ambos sistemas)
         crmTenantId = masterTenant.id;
         logStep('CRM tenant created with Master ID', { crmId: crmTenantId });
+
+        // CRITICAL: Enviar webhook assinado para o CRM (tenant.provision)
+        // Este é o protocolo oficial de sincronização Master → CRM
+        // Serve como backup caso os triggers do CRM precisem ser executados
+        sendTenantProvisionWebhook({
+          id: masterTenant.id,
+          name: masterTenant.name,
+          subdomain: masterTenant.subdomain,
+          subdomain_slug: masterTenant.subdomain,
+          plan_type: masterTenant.plan_type || 'trial',
+          owner_email: masterTenant.contact_email,
+        })
+          .then(result => {
+            if (result.success) {
+              logStep('CRM webhook tenant.provision sent successfully');
+            } else {
+              logStep('CRM webhook tenant.provision failed', { error: result.error });
+            }
+          })
+          .catch(err => {
+            logStep('CRM webhook tenant.provision error', { error: err.message });
+          });
 
         // Create related records in CRM
         // 1. tenant_branding

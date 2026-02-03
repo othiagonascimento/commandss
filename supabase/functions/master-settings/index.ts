@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { sendSettingsUpdatedWebhook } from "../_shared/webhookSignature.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -246,7 +247,7 @@ serve(async (req) => {
 
         logStep('AI Engine settings updated', { key });
 
-        // Notificar os tenants sobre a mudança
+        // Notificar os tenants sobre a mudança (webhook individual para cada tenant)
         const aiSettings: AISettings = {
           ai_layer_1_model,
           ai_layer_2_model,
@@ -257,6 +258,20 @@ serve(async (req) => {
         };
         
         notifyTenantsAISettingsUpdated(supabaseAdmin, aiSettings);
+
+        // CRITICAL: Enviar webhook assinado para o CRM (master-core/webhooks)
+        // Este é o protocolo oficial de sincronização Master → CRM
+        sendSettingsUpdatedWebhook(aiSettings)
+          .then(result => {
+            if (result.success) {
+              logStep('CRM webhook settings.updated sent successfully');
+            } else {
+              logStep('CRM webhook settings.updated failed', { error: result.error });
+            }
+          })
+          .catch(err => {
+            logStep('CRM webhook settings.updated error', { error: err.message });
+          });
 
         return new Response(
           JSON.stringify(data),

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { sendTemplateWebhook } from "../_shared/webhookSignature.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -132,6 +133,30 @@ serve(async (req) => {
         }
 
         logStep('Template published', { templateId: template_id });
+
+        // CRITICAL: Enviar webhook assinado para o CRM (master-core/webhooks)
+        // Este é o protocolo oficial de sincronização Master → CRM
+        if (data) {
+          sendTemplateWebhook('template.updated', {
+            id: data.id,
+            name: data.name,
+            slug: data.slug,
+            ai_config: data.ai_config,
+            prompts: data.prompts,
+            is_active: data.is_active,
+          })
+            .then(result => {
+              if (result.success) {
+                logStep('CRM webhook template.updated sent successfully');
+              } else {
+                logStep('CRM webhook template.updated failed', { error: result.error });
+              }
+            })
+            .catch(err => {
+              logStep('CRM webhook template.updated error', { error: err.message });
+            });
+        }
+
         responseData = data;
         break;
       }
