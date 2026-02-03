@@ -1,201 +1,133 @@
 
-# Plano: Corrigir Dashboard de Consumo de Créditos
+Objetivo
+- Fazer o Dashboard e os cards/widgets de consumo (Créditos, R$, Chamadas, Tokens) voltarem a carregar em tempo real a partir do Supabase externo (btoyclznuuwvxbsacemw), de forma robusta, com auditoria e mensagens de erro claras.
 
-## Diagnóstico Completo
+O que eu encontrei (auditoria já feita no front)
+- O navegador está chamando as RPCs no Supabase externo, mas elas estão falhando com HTTP 400.
+- Erro retornado pelo PostgREST (confirmado em network):
+  - code: 42702
+  - message: column reference "period_start" is ambiguous
+  - details: It could refer to either a PL/pgSQL variable or a table column.
+- Isso explica “Erro ao carregar dados” e/ou “ficar no escuro”: o front-end hoje trata erro de RPC como “sem consumo”, sem mostrar a falha real.
 
-### Problema Identificado
-O dashboard mostra `0` em todos os campos de consumo porque:
+Causa raiz
+- As funções RPC que criamos no SQL usam variáveis locais com o mesmo nome de colunas das tabelas (ex.: period_start), e o PostgreSQL considera ambíguo ao executar.
+- Como o SQL “cria” a função com sucesso, a falha só aparece quando o app chama a RPC.
 
-1. **As funções RPC não existem no banco de dados**:
-   - `get_global_credits_summary` - não foi criada
-   - `get_top_credit_consumers` - não foi criada
-   - `get_tenant_credits_summary` - não foi criada
+Entregáveis (o que será implementado após sua aprovação deste plano)
+1) Patch SQL definitivo (Supabase externo) – corrigir RPCs
+- Substituir as 3 RPCs por versões que:
+  - Renomeiam variáveis locais para v_period_start / v_p_start / v_p_end
+  - Usam DROP FUNCTION IF EXISTS antes de recriar (garante que o código antigo não fique ativo)
+  - Opcionalmente disparam reload de schema para PostgREST (NOTIFY pgrst, 'reload schema')
+- Resultado esperado: as chamadas para
+  - /rest/v1/rpc/get_global_credits_summary
+  - /rest/v1/rpc/get_top_credit_consumers
+  - /rest/v1/rpc/get_tenant_credits_summary
+  passam a retornar 200 com dados (mesmo que zeros quando não houver consumo).
 
-2. **A infraestrutura existe mas não está sendo usada**:
-   - Tabela `tenant_usage` existe e tem campos corretos (`credits_consumed`, `ai_tokens_used`, `estimated_cost_brl`)
-   - Tabela `api_usage_logs` existe e tem campos corretos (`credits_consumed`, `cost_brl`, `cost_usd`)
-   - Tabela `user_usage` existe com campo `credits_consumed_month`
-   - Edge Function `log-api-usage` calcula e grava créditos corretamente
+SQL que vamos aplicar (executar no SQL Editor do projeto externo)
+- Script “idempotente” (pode rodar mais de uma vez) com:
+  - DROP FUNCTION IF EXISTS public.get_global_credits_summary();
+  - DROP FUNCTION IF EXISTS public.get_top_credit_consumers(integer);
+  - DROP FUNCTION IF EXISTS public.get_tenant_credits_summary(uuid);
+  - CREATE OR REPLACE FUNCTION ... com variáveis v_*
+  - GRANT EXECUTE ... TO authenticated;
+  - NOTIFY pgrst, 'reload schema';
 
-3. **O fluxo de dados esperado**:
-   - CRM principal chama `log-api-usage` quando IA é usada
-   - `log-api-usage` calcula `credits_consumed = cost_brl * 100`
-   - Grava em `api_usage_logs`, `user_usage` e `tenant_usage`
-   - Dashboard chama RPCs para agregar e exibir
+2) Atualizações no projeto Lovable (UI) – mostrar erros de forma explícita e auditável
+Hoje, quando a RPC quebra, o usuário vê “Nenhum consumo registrado” (falso) ou só “Erro ao carregar dados” (sem detalhes). Vamos corrigir isso.
 
----
+Mudanças planejadas:
+- src/components/dashboard/APICostsWidget.tsx
+  - Passar a ler e exibir estados de erro dos 2 useQuery (summary e topConsumers):
+    - Mostrar um bloco “Falha ao carregar consumo” com o erro real (ex.: 42702 / ambíguo).
+    - Botão “Tentar novamente”.
+    - Mensagem orientativa: “RPC no Supabase externo com erro; rode o SQL corrigido”.
+- src/hooks/useGlobalCredits.ts
+  - Manter a query, mas padronizar retorno/uso de error e expor na UI (Index).
+- src/pages/Index.tsx
+  - No card “Créditos Consumidos”, se a query de créditos falhar:
+    - Mostrar “Erro”/“-” com um Badge “Falha de dados” e tooltip com o texto do erro.
+    - Isso evita o cenário “continua tudo zero e eu continuo no escuro”.
+- src/hooks/useTenantCredits.ts + src/pages/TenantDetail.tsx (opcional, mas recomendado)
+  - Exibir erro ao carregar resumo de créditos do tenant (em vez de silently failing).
 
-## Solução: Criar Funções RPC de Agregação
+3) Auditoria robusta (end-to-end) para confirmar “tem dados de consumo real?”
+Mesmo com RPC funcionando, pode acontecer de voltar tudo 0 se o pipeline de logging não estiver sendo alimentado. Vamos deixar isso verificável.
 
-### 1. Migration SQL para criar as 3 funções RPC
+Auditoria em 2 fases:
 
-```sql
--- get_global_credits_summary: Resume consumo global de todos os tenants
-CREATE OR REPLACE FUNCTION public.get_global_credits_summary()
-RETURNS TABLE (
-  total_credits_consumed BIGINT,
-  total_cost_brl NUMERIC,
-  total_api_calls BIGINT,
-  total_tenants_with_usage BIGINT
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  period_start DATE := date_trunc('month', CURRENT_DATE)::DATE;
-BEGIN
-  RETURN QUERY
-  SELECT 
-    COALESCE(SUM(tu.credits_consumed), 0)::BIGINT,
-    COALESCE(SUM(tu.estimated_cost_brl), 0.00)::NUMERIC,
-    COALESCE(SUM(tu.api_calls), 0)::BIGINT,
-    COUNT(DISTINCT tu.tenant_id)::BIGINT
-  FROM public.tenant_usage tu
-  WHERE tu.period_start >= period_start;
-END;
-$$;
+Fase A – confirmar RPC funcionando (sem depender de dados)
+- No Supabase SQL Editor:
+  - SELECT * FROM public.get_global_credits_summary();
+  - SELECT * FROM public.get_top_credit_consumers(5);
+  - SELECT * FROM public.get_tenant_credits_summary('<TENANT_UUID>');
+- No app:
+  - Abrir Dashboard: os requests devem voltar 200, sem 400.
 
--- get_top_credit_consumers: Top N tenants por consumo
-CREATE OR REPLACE FUNCTION public.get_top_credit_consumers(
-  limit_count INTEGER DEFAULT 10
-)
-RETURNS TABLE (
-  tenant_id UUID,
-  tenant_name TEXT,
-  credits_consumed BIGINT,
-  cost_brl NUMERIC,
-  api_calls BIGINT
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  period_start DATE := date_trunc('month', CURRENT_DATE)::DATE;
-BEGIN
-  RETURN QUERY
-  SELECT 
-    tu.tenant_id,
-    COALESCE(t.name, 'Desconhecido')::TEXT,
-    COALESCE(tu.credits_consumed, 0)::BIGINT,
-    COALESCE(tu.estimated_cost_brl, 0.00)::NUMERIC,
-    COALESCE(tu.api_calls, 0)::BIGINT
-  FROM public.tenant_usage tu
-  LEFT JOIN public.tenants t ON t.id = tu.tenant_id
-  WHERE tu.period_start >= period_start
-  ORDER BY tu.credits_consumed DESC NULLS LAST
-  LIMIT limit_count;
-END;
-$$;
+Fase B – confirmar que existe consumo gravado (dados reais)
+- Rodar verificações no SQL Editor (externo):
+  - SELECT COUNT(*) FROM public.api_usage_logs;
+  - SELECT COUNT(*) FROM public.tenant_usage;
+  - SELECT COUNT(*) FROM public.user_usage;
+  - SELECT MAX(created_at) FROM public.api_usage_logs;
+  - SELECT tenant_id, period_start, credits_consumed, estimated_cost_brl, api_calls
+    FROM public.tenant_usage
+    ORDER BY period_start DESC
+    LIMIT 20;
+- Se essas tabelas estiverem vazias ou não atualizando:
+  - O problema não é dashboard: é o pipeline (ex.: CRM não está chamando log-api-usage; custo_config ausente; falha de integração).
 
--- get_tenant_credits_summary: Resume consumo de um tenant específico
-CREATE OR REPLACE FUNCTION public.get_tenant_credits_summary(
-  tenant_id_param UUID
-)
-RETURNS TABLE (
-  total_credits_consumed BIGINT,
-  total_cost_brl NUMERIC,
-  total_api_calls BIGINT,
-  users_with_usage BIGINT,
-  period_start DATE,
-  period_end DATE
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  p_start DATE := date_trunc('month', CURRENT_DATE)::DATE;
-  p_end DATE := (date_trunc('month', CURRENT_DATE) + INTERVAL '1 month' - INTERVAL '1 day')::DATE;
-BEGIN
-  RETURN QUERY
-  SELECT 
-    COALESCE(SUM(tu.credits_consumed), 0)::BIGINT,
-    COALESCE(SUM(tu.estimated_cost_brl), 0.00)::NUMERIC,
-    COALESCE(SUM(tu.api_calls), 0)::BIGINT,
-    (SELECT COUNT(DISTINCT uu.user_id) 
-     FROM public.user_usage uu 
-     WHERE uu.tenant_id = tenant_id_param 
-     AND uu.credits_consumed_month > 0)::BIGINT,
-    p_start,
-    p_end
-  FROM public.tenant_usage tu
-  WHERE tu.tenant_id = tenant_id_param
-  AND tu.period_start >= p_start;
-END;
-$$;
+4) (Opcional, mas forte para “perfeito e funcional”) Ferramenta interna de “Health Check de Consumo”
+Para você nunca mais ficar no escuro, vamos adicionar um pequeno painel (por exemplo em /ai-diagnostics ou /settings) que:
+- Executa uma checagem e mostra em verde/vermelho:
+  - RPC get_global_credits_summary: OK/ERRO + tempo
+  - RPC get_top_credit_consumers: OK/ERRO
+  - Último log em api_usage_logs (via Edge Function ou query segura)
+  - Data/hora do último consumo e total do mês
+- Isso transforma o problema em “status visível” e reduz dependência de DevTools.
 
--- Permissões para usuários autenticados
-GRANT EXECUTE ON FUNCTION public.get_global_credits_summary() TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_top_credit_consumers(INTEGER) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_tenant_credits_summary(UUID) TO authenticated;
-```
+Sequência de implementação
+1) Atualizar o arquivo de referência do repositório (docs/sql/credits_rpc_functions.sql) com o SQL corrigido (v_period_start etc.), para não voltarmos a colar a versão com bug.
+2) Implementar melhorias de UI (erros explícitos) no APICostsWidget, Index e hooks.
+3) Fornecer o script SQL final (corrigido) para você rodar no Supabase externo (btoyclznuuwvxbsacemw).
+4) Validar no preview:
+   - Network sem 400/42702
+   - Cards renderizando
+   - Se 0: seguir auditoria Fase B para confirmar se há tráfego real chegando ao log-api-usage.
+5) (Opcional) Implementar Health Check.
 
----
+Riscos / “não vai quebrar nada?”
+- A troca das RPCs é segura porque:
+  - Mantém os nomes das funções (o front continua chamando igual)
+  - Mantém os campos principais retornados (total_credits_consumed, total_cost_brl, total_api_calls, etc.)
+  - Apenas corrige ambiguidade de nomes
+- As mudanças de UI são aditivas:
+  - Só adicionam estados de erro e transparência
+  - Não mudam regras de negócio nem gravam dados
 
-## Arquivos a Modificar/Criar
+Critérios de aceite (o que significa “perfeitamente funcional” aqui)
+- Dashboard e widget de consumo deixam de retornar 400 e passam a mostrar números (ou 0 com justificativa real).
+- Em caso de erro de backend (RPC, permissão, etc.), a UI mostra o erro real (não “Nenhum consumo”).
+- Você consegue, em minutos, responder:
+  - Créditos por tenant (e R$) no mês
+  - Créditos por usuário (via user_usage e/ou telas existentes como Rankings/UserUsageCard)
+  - Tokens (via master-usage/ai-diagnostics) e correlação com créditos
 
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `supabase/migrations/YYYYMMDD_credits_rpc_functions.sql` | Criar | Migration com as 3 funções RPC |
-| `src/integrations/supabase/types.ts` | Atualizar | Regenerar types após migration (automático) |
+Observação importante sobre “GCS, IA, etc.”
+- Créditos/R$ e Tokens de IA já estão no escopo e são rastreáveis via:
+  - api_usage_logs, user_usage, tenant_usage e Edge Function log-api-usage
+  - master-usage e master-ai-diagnostics (para tokens/diagnóstico)
+- Consumo de storage (GCS) depende do seu pipeline de atualização de storage_bytes/user_usage. Vamos validar na auditoria Fase B se isso está sendo alimentado; se não estiver, abrimos um segundo ajuste específico para storage (sem misturar com o bug atual das RPCs).
 
----
+Arquivos que serão alterados no projeto (Lovable)
+- docs/sql/credits_rpc_functions.sql (corrigir SQL para não ter ambiguidade)
+- src/components/dashboard/APICostsWidget.tsx (exibir erro corretamente)
+- src/hooks/useGlobalCredits.ts (padronizar/propagar erro)
+- src/pages/Index.tsx (mostrar erro no card de créditos quando a RPC falhar)
+- (opcional) src/hooks/useTenantCredits.ts + src/pages/TenantDetail.tsx (exibir erro de resumo do tenant)
+- (opcional) novo componente/página de Health Check (a definir localização)
 
-## Por que os dados estão zerados?
-
-O problema não é só a falta das funções RPC. Mesmo que elas existam, **os dados só serão populados quando**:
-
-1. O CRM principal chamar a Edge Function `log-api-usage` após cada uso de IA
-2. A integração entre Master Panel e CRM estiver configurada
-
-### Verificação necessária
-
-Para ter dados reais de consumo, você precisa verificar:
-
-1. **O CRM está chamando `log-api-usage`?** - Verifique nos logs do Supabase
-2. **Há dados em `api_usage_logs`?** - Execute: `SELECT * FROM api_usage_logs LIMIT 10`
-3. **Há dados em `tenant_usage`?** - Execute: `SELECT * FROM tenant_usage LIMIT 10`
-
----
-
-## Métricas que serão exibidas
-
-Após implementar as funções RPC:
-
-| Métrica | Origem | Cálculo |
-|---------|--------|---------|
-| Créditos Consumidos | `tenant_usage.credits_consumed` | `cost_brl * 100` |
-| Custo em R$ | `tenant_usage.estimated_cost_brl` | Soma dos custos |
-| Chamadas de API | `tenant_usage.api_calls` | Contador incremental |
-| Tokens de IA | `tenant_usage.ai_tokens_used` | Soma de tokens |
-
----
-
-## Conversão Créditos/Tokens/R$
-
-| Unidade | Relação |
-|---------|---------|
-| 1 Crédito | R$ 0,01 |
-| 100 Créditos | R$ 1,00 |
-| Custo USD | `tokens * custo_por_token` |
-| Custo BRL | `custo_usd * 5.50` (taxa) |
-| Créditos | `custo_brl * 100` |
-
----
-
-## Resultado Esperado
-
-Após criar as funções RPC no Supabase externo:
-
-1. Dashboard mostrará "Créditos Consumidos" com valor real
-2. Widget APICostsWidget mostrará top consumidores
-3. Página de diagnóstico AI mostrará tokens e custos por modelo
-4. Cada tenant terá seu consumo detalhado
-
----
-
-## Próximos Passos após Aprovação
-
-1. Criar a migration SQL com as 3 funções RPC
-2. Você executa o SQL no Supabase Dashboard (SQL Editor) do projeto externo
-3. Testar se o dashboard carrega os dados
-4. Se ainda zero, verificar se há dados nas tabelas base
+Próxima ação imediata após aprovar este plano
+- Implementar as mudanças no front e atualizar o SQL de referência; em seguida, te entregar o “SQL final corrigido” para colar no Supabase externo e validar (sem DevTools).
