@@ -34,9 +34,8 @@ export function CreditZonesWidget() {
   const { data: zoneSummary, isLoading, error } = useQuery({
     queryKey: ['credit-zones-summary'],
     queryFn: async (): Promise<ZoneSummary> => {
-      // Get all tenant usage for current period
-      const now = new Date();
-      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      // Get all tenant usage for current period using flexible date range
+      const today = new Date().toISOString().split('T')[0];
       
       const { data: tenantUsages, error: usageError } = await supabase
         .from('tenant_usage')
@@ -49,7 +48,8 @@ export function CreditZonesWidget() {
             limit_ai_credits_monthly
           )
         `)
-        .eq('period_start', periodStart);
+        .lte('period_start', today)
+        .gte('period_end', today);
 
       if (usageError) throw usageError;
 

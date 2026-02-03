@@ -79,12 +79,13 @@ import { TenantAIEngineEditor } from '@/components/tenant/TenantAIEngineEditor';
 import { TenantCommercialEditor } from '@/components/tenant/TenantCommercialEditor';
 import { UserManagement } from '@/components/tenant/UserManagement';
 import { TenantTemplateManager } from '@/components/tenant/TenantTemplateManager';
-
+import { TenantUserCreditsTable } from '@/components/tenant/TenantUserCreditsTable';
 const TENANT_TABS: TabItem[] = [
   { value: 'overview', label: 'Visão Geral', shortLabel: 'Geral', icon: Building2 },
   { value: 'template', label: 'Template', shortLabel: 'Template', icon: ClipboardList },
   { value: 'commercial', label: 'Comercial', shortLabel: 'Comercial', icon: Briefcase },
   { value: 'resources', label: 'Recursos', shortLabel: 'Recursos', icon: Settings2 },
+  { value: 'consumption', label: 'Consumo', shortLabel: 'Consumo', icon: Coins },
   { value: 'ai-engine', label: 'Motor de IA', shortLabel: 'IA', icon: Brain },
   { value: 'users', label: 'Usuários', shortLabel: 'Usuários', icon: Users },
   { value: 'subscription', label: 'Assinatura', shortLabel: 'Assin.', icon: CreditCard },
@@ -908,6 +909,11 @@ export default function TenantDetail() {
           {/* Template Tab */}
           <TabsContent value="template">
             <TenantTemplateManager tenantId={id!} tenantName={tenant.name} />
+          </TabsContent>
+
+          {/* Consumption Tab */}
+          <TabsContent value="consumption" className="space-y-6">
+            <TenantUserCreditsTable tenantId={id!} />
           </TabsContent>
 
           {/* AI Engine Tab */}
