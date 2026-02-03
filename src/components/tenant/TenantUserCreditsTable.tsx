@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useUserCredits, UserCreditData } from '@/hooks/useUserCredits';
+import { PeriodFilter, PeriodFilterValue, getDefaultPeriod } from '@/components/ui/period-filter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -65,13 +67,21 @@ function formatNumber(num: number): string {
 }
 
 export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps) {
-  const { data: users, isLoading, error } = useUserCredits(tenantId);
+  const [period, setPeriod] = useState<PeriodFilterValue>(getDefaultPeriod());
+  
+  const { data: users, isLoading, error } = useUserCredits(tenantId, {
+    periodStart: period.periodStart,
+    periodEnd: period.periodEnd,
+  });
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <Skeleton className="h-6 w-48" />
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-6 w-48" />
+            <PeriodFilter value={period} onChange={setPeriod} />
+          </div>
           <Skeleton className="h-4 w-72" />
         </CardHeader>
         <CardContent>
@@ -100,11 +110,16 @@ export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            Consumo por Usuário
-          </CardTitle>
-          <CardDescription>Nenhum usuário com consumo registrado neste período</CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Consumo por Usuário
+              </CardTitle>
+              <CardDescription>Nenhum usuário com consumo registrado neste período</CardDescription>
+            </div>
+            <PeriodFilter value={period} onChange={setPeriod} />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
@@ -123,7 +138,7 @@ export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
@@ -133,10 +148,13 @@ export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps
               {users.length} usuário{users.length !== 1 ? 's' : ''} com consumo • Total: {formatNumber(totalCredits)} créditos
             </CardDescription>
           </div>
-          <Badge variant="outline" className="font-mono">
-            <TrendingUp className="h-3 w-3 mr-1" />
-            {formatNumber(totalCredits)}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <PeriodFilter value={period} onChange={setPeriod} />
+            <Badge variant="outline" className="font-mono hidden sm:flex">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              {formatNumber(totalCredits)}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

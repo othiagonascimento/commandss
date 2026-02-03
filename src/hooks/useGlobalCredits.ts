@@ -6,15 +6,25 @@ export interface GlobalCreditsSummary {
   total_cost_brl: number;
   total_api_calls: number;
   total_tenants_with_usage: number;
+  period_start: string;
+  period_end: string;
 }
 
-export function useGlobalCredits() {
+export interface GlobalCreditsFilter {
+  periodStart?: string;
+  periodEnd?: string;
+}
+
+export function useGlobalCredits(filter?: GlobalCreditsFilter) {
   return useQuery({
-    queryKey: ['global-credits-summary'],
+    queryKey: ['global-credits-summary', filter?.periodStart, filter?.periodEnd],
     queryFn: async () => {
       // Using type cast since RPC functions are on external Supabase
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.rpc as any)('get_global_credits_summary');
+      const { data, error } = await (supabase.rpc as any)('get_global_credits_summary', {
+        p_start: filter?.periodStart || null,
+        p_end: filter?.periodEnd || null,
+      });
       if (error) throw error;
       const result = data as unknown as GlobalCreditsSummary[];
       return result?.[0] || null;

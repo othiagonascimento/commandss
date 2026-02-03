@@ -11,17 +11,24 @@ export interface UserCreditData {
   transcription_minutes: number;
 }
 
-export function useUserCredits(tenantId: string | undefined) {
+export interface UserCreditsFilter {
+  periodStart?: string;
+  periodEnd?: string;
+}
+
+export function useUserCredits(tenantId: string | undefined, filter?: UserCreditsFilter) {
   return useQuery({
-    queryKey: ['tenant-user-credits', tenantId],
+    queryKey: ['tenant-user-credits', tenantId, filter?.periodStart, filter?.periodEnd],
     queryFn: async (): Promise<UserCreditData[]> => {
       if (!tenantId) return [];
 
       // Call RPC directly since it's in external Supabase
-      // The RPC returns: user_id, user_name, user_role, credits_consumed, ai_tokens, api_calls, transcription_minutes
-      const { data, error } = await supabase.rpc('get_tenant_user_credits' as never, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('get_tenant_user_credits', {
         p_tenant_id: tenantId,
-      } as never);
+        p_start: filter?.periodStart || null,
+        p_end: filter?.periodEnd || null,
+      });
 
       if (error) {
         console.error('Error fetching user credits:', error);
