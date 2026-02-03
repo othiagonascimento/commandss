@@ -23,8 +23,8 @@ export function useMasterDashboard(): MasterDashboardData {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 30000, // 30 seconds for more responsive dashboard
+    gcTime: 60000,
   });
 
   const {
@@ -39,8 +39,8 @@ export function useMasterDashboard(): MasterDashboardData {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 30000,
+    gcTime: 60000,
   });
 
   const {
@@ -55,8 +55,8 @@ export function useMasterDashboard(): MasterDashboardData {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 60000, // 1 minute for time series
+    gcTime: 120000,
   });
 
   const refetch = () => {

@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
+import { ScrollableTabsList, MobileTabSelector, TabItem } from '@/components/ui/scrollable-tabs';
 import { 
   tenantsApi, 
   subscriptionsApi, 
@@ -75,6 +78,20 @@ import { TenantCommercialEditor } from '@/components/tenant/TenantCommercialEdit
 import { UserManagement } from '@/components/tenant/UserManagement';
 import { TenantTemplateManager } from '@/components/tenant/TenantTemplateManager';
 
+const TENANT_TABS: TabItem[] = [
+  { value: 'overview', label: 'Visão Geral', shortLabel: 'Geral', icon: Building2 },
+  { value: 'template', label: 'Template', shortLabel: 'Template', icon: ClipboardList },
+  { value: 'commercial', label: 'Comercial', shortLabel: 'Comercial', icon: Briefcase },
+  { value: 'resources', label: 'Recursos', shortLabel: 'Recursos', icon: Settings2 },
+  { value: 'ai-engine', label: 'Motor de IA', shortLabel: 'IA', icon: Brain },
+  { value: 'users', label: 'Usuários', shortLabel: 'Usuários', icon: Users },
+  { value: 'subscription', label: 'Assinatura', shortLabel: 'Assin.', icon: CreditCard },
+  { value: 'branding', label: 'Branding', shortLabel: 'Brand', icon: Palette },
+  { value: 'domains', label: 'Domínios', shortLabel: 'Domínios', icon: Globe },
+  { value: 'onboarding', label: 'Onboarding', shortLabel: 'Onboard', icon: ClipboardList },
+  { value: 'economics', label: 'Economics', shortLabel: 'Econ.', icon: DollarSign },
+];
+
 const planColors: Record<string, string> = {
   basic: 'bg-muted text-muted-foreground',
   pro: 'bg-primary/10 text-primary',
@@ -92,6 +109,7 @@ export default function TenantDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Validate that id is a valid UUID
   const isIdValid = isValidUUID(id);
@@ -103,6 +121,8 @@ export default function TenantDetail() {
       return result.data;
     },
     enabled: isIdValid,
+    staleTime: 30000,
+    gcTime: 60000,
   });
 
   const { data: users } = useQuery({
@@ -112,6 +132,8 @@ export default function TenantDetail() {
       return result.data?.data || [];
     },
     enabled: isIdValid,
+    staleTime: 30000,
+    gcTime: 60000,
   });
 
   // Fetch tenant features
@@ -122,6 +144,8 @@ export default function TenantDetail() {
       return result.data;
     },
     enabled: isIdValid,
+    staleTime: 30000,
+    gcTime: 60000,
   });
 
   // Fetch tenant usage
@@ -132,6 +156,8 @@ export default function TenantDetail() {
       return result.data;
     },
     enabled: isIdValid,
+    staleTime: 30000,
+    gcTime: 60000,
   });
 
   // Update features mutation
@@ -322,134 +348,75 @@ export default function TenantDetail() {
 
   return (
     <DashboardLayout>
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { label: 'Tenants', href: '/tenants' },
+          { label: tenant.name, current: true },
+        ]}
+        className="mb-4"
+      />
+
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/tenants')}>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/tenants')} className="shrink-0 hidden sm:flex">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">{tenant.name}</h1>
-            <Badge className={planColors[tenant.plan_type]}>
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{tenant.name}</h1>
+            <Badge className={cn("shrink-0", planColors[tenant.plan_type])}>
               {tenant.plan_type}
             </Badge>
             {tenant.subscription_status === 'active' ? (
-              <Badge variant="default" className="bg-success text-success-foreground">
-                Assinatura Ativa
+              <Badge variant="default" className="bg-success text-success-foreground shrink-0">
+                Ativa
               </Badge>
             ) : tenant.subscription_status === 'lifetime' ? (
-              <Badge variant="default" className="bg-amber-500 text-white">
+              <Badge variant="default" className="bg-amber-500 text-white shrink-0">
                 <Crown className="w-3 h-3 mr-1" />
                 Vitalício
               </Badge>
             ) : tenant.subscription_status === 'partnership' ? (
-              <Badge variant="default" className="bg-green-600 text-white">
+              <Badge variant="default" className="bg-green-600 text-white shrink-0">
                 <Handshake className="w-3 h-3 mr-1" />
                 Parceria
               </Badge>
             ) : tenant.subscription_status === 'trialing' ? (
-              <Badge variant="secondary" className="bg-primary/10 text-primary">
+              <Badge variant="secondary" className="bg-primary/10 text-primary shrink-0">
                 <Gift className="w-3 h-3 mr-1" />
-                Em Trial
+                Trial
               </Badge>
             ) : tenant.subscription_status === 'past_due' ? (
-              <Badge variant="destructive">
-                Pagamento Atrasado
+              <Badge variant="destructive" className="shrink-0">
+                Atrasado
               </Badge>
             ) : (
-              <Badge variant="outline" className="border-warning text-warning">
-                Aguardando Pagamento
+              <Badge variant="outline" className="border-warning text-warning shrink-0">
+                Pendente
               </Badge>
             )}
           </div>
-          <p className="text-muted-foreground">{tenant.slug}</p>
+          <p className="text-sm text-muted-foreground">{tenant.slug}</p>
         </div>
         <ImpersonateButton tenantId={id!} tenantName={tenant.name} />
       </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          {/* Mobile: Dropdown for tabs */}
-          <div className="md:hidden">
-            <select 
-              className="w-full p-2 rounded-md border bg-background text-sm"
-              onChange={(e) => {
-                const tab = document.querySelector(`[data-state="active"][value="${e.target.value}"]`) as HTMLElement;
-                tab?.click();
-              }}
-              defaultValue="overview"
-            >
-              <option value="overview">📊 Visão Geral</option>
-              <option value="template">📋 Template</option>
-              <option value="commercial">💼 Comercial</option>
-              <option value="resources">⚙️ Recursos e Limites</option>
-              <option value="ai-engine">🧠 Motor de IA</option>
-              <option value="users">👥 Usuários</option>
-              <option value="subscription">💳 Assinatura</option>
-              <option value="branding">🎨 Branding</option>
-              <option value="domains">🌐 Domínios</option>
-              <option value="onboarding">✅ Onboarding</option>
-              <option value="economics">💰 Unit Economics</option>
-            </select>
-          </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        {/* Mobile Tab Selector */}
+        <MobileTabSelector
+          tabs={TENANT_TABS}
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="mb-4"
+        />
 
-          {/* Desktop: Tab list */}
-          <TabsList className="hidden md:flex flex-wrap gap-1">
-            <TabsTrigger value="overview" className="gap-1 text-xs lg:text-sm">
-              <Building2 className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">Visão Geral</span>
-              <span className="lg:hidden">Geral</span>
-            </TabsTrigger>
-            <TabsTrigger value="template" className="gap-1 text-xs lg:text-sm">
-              <ClipboardList className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">Template</span>
-              <span className="lg:hidden">📋</span>
-            </TabsTrigger>
-            <TabsTrigger value="commercial" className="gap-1 text-xs lg:text-sm">
-              <Briefcase className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">Comercial</span>
-              <span className="lg:hidden">💼</span>
-            </TabsTrigger>
-            <TabsTrigger value="resources" className="gap-1 text-xs lg:text-sm">
-              <Settings2 className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">Recursos</span>
-              <span className="lg:hidden">⚙️</span>
-            </TabsTrigger>
-            <TabsTrigger value="ai-engine" className="gap-1 text-xs lg:text-sm">
-              <Brain className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">Motor de IA</span>
-              <span className="lg:hidden">🧠</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="gap-1 text-xs lg:text-sm">
-              <Users className="w-3 h-3 lg:w-4 lg:h-4" />
-              Usuários
-            </TabsTrigger>
-            <TabsTrigger value="subscription" className="gap-1 text-xs lg:text-sm">
-              <CreditCard className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">Assinatura</span>
-              <span className="lg:hidden">$</span>
-            </TabsTrigger>
-            <TabsTrigger value="branding" className="gap-1 text-xs lg:text-sm">
-              <Palette className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">Branding</span>
-              <span className="lg:hidden">🎨</span>
-            </TabsTrigger>
-            <TabsTrigger value="domains" className="gap-1 text-xs lg:text-sm">
-              <Globe className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">Domínios</span>
-              <span className="lg:hidden">🌐</span>
-            </TabsTrigger>
-            <TabsTrigger value="onboarding" className="gap-1 text-xs lg:text-sm">
-              <ClipboardList className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">Onboarding</span>
-              <span className="lg:hidden">✅</span>
-            </TabsTrigger>
-            <TabsTrigger value="economics" className="gap-1 text-xs lg:text-sm">
-              <DollarSign className="w-3 h-3 lg:w-4 lg:h-4" />
-              <span className="hidden lg:inline">Economics</span>
-              <span className="lg:hidden">💰</span>
-            </TabsTrigger>
-          </TabsList>
+        {/* Desktop Scrollable Tabs */}
+        <div className="hidden sm:block">
+          <ScrollableTabsList tabs={TENANT_TABS} />
+
+        </div>
 
           {/* Resources & Limits Tab */}
           <TabsContent value="resources" className="space-y-6">

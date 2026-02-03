@@ -95,6 +95,8 @@ export default function Settings() {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     },
+    staleTime: 60000, // 1 minute cache for settings
+    gcTime: 120000,
   });
 
   // Load Global Base Prompts
@@ -109,6 +111,8 @@ export default function Settings() {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     },
+    staleTime: 60000,
+    gcTime: 120000,
   });
 
   // Update AI state when settings load
@@ -234,6 +238,8 @@ export default function Settings() {
       if (error) throw error;
       return data;
     },
+    staleTime: 60000,
+    gcTime: 120000,
   });
 
   // Update local state when settings load
