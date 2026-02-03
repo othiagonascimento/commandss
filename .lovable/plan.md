@@ -1,244 +1,395 @@
 
+# PLANO ELITE: REFATORACAO COMPLETA DO MASTER UOPA
 
-# Auditoria de Segurança e Alinhamento: Projeto Master
+## GARANTIA DE SEGURANCA
 
-## Resumo Executivo
-
-Realizei uma auditoria completa do projeto Master comparando com a arquitetura documentada do CRM. Encontrei **4 problemas críticos** e **3 pontos de atenção** que precisam ser corrigidos para garantir a sincronização correta entre os sistemas.
+Todas as alteracoes seguem o principio **ADITIVO**, nao **SUBSTITUTIVO**:
+- Nenhuma logica de negocio sera alterada
+- Nenhuma integracao com Supabase sera modificada
+- Nenhuma rota ou endpoint sera removido
+- Apenas OTIMIZACOES de performance e MELHORIAS visuais
 
 ---
 
-## 1. PROBLEMAS CRITICOS
+## FASE 1: PERFORMANCE CRITICA (Zero quebras)
 
-### 1.1 Webhook `settings.updated` NAO IMPLEMENTADO
+### 1.1 Consolidar usePermissions.ts - ELIMINAR WATERFALL
 
-**Severidade:** CRITICA
+**Problema atual:** 3 queries sequenciais (waterfall) causando ~1.5s de delay.
 
-O prompt de arquitetura exige que quando as configurações de AI Engine forem atualizadas no Master, um webhook seja enviado ao CRM com o evento `settings.updated`. Isso **NAO existe** no codigo atual.
-
-**Arquivo afetado:** `supabase/functions/master-settings/index.ts`
-
-**Situacao atual (linhas 249-259):**
-```typescript
-// Notificar os tenants sobre a mudança
-const aiSettings: AISettings = {...};
-notifyTenantsAISettingsUpdated(supabaseAdmin, aiSettings);
+**Solucao:**
+```
+ANTES:                           DEPOIS:
+Query 1 (master-user) →          Query UNICA (master-user-full) →
+   wait...                          Retorna: { user, roles, permissions }
+Query 2 (roles) →                   staleTime: 60000ms
+   wait...
+Query 3 (permissions) →
+   wait...
 ```
 
-**Problema:** A funcao `notifyTenantsAISettingsUpdated` envia para cada tenant individualmente via `/functions/v1/sync-master-settings`, mas NAO envia o webhook padronizado para o CRM em `master-core/webhooks` com:
-- Header `x-webhook-signature`
-- Evento `settings.updated`
-- Algoritmo de assinatura `btoa(MASTER_WEBHOOK_SECRET + payload.substring(0, 32))`
+**Mudanca no arquivo:** `src/hooks/usePermissions.ts`
+- Criar novo endpoint no `master-data` Edge Function que retorna tudo de uma vez
+- Adicionar `staleTime: 60000` para cache de 1 minuto
+- Manter todas as funcoes de permissao EXATAMENTE iguais
 
-**Solucao necessaria:** Adicionar chamada ao webhook do CRM apos salvar settings de AI.
+### 1.2 Adicionar staleTime em Todas as Queries Criticas
 
----
+| Arquivo | Query | staleTime Atual | Novo staleTime |
+|---------|-------|-----------------|----------------|
+| `Tenants.tsx` | tenants | 0 | 30000ms |
+| `TenantDetail.tsx` | tenant, users, features, usage | 0 | 30000ms |
+| `Settings.tsx` | master-settings, ai-engine-settings | 0 | 60000ms |
+| `TemplateEditor.tsx` | template | 0 | 30000ms |
+| `Index.tsx` (Dashboard) | useMasterDashboard | 0 | 30000ms |
 
-### 1.2 Webhook `template.updated` NAO IMPLEMENTADO
+**Garantia:** Apenas adiciona opcao de cache, nao altera dados.
 
-**Severidade:** CRITICA
+### 1.3 Lazy Loading para Componentes Pesados
 
-**Arquivo afetado:** `supabase/functions/master-templates-proxy/index.ts`
-
-Quando um template eh publicado (action `publish`), o sistema atualiza diretamente no banco do CRM via `crmSupabase.from('master_niche_templates').update()`, mas NAO envia o webhook padronizado `template.updated`.
-
-**Problema:** O CRM pode ter logica adicional no handler de webhook que nao eh executada.
-
----
-
-### 1.3 Webhook `tenant.provision` PARCIALMENTE IMPLEMENTADO
-
-**Severidade:** ALTA
-
-**Arquivo afetado:** `supabase/functions/sync-tenant-to-crm/index.ts`
-
-O codigo atual faz INSERT direto no banco do CRM (linhas 124-145), mas NAO chama o webhook `tenant.provision` como backup. Isso significa que a logica de provisionamento duplicada no `master-core/webhooks` nunca eh acionada.
-
-**O que falta:**
-1. Usar `MASTER_WEBHOOK_SECRET` para assinar
-2. Enviar para `master-core/webhooks` com evento `tenant.provision`
-
----
-
-### 1.4 Secret `MASTER_WEBHOOK_SECRET` NAO UTILIZADO
-
-**Severidade:** CRITICA
-
-Embora a secret `MASTER_WEBHOOK_SECRET` esteja configurada nas secrets do projeto, ela NAO esta sendo usada em nenhum lugar do codigo:
-
-```
-Busca por 'MASTER_WEBHOOK_SECRET': 0 resultados
-Busca por 'x-webhook-signature': 0 resultados
-```
-
-**Impacto:** Nenhum webhook esta sendo assinado corretamente, o que significa que o CRM pode rejeitar chamadas ou a autenticacao nao esta funcionando.
-
----
-
-## 2. PONTOS DE ATENCAO
-
-### 2.1 Estrutura de `funnel_stages` Divergente
-
-**Arquivo:** `src/types/templates.ts`
-
-O documento de arquitetura diz:
-> funnel_stages: `is_won`, `is_lost` existem. `slug`, `system_type`, `is_system`, `is_active` NAO EXISTEM no CRM.
-
-Mas o codigo atual usa:
-```typescript
-export interface FunnelStage {
-  slug: string;        // <-- NAO existe no CRM!
-  is_system?: boolean; // <-- NAO existe no CRM!
-  ...
-}
-```
-
-**Risco:** Ao sincronizar templates para o CRM, campos inexistentes podem causar erros.
-
----
-
-### 2.2 Client do Frontend Configurado Corretamente
-
-**Status:** OK
+Aplicar `React.lazy()` nos componentes de tabs para carregar sob demanda:
 
 ```typescript
-// .env
-VITE_SUPABASE_URL="https://btoyclznuuwvxbsacemw.supabase.co"
+// TenantDetail.tsx - Exemplo
+const TenantModulesEditor = lazy(() => import('@/components/tenant/TenantModulesEditor'));
+const TenantLimitsEditor = lazy(() => import('@/components/tenant/TenantLimitsEditor'));
+// ... outros 15 componentes
 ```
 
-O frontend esta apontando corretamente para o Supabase externo.
+**Garantia:** Comportamento identico, apenas carrega quando necessario.
 
 ---
 
-### 2.3 Secrets Configurados
+## FASE 2: RESPONSIVIDADE MOBILE-FIRST
 
-**Status:** PARCIALMENTE OK
+### 2.1 Corrigir AppSidebar.tsx
 
-| Secret | Status |
-|--------|--------|
-| `REMOTE_SUPABASE_URL` | Configurado |
-| `REMOTE_SUPABASE_SERVICE_ROLE_KEY` | Configurado |
-| `REMOTE_SUPABASE_ANON_KEY` | Configurado |
-| `MASTER_WEBHOOK_SECRET` | Configurado mas NAO UTILIZADO |
+**Problemas:**
+- Breakpoint de mobile em `lg:` (1024px), deveria ser `md:` (768px)
+- Menu mobile sem animacao de slide
+- Overlay sem gesto de swipe
+- Botao de fechar pequeno demais (44x44 minimo para touch)
 
----
+**Correcoes:**
+1. Mudar de `lg:hidden` para `md:hidden` no botao de menu
+2. Adicionar `transition-transform` + `translate-x` para animacao de slide
+3. Aumentar botao de fechar para `size="lg"` (48x48)
+4. Adicionar logo UOPA no header do menu mobile
 
-## 3. ACOES RECOMENDADAS
+### 2.2 Corrigir TabsList em Todas as Paginas
 
-### Prioridade CRITICA
+**Paginas afetadas:** TenantDetail.tsx, Settings.tsx, TemplateEditor.tsx
 
-| # | Acao | Arquivo |
-|---|------|---------|
-| 1 | Implementar envio de webhook `settings.updated` com assinatura | `master-settings/index.ts` |
-| 2 | Implementar envio de webhook `template.updated` com assinatura | `master-templates-proxy/index.ts` |
-| 3 | Adicionar chamada de webhook `tenant.provision` como backup | `sync-tenant-to-crm/index.ts` |
-| 4 | Criar funcao utilitaria para assinatura de webhooks | `supabase/functions/_shared/webhookSignature.ts` |
-
-### Prioridade ALTA
-
-| # | Acao | Arquivo |
-|---|------|---------|
-| 5 | Revisar mapeamento de `funnel_stages` para remover campos inexistentes no CRM | `master-templates-proxy/index.ts` |
-| 6 | Documentar qual algoritmo de assinatura esta em uso | Documentacao |
-
----
-
-## 4. CODIGO A IMPLEMENTAR
-
-### 4.1 Funcao Utilitaria de Assinatura (Nova)
-
-Criar `supabase/functions/_shared/webhookSignature.ts`:
+**Solucao UNICA aplicada em todas:**
 
 ```typescript
-export function signWebhookPayload(secret: string, payload: string): string {
-  return btoa(secret + payload.substring(0, 32));
-}
-
-export async function sendWebhookToCRM(
-  event: string,
-  data: Record<string, unknown>
-): Promise<void> {
-  const secret = Deno.env.get('MASTER_WEBHOOK_SECRET');
-  if (!secret) {
-    console.warn('[WEBHOOK] MASTER_WEBHOOK_SECRET not configured');
-    return;
-  }
-
-  const payload = JSON.stringify({ event, data });
-  const signature = signWebhookPayload(secret, payload);
-
-  await fetch('https://btoyclznuuwvxbsacemw.supabase.co/functions/v1/master-core', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-webhook-signature': signature,
-      'x-webhook-action': 'webhooks',
-    },
-    body: payload,
-  });
-}
+// Componente reutilizavel: ScrollableTabsList
+<ScrollArea className="w-full" orientation="horizontal">
+  <TabsList className="inline-flex w-max gap-1 p-1">
+    {tabs.map(tab => (
+      <TabsTrigger key={tab.value} value={tab.value} className="min-w-fit whitespace-nowrap">
+        {tab.icon}
+        <span className="hidden sm:inline ml-2">{tab.label}</span>
+      </TabsTrigger>
+    ))}
+  </TabsList>
+</ScrollArea>
 ```
 
-### 4.2 Adicionar ao `master-settings/index.ts`
+**Garantia:** Mantem todos os valores e comportamentos de tabs, apenas melhora scroll.
 
-Apos salvar AI settings:
+### 2.3 Tabelas Responsivas
 
+**Arquivo:** `Tenants.tsx` (e outras tabelas)
+
+**Solucao:**
 ```typescript
-import { sendWebhookToCRM } from '../_shared/webhookSignature.ts';
+// Mobile: Cards empilhados
+// Desktop: Tabela tradicional
 
-// Dentro do handler de PATCH para ai_global_engine:
-await sendWebhookToCRM('settings.updated', {
-  ai_layer_1_model,
-  ai_layer_2_model,
-  ai_layer_3_model,
-  ai_layer_1_instructions,
-  ai_layer_2_instructions,
-  ai_layer_3_instructions,
-  ai_layer_1_cost: 0,
-  ai_layer_2_cost: 1,
-  ai_layer_3_cost: 15,
-});
+<div className="md:hidden space-y-3">
+  {tenants.map(tenant => (
+    <TenantCard key={tenant.id} tenant={tenant} />
+  ))}
+</div>
+
+<div className="hidden md:block">
+  <Table>...</Table>
+</div>
 ```
 
-### 4.3 Adicionar ao `sync-tenant-to-crm/index.ts`
+**Garantia:** Dados identicos, apenas layout diferente por breakpoint.
 
-Apos criar tenant no CRM:
+---
+
+## FASE 3: UI/UX ELITE
+
+### 3.1 Header Dinamico com Dados Reais
+
+**Arquivo:** `src/components/dashboard/Header.tsx`
+
+**Mudancas:**
+1. Usar dados do AuthContext para nome do usuario
+2. Buscar status real do sistema (health check simples)
+3. Contador de notificacoes real (ou ocultar badge se zero)
 
 ```typescript
-import { sendWebhookToCRM } from '../_shared/webhookSignature.ts';
+// ANTES (hardcoded)
+<span className="text-sm font-medium">Admin</span>
 
-// Apos INSERT bem-sucedido:
-await sendWebhookToCRM('tenant.provision', {
-  id: masterTenant.id,
-  name: masterTenant.name,
-  subdomain: masterTenant.subdomain,
-  subdomain_slug: masterTenant.subdomain,
-  plan_type: masterTenant.plan_type,
-  owner_email: masterTenant.contact_email,
-});
+// DEPOIS (dinamico)
+const { user } = useAuth();
+const { masterUser } = usePermissions();
+<span className="text-sm font-medium">
+  {masterUser?.full_name || user?.email?.split('@')[0] || 'Usuario'}
+</span>
+```
+
+### 3.2 Breadcrumbs em Paginas de Detalhe
+
+**Paginas:** TenantDetail.tsx, TemplateEditor.tsx, EditTenant.tsx
+
+**Componente novo:** `src/components/ui/breadcrumbs.tsx`
+
+```typescript
+<Breadcrumbs items={[
+  { label: 'Tenants', href: '/tenants' },
+  { label: tenant.name, current: true },
+]} />
+```
+
+### 3.3 Estados Vazios Melhorados
+
+**Problema atual:**
+```typescript
+<div className="text-center py-12 text-muted-foreground">
+  Nenhum tenant encontrado.
+</div>
+```
+
+**Solucao ELITE:**
+```typescript
+<EmptyState
+  icon={Building2}
+  title="Nenhum tenant encontrado"
+  description="Crie o primeiro tenant para comecar a gerenciar empresas"
+  action={{ label: "Criar Tenant", onClick: () => navigate('/tenants/new') }}
+/>
+```
+
+### 3.4 Feedback de Acoes Consistente
+
+**Padronizar em TODOS os mutations:**
+1. Toast de loading durante operacao
+2. Toast de sucesso com mensagem clara
+3. Toast de erro com detalhes uteis
+4. Indicador visual no botao (spinner)
+
+```typescript
+// Padrao a seguir
+onMutate: () => toast.loading('Salvando...', { id: 'save' }),
+onSuccess: () => toast.success('Salvo com sucesso!', { id: 'save' }),
+onError: (err) => toast.error(`Erro: ${err.message}`, { id: 'save' }),
 ```
 
 ---
 
-## 5. CHECKLIST DE VERIFICACAO
+## FASE 4: LIMPEZA DE CODIGO
 
-Antes de cada deploy, verificar:
+### 4.1 Remover Arquivo Morto
 
-- [ ] Webhooks usam header `x-webhook-signature`?
-- [ ] Algoritmo de assinatura: `btoa(secret + payload.substring(0, 32))`?
-- [ ] Eventos corretos: `settings.updated`, `template.updated`, `tenant.provision`?
-- [ ] `MASTER_WEBHOOK_SECRET` igual ao configurado no CRM?
-- [ ] Colunas de `funnel_stages` compatíveis com CRM (sem `slug`, `is_system`)?
+**Remover:** `src/App.css` (58 linhas de CSS do boilerplate Vite, nao usado)
+
+### 4.2 Consolidar use-toast
+
+**Situacao atual:**
+- `src/hooks/use-toast.ts` (real)
+- `src/components/ui/use-toast.ts` (re-export)
+
+**Acao:** Manter apenas `src/hooks/use-toast.ts`, atualizar imports.
+
+### 4.3 Remover Hook Nao Usado
+
+**Arquivo:** `src/hooks/useTenantByDomain.ts`
+
+Esse hook resolve tenant por dominio, funcionalidade do CRM, nao do Master.
+Verificar se ha algum import antes de remover.
 
 ---
 
-## Conclusao
+## FASE 5: LAYOUT ELITE PROPOSTO
 
-O projeto Master esta **funcionando parcialmente**, mas **NAO esta enviando webhooks assinados** conforme a arquitetura documentada. Isso pode causar:
+### 5.1 Dashboard Redesign
 
-1. Dessincronizacao entre Master e CRM
-2. Falhas silenciosas de provisionamento
-3. AI Engine nao atualizado no CRM quando alterado no Master
+```
+┌─────────────────────────────────────────────────────────────┐
+│ HEADER (dinamico com usuario real)                          │
+├────────┬────────────────────────────────────────────────────┤
+│        │ ┌──────────┬──────────┬──────────┬──────────┐      │
+│ SIDE   │ │ TENANTS  │ USUARIOS │ LEADS    │ MRR      │      │
+│ BAR    │ │ ████     │ ████     │ ████     │ ████     │      │
+│        │ └──────────┴──────────┴──────────┴──────────┘      │
+│ (com   │                                                     │
+│ grupos │ ┌─────────────────────────────────────────────┐    │
+│ colap- │ │ GRAFICO DE EVOLUCAO (tabs: MRR/Growth/Act) │    │
+│ saveis)│ └─────────────────────────────────────────────┘    │
+│        │                                                     │
+│        │ ┌──────────┬──────────┬──────────┬──────────┐      │
+│        │ │ MSGS     │ ASSINA.  │ NOVOS 7d │ LEADS 7d │      │
+│        │ └──────────┴──────────┴──────────┴──────────┘      │
+│        │                                                     │
+│        │ ┌─────────────────────────────────────────────┐    │
+│        │ │ AI INSIGHTS (full width)                    │    │
+│        │ └─────────────────────────────────────────────┘    │
+│        │                                                     │
+│        │ ┌─────────────┬─────────────┬─────────────────┐    │
+│        │ │ ALERTAS     │ API COSTS   │ DIST. PLANOS    │    │
+│        │ └─────────────┴─────────────┴─────────────────┘    │
+└────────┴────────────────────────────────────────────────────┘
+```
 
-Recomendo implementar as correcoes na ordem de prioridade indicada.
+### 5.2 TenantDetail Redesign
 
+**Tabs atuais (11):**
+Overview, Template, Commercial, Resources, AI Engine, Users, Subscription, Branding, Domains, Onboarding, Economics
+
+**Proposta de agrupamento:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ← Voltar   NOME DO TENANT   [Badge Plano] [Status]          │
+│            slug-do-tenant                    [Impersonate]  │
+├─────────────────────────────────────────────────────────────┤
+│ [Geral] [Comercial] [Recursos] [IA] [Branding] [Avancado]   │
+│  ↓                                                          │
+│  ScrollArea horizontal com setas em mobile                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  CONTEUDO DA TAB ATIVA                                      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Mapeamento:**
+- Geral: Overview + Onboarding
+- Comercial: Commercial + Subscription + Economics
+- Recursos: Resources (Modules + Limits)
+- IA: AI Engine + Template
+- Branding: Branding + Domains
+- Avancado: Users + Overrides
+
+### 5.3 Settings Redesign
+
+**Tabs atuais (6):** Geral, Motor IA, Prompts Base, Notificacoes, Seguranca, API
+
+**Layout proposto:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CONFIGURACOES                         [Salvar Alteracoes]   │
+├─────────────────────────────────────────────────────────────┤
+│ [Geral] [IA & Prompts] [Notificacoes] [Seguranca] [API]     │
+│                                                             │
+│  Cada tab com cards bem organizados                         │
+│  Botao de salvar contextual por secao                       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## FASE 6: POLISH FINAL
+
+### 6.1 Animacoes Suaves
+
+Adicionar transicoes em:
+- Troca de tabs: `transition-opacity duration-200`
+- Cards ao aparecer: `motion.div` com fade-in
+- Sidebar collapse: ja tem, verificar suavidade
+
+### 6.2 Atalhos de Teclado
+
+| Atalho | Acao |
+|--------|------|
+| `Cmd/Ctrl + K` | Abrir busca global |
+| `Esc` | Fechar modais/sidebars |
+| `Cmd/Ctrl + S` | Salvar formulario ativo |
+
+### 6.3 Tipografia Hierarquica
+
+**Escala definida:**
+- H1 (Page Title): `text-2xl font-bold`
+- H2 (Section Title): `text-lg font-semibold`
+- H3 (Card Title): `text-base font-medium`
+- Body: `text-sm`
+- Caption: `text-xs text-muted-foreground`
+
+---
+
+## ARQUIVOS A MODIFICAR (Ordem de execucao)
+
+### Prioridade CRITICA (Performance)
+
+| # | Arquivo | Tipo de Mudanca |
+|---|---------|-----------------|
+| 1 | `supabase/functions/master-data/index.ts` | Adicionar endpoint `master-user-full` |
+| 2 | `src/hooks/usePermissions.ts` | Consolidar queries + staleTime |
+| 3 | `src/pages/Tenants.tsx` | Adicionar staleTime |
+| 4 | `src/pages/TenantDetail.tsx` | staleTime + lazy loading |
+| 5 | `src/pages/Settings.tsx` | staleTime |
+| 6 | `src/pages/Index.tsx` | staleTime no useMasterDashboard |
+
+### Prioridade ALTA (Responsividade)
+
+| # | Arquivo | Tipo de Mudanca |
+|---|---------|-----------------|
+| 7 | `src/components/layout/AppSidebar.tsx` | Breakpoints + animacao mobile |
+| 8 | `src/components/ui/scrollable-tabs.tsx` | NOVO componente reutilizavel |
+| 9 | `src/pages/TenantDetail.tsx` | Usar ScrollableTabs |
+| 10 | `src/pages/Settings.tsx` | Usar ScrollableTabs |
+| 11 | `src/pages/TemplateEditor.tsx` | Usar ScrollableTabs |
+| 12 | `src/pages/Tenants.tsx` | Tabela responsiva (cards mobile) |
+
+### Prioridade MEDIA (UI/UX)
+
+| # | Arquivo | Tipo de Mudanca |
+|---|---------|-----------------|
+| 13 | `src/components/dashboard/Header.tsx` | Dados dinamicos |
+| 14 | `src/components/ui/breadcrumbs.tsx` | NOVO componente |
+| 15 | `src/components/ui/empty-state.tsx` | NOVO componente |
+| 16 | `src/pages/TenantDetail.tsx` | Adicionar breadcrumbs |
+| 17 | `src/pages/TemplateEditor.tsx` | Adicionar breadcrumbs |
+| 18 | `src/pages/Tenants.tsx` | Empty state melhorado |
+
+### Prioridade BAIXA (Limpeza)
+
+| # | Arquivo | Tipo de Mudanca |
+|---|---------|-----------------|
+| 19 | `src/App.css` | REMOVER |
+| 20 | `src/components/ui/use-toast.ts` | Atualizar para re-export simples |
+| 21 | `src/hooks/useTenantByDomain.ts` | REMOVER se nao usado |
+
+---
+
+## METRICAS DE SUCESSO
+
+| Metrica | Atual (Estimado) | Meta ELITE | Como Medir |
+|---------|------------------|------------|------------|
+| Time to Interactive | ~3.5s | <1.5s | Lighthouse |
+| Queries por navegacao | 3-7 | 1-2 | Network tab |
+| Mobile Usability | ~70 | >95 | Lighthouse |
+| staleTime medio | 0ms | 30-60s | Codigo |
+| Componentes lazy | 0 | 15+ | Codigo |
+
+---
+
+## CHECKLIST DE VALIDACAO (pos-implementacao)
+
+- [ ] Login continua funcionando?
+- [ ] Dashboard carrega dados reais?
+- [ ] Criar/editar tenant funciona?
+- [ ] Publicar template funciona?
+- [ ] Salvar configuracoes de IA propaga para CRM?
+- [ ] Menu mobile abre/fecha corretamente?
+- [ ] Todas as tabs funcionam em todas as paginas?
+- [ ] Nenhum erro no console?
+- [ ] Responsivo em 320px, 768px, 1024px, 1440px?
