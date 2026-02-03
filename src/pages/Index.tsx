@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useMasterDashboard } from '@/hooks/useMasterDashboard';
-import { useGlobalCredits, GlobalCreditsSummary } from '@/hooks/useGlobalCredits';
+import { useGlobalCredits } from '@/hooks/useGlobalCredits';
+import { PeriodFilter, getDefaultPeriod, PeriodFilterValue } from '@/components/ui/period-filter';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -149,8 +150,12 @@ function CustomTooltip({ active, payload, label, valuePrefix = '', valueSuffix =
 
 export default function Index() {
   const [chartView, setChartView] = useState<'mrr' | 'growth' | 'activity'>('mrr');
+  const [creditsPeriod, setCreditsPeriod] = useState<PeriodFilterValue>(getDefaultPeriod());
   const { overview, revenue, timeSeries, isLoading, error, refetch } = useMasterDashboard();
-  const { data: globalCredits, isLoading: creditsLoading, error: creditsError } = useGlobalCredits();
+  const { data: globalCredits, isLoading: creditsLoading, error: creditsError } = useGlobalCredits({
+    periodStart: creditsPeriod.periodStart,
+    periodEnd: creditsPeriod.periodEnd,
+  });
   
   // Helper to get credits value with error handling
   const getCreditsValue = (): string | number => {
@@ -377,6 +382,16 @@ export default function Index() {
         </Card>
 
         {/* Secondary Stats */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
+          <h3 className="text-lg font-semibold">Métricas Operacionais</h3>
+          <div className="sm:ml-auto">
+            <PeriodFilter
+              value={creditsPeriod}
+              onChange={setCreditsPeriod}
+              showCustomOption={false}
+            />
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <StatCard
             title="Créditos Consumidos"
