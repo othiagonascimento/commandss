@@ -37,7 +37,7 @@ export function CreditZonesWidget() {
       // Get all tenant usage for current period using flexible date range
       const today = new Date().toISOString().split('T')[0];
       
-      // Query tenant_usage with tenant info and features (credits_per_user)
+      // 1. Query tenant_usage with tenant info ONLY (no FK to tenant_features)
       const { data: tenantUsages, error: usageError } = await supabase
         .from('tenant_usage')
         .select(`
@@ -46,9 +46,6 @@ export function CreditZonesWidget() {
           tenants:tenant_id (
             id,
             name
-          ),
-          tenant_features:tenant_id (
-            credits_per_user
           )
         `)
         .lte('period_start', today)
@@ -56,26 +53,41 @@ export function CreditZonesWidget() {
 
       if (usageError) throw usageError;
 
-      // Get unique tenant IDs to fetch user counts
+      // Get unique tenant IDs
       const tenantIds = (tenantUsages || [])
         .map((u) => u.tenant_id)
         .filter((id): id is string => !!id);
 
-      // Fetch user counts per tenant from profiles
-      let usersPerTenant: Record<string, number> = {};
-      if (tenantIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('tenant_id')
-          .in('tenant_id', tenantIds);
-
-        usersPerTenant = (profiles || []).reduce((acc, p) => {
-          if (p.tenant_id) {
-            acc[p.tenant_id] = (acc[p.tenant_id] || 0) + 1;
-          }
-          return acc;
-        }, {} as Record<string, number>);
+      if (tenantIds.length === 0) {
+        return { green: 0, yellow: 0, red: 0, degradedTenants: [] };
       }
+
+      // 2. Fetch tenant_features SEPARATELY (no join)
+      const { data: features } = await supabase
+        .from('tenant_features')
+        .select('tenant_id, credits_per_user')
+        .in('tenant_id', tenantIds);
+
+      // Create a map for quick lookup
+      const featuresMap = (features || []).reduce((acc, f) => {
+        if (f.tenant_id) {
+          acc[f.tenant_id] = f;
+        }
+        return acc;
+      }, {} as Record<string, { tenant_id: string; credits_per_user: number | null }>);
+
+      // 3. Fetch user counts per tenant from profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .in('tenant_id', tenantIds);
+
+      const usersPerTenant = (profiles || []).reduce((acc, p) => {
+        if (p.tenant_id) {
+          acc[p.tenant_id] = (acc[p.tenant_id] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
 
       // Calculate zones
       let green = 0;
@@ -86,12 +98,14 @@ export function CreditZonesWidget() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (tenantUsages || []).forEach((usage: any) => {
         const tenant = usage.tenants;
-        const features = usage.tenant_features;
         if (!tenant) return;
+
+        // Get features from the separate map (not from join)
+        const tenantFeatures = featuresMap[usage.tenant_id];
 
         const creditsUsed = usage.ai_credits_used || 0;
         // Limite = credits_per_user × número de usuários (mínimo 1)
-        const creditsPerUser = features?.credits_per_user || 500;
+        const creditsPerUser = tenantFeatures?.credits_per_user || 500;
         const usersCount = usersPerTenant[usage.tenant_id] || 1;
         const creditsLimit = creditsPerUser * Math.max(usersCount, 1);
         const usagePercent = creditsLimit > 0 ? (creditsUsed / creditsLimit) * 100 : 0;
