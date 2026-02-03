@@ -7,6 +7,8 @@ import { tenantsApi, Tenant } from '@/services/masterApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   Table,
   TableBody,
@@ -42,10 +44,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  ExternalLink,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const planColors: Record<string, string> = {
   basic: 'bg-muted text-muted-foreground',
@@ -74,6 +78,8 @@ export default function Tenants() {
       });
       return result.data;
     },
+    staleTime: 30000, // 30 seconds cache
+    gcTime: 60000, // 1 minute garbage collection
   });
 
   const toggleStatusMutation = useMutation({
@@ -189,23 +195,101 @@ export default function Tenants() {
         </Select>
       </div>
 
-        {/* Table */}
+        {/* Content */}
         <div className="dashboard-card overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : error ? (
-            <div className="text-center py-12 text-destructive">
-              Erro ao carregar tenants. Tente novamente.
-            </div>
+            <EmptyState
+              icon={Building2}
+              title="Erro ao carregar tenants"
+              description="Ocorreu um erro ao buscar os dados. Tente novamente."
+              action={{
+                label: "Tentar novamente",
+                onClick: () => window.location.reload(),
+                variant: "outline"
+              }}
+              size="md"
+            />
           ) : tenants.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Nenhum tenant encontrado.
-            </div>
+            <EmptyState
+              icon={Building2}
+              title={search || planFilter !== 'all' ? "Nenhum resultado encontrado" : "Nenhum tenant cadastrado"}
+              description={
+                search || planFilter !== 'all' 
+                  ? "Tente ajustar os filtros de busca"
+                  : "Crie o primeiro tenant para começar a gerenciar empresas"
+              }
+              action={!search && planFilter === 'all' ? {
+                label: "Criar Tenant",
+                onClick: () => navigate('/tenants/new'),
+              } : undefined}
+              size="md"
+            />
           ) : (
             <>
-              <Table>
+              {/* Mobile: Card Layout */}
+              <div className="md:hidden divide-y divide-border">
+                {tenants.map((tenant: Tenant) => (
+                  <div 
+                    key={tenant.id} 
+                    className="p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/tenants/${tenant.id}`)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium truncate">{tenant.name}</span>
+                          <Badge variant={tenant.is_active ? 'default' : 'secondary'} className="shrink-0 text-xs">
+                            {tenant.is_active ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground truncate">{tenant.slug}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge className={cn("text-xs", planColors[tenant.plan_type] || '')}>
+                            {tenant.plan_type}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(tenant.created_at), 'dd/MM/yy', { locale: ptBR })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTenantToToggle(tenant);
+                          }}
+                        >
+                          <Power className={cn(
+                            "w-4 h-4",
+                            tenant.is_active ? "text-warning" : "text-success"
+                          )} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTenantToDelete(tenant);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: Table Layout */}
+              <Table className="hidden md:table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
@@ -235,6 +319,9 @@ export default function Tenants() {
                         <Badge variant={tenant.is_active ? 'default' : 'secondary'}>
                           {tenant.is_active ? 'Ativo' : 'Inativo'}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground hidden lg:table-cell">
+                        {format(new Date(tenant.created_at), 'dd MMM yyyy', { locale: ptBR })}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {format(new Date(tenant.created_at), 'dd MMM yyyy', { locale: ptBR })}

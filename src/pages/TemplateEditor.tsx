@@ -4,11 +4,13 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollableTabsList, MobileTabSelector, TabItem } from '@/components/ui/scrollable-tabs';
 import { 
   Save, 
   Upload, 
@@ -17,6 +19,17 @@ import {
   Loader2,
   Menu,
   ChevronDown,
+  FileText,
+  GitBranch,
+  Bot,
+  MessageSquare,
+  LineChart,
+  Users,
+  BookOpen,
+  Workflow,
+  Settings,
+  Package,
+  UserCheck,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -46,18 +59,18 @@ import { TemplateSubscribersTab } from '@/components/templates/TemplateSubscribe
 import type { TemplateFormData, SyncResponse, SLAConfig, OperatingHours } from '@/types/templates';
 import { defaultTemplateFormData } from '@/types/templates';
 
-const TABS = [
-  { value: 'identity', label: 'Identidade', shortLabel: 'ID' },
-  { value: 'funnel', label: 'Funil', shortLabel: 'Funil' },
-  { value: 'uopa-core', label: 'Uôpa AI Core', shortLabel: 'Core' },
-  { value: 'copilot', label: 'Copiloto', shortLabel: 'Copilot' },
-  { value: 'insights', label: 'Insights', shortLabel: 'Insights' },
-  { value: 'agents', label: 'Agentes', shortLabel: 'Agentes' },
-  { value: 'playbook', label: 'Playbook', shortLabel: 'Play' },
-  { value: 'automations', label: 'Automações', shortLabel: 'Auto' },
-  { value: 'operations', label: 'Operações', shortLabel: 'Ops' },
-  { value: 'catalog', label: 'Catálogo', shortLabel: 'Cat' },
-  { value: 'subscribers', label: 'Assinantes', shortLabel: 'Subs' },
+const TEMPLATE_TABS: TabItem[] = [
+  { value: 'identity', label: 'Identidade', shortLabel: 'ID', icon: FileText },
+  { value: 'funnel', label: 'Funil', shortLabel: 'Funil', icon: GitBranch },
+  { value: 'uopa-core', label: 'Uôpa AI Core', shortLabel: 'Core', icon: Bot },
+  { value: 'copilot', label: 'Copiloto', shortLabel: 'Copilot', icon: MessageSquare },
+  { value: 'insights', label: 'Insights', shortLabel: 'Insights', icon: LineChart },
+  { value: 'agents', label: 'Agentes', shortLabel: 'Agentes', icon: Users },
+  { value: 'playbook', label: 'Playbook', shortLabel: 'Play', icon: BookOpen },
+  { value: 'automations', label: 'Automações', shortLabel: 'Auto', icon: Workflow },
+  { value: 'operations', label: 'Operações', shortLabel: 'Ops', icon: Settings },
+  { value: 'catalog', label: 'Catálogo', shortLabel: 'Cat', icon: Package },
+  { value: 'subscribers', label: 'Assinantes', shortLabel: 'Subs', icon: UserCheck },
 ];
 
 export default function TemplateEditor() {
@@ -85,6 +98,8 @@ export default function TemplateEditor() {
       return response.data;
     },
     enabled: !isNew,
+    staleTime: 30000,
+    gcTime: 60000,
   });
 
   // Populate form when template loads
@@ -197,7 +212,7 @@ export default function TemplateEditor() {
     setShowPublishModal(true);
   };
 
-  const currentTabLabel = TABS.find(t => t.value === activeTab)?.label || 'Identidade';
+  const currentTabLabel = TEMPLATE_TABS.find(t => t.value === activeTab)?.label || 'Identidade';
 
   // Helper to get default operating hours
   const getOperatingHours = (): OperatingHours => ({
@@ -239,21 +254,29 @@ export default function TemplateEditor() {
   return (
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
-            {/* Header */}
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 sm:gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate('/admin/templates')} className="shrink-0">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate">
-                    {isNew ? 'Novo Template' : `${template?.name || 'Editar Template'}`}
-                  </h1>
-                  {!isNew && template?.version && (
-                    <p className="text-xs sm:text-sm text-muted-foreground">Versão {template.version}</p>
-                  )}
-                </div>
-              </div>
+        {/* Breadcrumbs */}
+        <Breadcrumbs
+          items={[
+            { label: 'Templates', href: '/admin/templates' },
+            { label: isNew ? 'Novo Template' : (template?.name || 'Editar'), current: true },
+          ]}
+        />
+
+        {/* Header */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate('/admin/templates')} className="shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate">
+                {isNew ? 'Novo Template' : `${template?.name || 'Editar Template'}`}
+              </h1>
+              {!isNew && template?.version && (
+                <p className="text-xs sm:text-sm text-muted-foreground">Versão {template.version}</p>
+              )}
+            </div>
+          </div>
               
               {/* Action Buttons - Mobile */}
               <div className="flex gap-2 sm:hidden">
@@ -325,41 +348,18 @@ export default function TemplateEditor() {
               <Card>
                 <CardContent className="p-4 sm:p-6">
                   <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    {/* Mobile Tab Selector */}
-                    <div className="sm:hidden mb-4">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" className="w-full justify-between">
-                            {currentTabLabel}
-                            <ChevronDown className="h-4 w-4 ml-2" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[200px]">
-                          {TABS.map((tab) => (
-                            <DropdownMenuItem
-                              key={tab.value}
-                              onClick={() => setActiveTab(tab.value)}
-                              className={activeTab === tab.value ? 'bg-muted' : ''}
-                            >
-                              {tab.label}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                {/* Mobile Tab Selector */}
+                <MobileTabSelector
+                  tabs={TEMPLATE_TABS}
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  className="mb-4"
+                />
 
-                    {/* Desktop Tabs */}
-                    <ScrollArea className="hidden sm:block w-full">
-                      <TabsList className="inline-flex w-full sm:w-auto mb-6">
-                        {TABS.map((tab) => (
-                          <TabsTrigger key={tab.value} value={tab.value} className="text-xs sm:text-sm">
-                            <span className="hidden md:inline">{tab.label}</span>
-                            <span className="md:hidden">{tab.shortLabel}</span>
-                          </TabsTrigger>
-                        ))}
-                      </TabsList>
-                      <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
+                {/* Desktop Scrollable Tabs */}
+                <div className="hidden sm:block mb-6">
+                  <ScrollableTabsList tabs={TEMPLATE_TABS} />
+                </div>
 
                     <TabsContent value="identity">
                       <TemplateIdentityEditor />

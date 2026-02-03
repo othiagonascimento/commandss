@@ -379,8 +379,16 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
 
       {/* Close Button - Mobile */}
       <div className="flex lg:hidden justify-between items-center p-4 border-b border-border">
-        <span className="font-semibold">Menu</span>
-        <Button variant="ghost" size="icon" onClick={onMobileClose}>
+        <div className="flex items-center gap-2">
+          <img 
+            src="/placeholder.svg" 
+            alt="UÔPA" 
+            className="h-6 w-auto"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+          <span className="font-semibold text-foreground">Menu</span>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onMobileClose} className="h-10 w-10">
           <X className="h-5 w-5" />
         </Button>
       </div>
@@ -508,9 +516,10 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           <div
             onClick={onMobileClose}
             className="lg:hidden fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 animate-in fade-in duration-200"
+            aria-label="Fechar menu"
           />
           <aside
-            className="lg:hidden fixed left-0 top-0 bottom-0 w-[300px] bg-card border-r border-border z-50 flex flex-col animate-in slide-in-from-left duration-300"
+            className="lg:hidden fixed left-0 top-0 bottom-0 w-[300px] max-w-[85vw] bg-card border-r border-border z-50 flex flex-col animate-in slide-in-from-left duration-300 shadow-xl"
           >
             {sidebarContent}
           </aside>

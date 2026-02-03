@@ -79,6 +79,83 @@ serve(async (req) => {
         result = { data: masterUser, isMasterUser: !!masterUser };
         break;
 
+      // NEW: Consolidated endpoint - returns user + roles + permissions in ONE call
+      case 'master-user-full':
+        logStep('Fetching consolidated user data');
+        
+        // Step 1: Get master user
+        const { data: fullUser, error: fullUserError } = await supabaseAdmin
+          .from('master_users')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (fullUserError) throw fullUserError;
+        
+        if (!fullUser) {
+          result = { data: null, roles: [], permissions: [], isMasterUser: false };
+          break;
+        }
+
+        // Step 2: Get user's roles
+        const { data: fullUserRoles, error: fullUserRolesError } = await supabaseAdmin
+          .from('master_user_roles')
+          .select('role_id')
+          .eq('master_user_id', fullUser.id);
+
+        if (fullUserRolesError) throw fullUserRolesError;
+
+        const fullRoleIds = fullUserRoles?.map(ur => ur.role_id) || [];
+        let fullRoles: unknown[] = [];
+        let fullPermissions: unknown[] = [];
+
+        if (fullRoleIds.length > 0) {
+          // Step 3: Get role details
+          const { data: rolesData, error: rolesDataError } = await supabaseAdmin
+            .from('master_roles')
+            .select('*')
+            .in('id', fullRoleIds)
+            .eq('is_active', true);
+
+          if (rolesDataError) throw rolesDataError;
+          fullRoles = rolesData || [];
+
+          // Step 4: Get permissions for all roles
+          const { data: rolePermsData, error: rolePermsDataError } = await supabaseAdmin
+            .from('master_role_permissions')
+            .select('permission_id')
+            .in('role_id', fullRoleIds);
+
+          if (rolePermsDataError) throw rolePermsDataError;
+
+          const fullPermissionIds = [...new Set((rolePermsData || []).map(rp => rp.permission_id))];
+          
+          if (fullPermissionIds.length > 0) {
+            const { data: permsData, error: permsDataError } = await supabaseAdmin
+              .from('master_permissions')
+              .select('*')
+              .in('id', fullPermissionIds);
+
+            if (permsDataError) throw permsDataError;
+            fullPermissions = permsData || [];
+          }
+        }
+
+        logStep('Consolidated data fetched', { 
+          userId: fullUser.id, 
+          rolesCount: fullRoles.length, 
+          permissionsCount: fullPermissions.length 
+        });
+
+        result = { 
+          data: fullUser, 
+          roles: fullRoles, 
+          permissions: fullPermissions, 
+          isMasterUser: true 
+        };
+        break;
+
       case 'master-roles':
         // Get user's master roles
         const masterUserId = pathSuffix.split('/')[1];

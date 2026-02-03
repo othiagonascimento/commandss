@@ -27,86 +27,54 @@ interface MasterUser {
   is_active: boolean;
 }
 
+interface ConsolidatedUserData {
+  data: MasterUser | null;
+  roles: MasterRole[];
+  permissions: MasterPermission[];
+  isMasterUser: boolean;
+}
+
 export function usePermissions() {
   const { user } = useAuth();
 
-  // Fetch current user's master user record via edge function to bypass RLS issues
-  const { data: masterUser, isLoading: masterUserLoading } = useQuery({
-    queryKey: ['master-user-current', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
+  // SINGLE consolidated query - eliminates waterfall of 3 sequential queries
+  const { data: consolidatedData, isLoading } = useQuery({
+    queryKey: ['master-user-full', user?.id],
+    queryFn: async (): Promise<ConsolidatedUserData> => {
+      if (!user?.id) {
+        return { data: null, roles: [], permissions: [], isMasterUser: false };
+      }
       
       try {
         const { data, error } = await supabase.functions.invoke('master-data', {
-          headers: { 'x-path-suffix': 'master-user' }
+          headers: { 'x-path-suffix': 'master-user-full' }
         });
         
         if (error) {
-          console.warn('[usePermissions] Error fetching master user:', error);
-          return null;
+          console.warn('[usePermissions] Error fetching consolidated user data:', error);
+          return { data: null, roles: [], permissions: [], isMasterUser: false };
         }
         
-        return data?.data as MasterUser | null;
+        return {
+          data: data?.data as MasterUser | null,
+          roles: (data?.roles || []) as MasterRole[],
+          permissions: (data?.permissions || []) as MasterPermission[],
+          isMasterUser: data?.isMasterUser || false,
+        };
       } catch (err) {
-        console.warn('[usePermissions] Error fetching master user:', err);
-        return null;
+        console.warn('[usePermissions] Error fetching consolidated user data:', err);
+        return { data: null, roles: [], permissions: [], isMasterUser: false };
       }
     },
     enabled: !!user?.id,
+    staleTime: 60000, // Cache for 1 minute - prevents refetch on every navigation
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     retry: false,
   });
 
-  // Fetch user's roles via edge function
-  const { data: userRoles = [], isLoading: rolesLoading } = useQuery({
-    queryKey: ['master-user-roles', masterUser?.id],
-    queryFn: async () => {
-      if (!masterUser?.id) return [];
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('master-data', {
-          headers: { 'x-path-suffix': `master-roles/${masterUser.id}` }
-        });
-        
-        if (error) {
-          console.error('[usePermissions] Error fetching user roles:', error);
-          return [];
-        }
-
-        return (data?.data || []) as MasterRole[];
-      } catch (err) {
-        console.error('[usePermissions] Error fetching user roles:', err);
-        return [];
-      }
-    },
-    enabled: !!masterUser?.id,
-  });
-
-  // Fetch permissions for user's roles via edge function
-  const { data: userPermissions = [], isLoading: permissionsLoading } = useQuery({
-    queryKey: ['master-user-permissions', userRoles.map(r => r.id).join(',')],
-    queryFn: async () => {
-      if (userRoles.length === 0) return [];
-
-      const roleIds = userRoles.map(r => r.id).join(',');
-
-      try {
-        const { data, error } = await supabase.functions.invoke('master-data', {
-          headers: { 'x-path-suffix': `master-permissions/${roleIds}` }
-        });
-
-        if (error) {
-          console.error('[usePermissions] Error fetching permissions:', error);
-          return [];
-        }
-
-        return (data?.data || []) as MasterPermission[];
-      } catch (err) {
-        console.error('[usePermissions] Error fetching permissions:', err);
-        return [];
-      }
-    },
-    enabled: userRoles.length > 0,
-  });
+  const masterUser = consolidatedData?.data || null;
+  const userRoles = consolidatedData?.roles || [];
+  const userPermissions = consolidatedData?.permissions || [];
 
   // Check if user has a specific permission by code
   const hasPermission = (permissionCode: string): boolean => {
@@ -155,7 +123,7 @@ export function usePermissions() {
     masterUser,
     userRoles,
     userPermissions,
-    isLoading: masterUserLoading || rolesLoading || permissionsLoading,
+    isLoading,
     hasPermission,
     hasRole,
     isSuperAdmin,
