@@ -1,123 +1,93 @@
 
-# Plano: Corrigir CreditZonesWidget para usar estrutura correta de limites
+# Plano: Correção dos Erros do Dashboard Master
 
-## Problema Identificado
+## Diagnóstico
 
-O erro `column tenants_1.limit_ai_credits_monthly does not exist` ocorre porque o `CreditZonesWidget` está tentando buscar uma coluna inexistente diretamente da tabela `tenants`.
+### Erro 1: "Erro ao carregar zonas de crédito"
+**Causa**: O PostgREST não consegue fazer join de `tenant_usage` → `tenant_features` porque não existe uma Foreign Key entre essas tabelas. O código atual usa a sintaxe:
 
-### Query Atual (Incorreta)
 ```typescript
 .select(`
   tenant_id,
   ai_credits_used,
-  tenants:tenant_id (
-    id,
-    name,
-    limit_ai_credits_monthly  // ❌ NÃO EXISTE!
-  )
+  tenants:tenant_id (id, name),
+  tenant_features:tenant_id (credits_per_user)  // ❌ Join inválido!
 `)
 ```
 
-### Estrutura Correta do Sistema
-- **Limites de créditos** estão na tabela `tenant_features` (campo `credits_per_user`)
-- O limite total é **calculado**: `credits_per_user × número de usuários ativos`
-- Esta é a mesma lógica usada pela Edge Function `master-usage`
+**Solução**: Separar as queries - buscar `tenant_usage` + `tenants`, depois buscar `tenant_features` separadamente e combinar no JavaScript.
+
+### Erro 2: "Erro ao carregar dados" 
+**Causa**: Também relacionado à Edge Function `master-analytics` ou chamadas internas que podem ter problemas similares.
+
+### Por que só 3 tenants no SQL?
+O SQL que você executou (`ai_agent_config`) mostra apenas os tenants que têm configuração de IA habilitada - os outros 4 tenants existem mas não têm registro em `ai_agent_config`. O dashboard mostra todos os tenants corretamente.
 
 ---
 
-## Solução
+## Implementação
 
 ### Arquivo: `src/components/dashboard/CreditZonesWidget.tsx`
 
-1. **Corrigir a query** para buscar dados de `tenant_features` junto com `tenants`
-2. **Buscar contagem de usuários** por tenant para calcular limite total
-3. **Aplicar a fórmula correta**: `limite = credits_per_user × users_count`
-
-### Nova Query
+Refatorar para fazer queries separadas:
 
 ```text
-SELECT tenant_usage:
-  - tenant_id
-  - ai_credits_used
+ANTES (incorreto):
+tenant_usage → tenants + tenant_features (join direto)
 
-JOIN tenants:
-  - id
-  - name
-
-JOIN tenant_features:
-  - credits_per_user
+DEPOIS (correto):
+1. Query tenant_usage com join apenas para tenants
+2. Query separada de tenant_features para os tenant_ids
+3. Query separada de profiles para contagem de usuários
+4. Combinar os dados no JavaScript
 ```
 
-### Lógica de Cálculo
-
-```text
-Para cada tenant:
-  creditsUsed = tenant_usage.ai_credits_used
-  creditsPerUser = tenant_features.credits_per_user || 500 (default)
-  usersCount = (buscar contagem de profiles do tenant)
-  creditsLimit = creditsPerUser × max(usersCount, 1)
-  usagePercent = (creditsUsed / creditsLimit) × 100
-```
-
----
-
-## Implementação Detalhada
-
-### Passo 1: Corrigir a query do widget
-
-A query precisa fazer join com `tenant_features` em vez de buscar campo inexistente de `tenants`:
+### Lógica Corrigida
 
 ```typescript
+// 1. Buscar tenant_usage com join apenas para tenants
 const { data: tenantUsages } = await supabase
   .from('tenant_usage')
   .select(`
     tenant_id,
     ai_credits_used,
-    tenants:tenant_id (
-      id,
-      name
-    ),
-    tenant_features:tenant_id (
-      credits_per_user
-    )
+    tenants:tenant_id (id, name)
   `)
   .lte('period_start', today)
   .gte('period_end', today);
-```
 
-### Passo 2: Buscar contagem de usuários
-
-Como o limite depende de usuários ativos, precisamos buscar a contagem:
-
-```typescript
-// Buscar contagem de usuários por tenant
+// 2. Buscar tenant_features separadamente
 const tenantIds = tenantUsages.map(u => u.tenant_id);
-const { data: userCounts } = await supabase
+const { data: features } = await supabase
+  .from('tenant_features')
+  .select('tenant_id, credits_per_user')
+  .in('tenant_id', tenantIds);
+
+// 3. Criar mapa de features por tenant
+const featuresMap = features.reduce((acc, f) => {
+  acc[f.tenant_id] = f;
+  return acc;
+}, {});
+
+// 4. Buscar contagem de usuários
+const { data: profiles } = await supabase
   .from('profiles')
   .select('tenant_id')
   .in('tenant_id', tenantIds);
 
-// Agregar por tenant
-const usersPerTenant = userCounts.reduce((acc, p) => {
+// 5. Agregar usuários
+const usersPerTenant = profiles.reduce((acc, p) => {
   acc[p.tenant_id] = (acc[p.tenant_id] || 0) + 1;
   return acc;
 }, {});
-```
 
-### Passo 3: Calcular limite corretamente
-
-```typescript
+// 6. Calcular zonas usando o mapa de features
 tenantUsages.forEach((usage) => {
-  const tenant = usage.tenants;
-  const features = usage.tenant_features;
-  
-  const creditsUsed = usage.ai_credits_used || 0;
+  const features = featuresMap[usage.tenant_id];
   const creditsPerUser = features?.credits_per_user || 500;
   const usersCount = usersPerTenant[usage.tenant_id] || 1;
-  const creditsLimit = creditsPerUser * usersCount;
-  const usagePercent = creditsLimit > 0 ? (creditsUsed / creditsLimit) * 100 : 0;
-  
-  // ... resto da lógica de zones
+  const creditsLimit = creditsPerUser * Math.max(usersCount, 1);
+  // ...
 });
 ```
 
@@ -127,13 +97,11 @@ tenantUsages.forEach((usage) => {
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/dashboard/CreditZonesWidget.tsx` | Corrigir query para usar `tenant_features.credits_per_user` + contagem de usuários |
-
----
+| `src/components/dashboard/CreditZonesWidget.tsx` | Separar query de tenant_features para evitar erro de join |
 
 ## Resultado Esperado
 
 - Widget "Saúde dos Créditos" carrega sem erros
-- Zonas (Verde/Amarelo/Vermelho) calculadas corretamente baseadas em `credits_per_user × users`
-- Tenants em modo degradado (>115%) mostrados corretamente
-- Consistência com a lógica da Edge Function `master-usage`
+- Todas as zonas (Verde/Amarelo/Vermelho) calculadas corretamente
+- Tenants sem registro em tenant_features usam valor padrão (500 créditos/usuário)
+- O erro "column tenants_1.credits_per_user does not exist" é eliminado
