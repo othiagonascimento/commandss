@@ -37,6 +37,56 @@ interface ConsolidatedUserData {
 export function usePermissions() {
   const { user } = useAuth();
 
+  const fetchConsolidatedUserDataFallback = async (): Promise<ConsolidatedUserData> => {
+    // 1) master-user
+    const { data: masterUserResp, error: masterUserErr } = await supabase.functions.invoke('master-data', {
+      headers: { 'x-path-suffix': 'master-user' },
+    });
+
+    if (masterUserErr) {
+      console.warn('[usePermissions] Error fetching master-user:', masterUserErr);
+      return { data: null, roles: [], permissions: [], isMasterUser: false };
+    }
+
+    const masterUser = (masterUserResp?.data as MasterUser | null) ?? null;
+    const isMasterUser = !!masterUserResp?.isMasterUser && !!masterUser;
+
+    if (!masterUser) {
+      return { data: null, roles: [], permissions: [], isMasterUser: false };
+    }
+
+    // 2) master-roles/<masterUserId>
+    const { data: rolesResp, error: rolesErr } = await supabase.functions.invoke('master-data', {
+      headers: { 'x-path-suffix': `master-roles/${masterUser.id}` },
+    });
+
+    if (rolesErr) {
+      console.warn('[usePermissions] Error fetching master-roles:', rolesErr);
+      return { data: masterUser, roles: [], permissions: [], isMasterUser };
+    }
+
+    const roles = ((rolesResp?.data as MasterRole[]) ?? []).filter(Boolean);
+
+    // 3) master-permissions/<roleIds>
+    const roleIds = roles.map((r) => r.id).filter(Boolean);
+    if (roleIds.length === 0) {
+      return { data: masterUser, roles, permissions: [], isMasterUser };
+    }
+
+    const { data: permsResp, error: permsErr } = await supabase.functions.invoke('master-data', {
+      headers: { 'x-path-suffix': `master-permissions/${roleIds.join(',')}` },
+    });
+
+    if (permsErr) {
+      console.warn('[usePermissions] Error fetching master-permissions:', permsErr);
+      return { data: masterUser, roles, permissions: [], isMasterUser };
+    }
+
+    const permissions = ((permsResp?.data as MasterPermission[]) ?? []).filter(Boolean);
+
+    return { data: masterUser, roles, permissions, isMasterUser };
+  };
+
   // SINGLE consolidated query - eliminates waterfall of 3 sequential queries
   const { data: consolidatedData, isLoading } = useQuery({
     queryKey: ['master-user-full', user?.id],
@@ -47,21 +97,32 @@ export function usePermissions() {
       
       try {
         const { data, error } = await supabase.functions.invoke('master-data', {
-          headers: { 'x-path-suffix': 'master-user-full' }
+          headers: { 'x-path-suffix': 'master-user-full' },
         });
-        
+
         if (error) {
+          const msg = (error as { message?: string })?.message || '';
+          // Backward compatible fallback for older deployed master-data versions
+          if (msg.includes('Unknown resource: master-user-full')) {
+            return await fetchConsolidatedUserDataFallback();
+          }
+
           console.warn('[usePermissions] Error fetching consolidated user data:', error);
           return { data: null, roles: [], permissions: [], isMasterUser: false };
         }
-        
+
         return {
-          data: data?.data as MasterUser | null,
-          roles: (data?.roles || []) as MasterRole[],
-          permissions: (data?.permissions || []) as MasterPermission[],
-          isMasterUser: data?.isMasterUser || false,
+          data: (data?.data as MasterUser | null) ?? null,
+          roles: ((data?.roles || []) as MasterRole[]) ?? [],
+          permissions: ((data?.permissions || []) as MasterPermission[]) ?? [],
+          isMasterUser: !!data?.isMasterUser,
         };
       } catch (err) {
+        const msg = (err as { message?: string })?.message || '';
+        if (msg.includes('Unknown resource: master-user-full')) {
+          return await fetchConsolidatedUserDataFallback();
+        }
+
         console.warn('[usePermissions] Error fetching consolidated user data:', err);
         return { data: null, roles: [], permissions: [], isMasterUser: false };
       }
