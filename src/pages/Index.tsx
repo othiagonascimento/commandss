@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useMasterDashboard } from '@/hooks/useMasterDashboard';
-import { useGlobalCredits } from '@/hooks/useGlobalCredits';
+import { useGlobalCredits, GlobalCreditsSummary } from '@/hooks/useGlobalCredits';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +35,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -148,7 +149,18 @@ function CustomTooltip({ active, payload, label, valuePrefix = '', valueSuffix =
 export default function Index() {
   const [chartView, setChartView] = useState<'mrr' | 'growth' | 'activity'>('mrr');
   const { overview, revenue, timeSeries, isLoading, error, refetch } = useMasterDashboard();
-  const { data: globalCredits, isLoading: creditsLoading } = useGlobalCredits();
+  const { data: globalCredits, isLoading: creditsLoading, error: creditsError } = useGlobalCredits();
+  
+  // Helper to get credits value with error handling
+  const getCreditsValue = (): string | number => {
+    if (creditsError) return 'Erro';
+    return globalCredits ? formatNumber(globalCredits.total_credits_consumed) : '-';
+  };
+  
+  const getCreditsDescription = (): string | undefined => {
+    if (creditsError) return (creditsError as Error)?.message?.slice(0, 50) || 'RPC falhou';
+    return globalCredits ? `R$ ${globalCredits.total_cost_brl.toFixed(2)}` : undefined;
+  };
 
   const chartData = timeSeries?.data || [];
 
@@ -267,7 +279,7 @@ export default function Index() {
                         axisLine={false}
                         tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`}
                       />
-                      <Tooltip content={<CustomTooltip valuePrefix="R$ " />} />
+                      <RechartsTooltip content={<CustomTooltip valuePrefix="R$ " />} />
                       <Area
                         type="monotone"
                         dataKey="mrr"
@@ -296,7 +308,7 @@ export default function Index() {
                         tickLine={false}
                         axisLine={false}
                       />
-                      <Tooltip content={<CustomTooltip />} />
+                      <RechartsTooltip content={<CustomTooltip />} />
                       <Legend 
                         wrapperStyle={{ paddingTop: '20px' }}
                         formatter={(value) => <span className="text-sm text-foreground">{value}</span>}
@@ -332,7 +344,7 @@ export default function Index() {
                         tickLine={false}
                         axisLine={false}
                       />
-                      <Tooltip content={<CustomTooltip />} />
+                      <RechartsTooltip content={<CustomTooltip />} />
                       <Legend 
                         wrapperStyle={{ paddingTop: '20px' }}
                         formatter={(value) => <span className="text-sm text-foreground">{value}</span>}
@@ -367,8 +379,8 @@ export default function Index() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <StatCard
             title="Créditos Consumidos"
-            value={globalCredits ? formatNumber(globalCredits.total_credits_consumed) : '-'}
-            description={globalCredits ? `R$ ${globalCredits.total_cost_brl.toFixed(2)}` : undefined}
+            value={getCreditsValue()}
+            description={getCreditsDescription()}
             icon={Coins}
             loading={creditsLoading}
           />

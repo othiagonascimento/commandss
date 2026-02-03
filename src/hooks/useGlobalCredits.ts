@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-interface GlobalCreditsSummary {
+export interface GlobalCreditsSummary {
   total_credits_consumed: number;
   total_cost_brl: number;
   total_api_calls: number;
@@ -22,5 +22,6 @@ export function useGlobalCredits() {
     staleTime: 30000,
     gcTime: 60000,
     refetchInterval: 60000,
+    retry: 1,
   });
 }

@@ -3,10 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Coins,
   Cpu,
   ArrowRight,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -29,7 +32,12 @@ export function APICostsWidget() {
   const navigate = useNavigate();
 
   // Fetch global credits summary via RPC (external Supabase functions not in types)
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  const { 
+    data: summary, 
+    isLoading: summaryLoading, 
+    error: summaryError,
+    refetch: refetchSummary 
+  } = useQuery({
     queryKey: ['global-credits-summary'],
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,10 +47,16 @@ export function APICostsWidget() {
       return result?.[0] || null;
     },
     refetchInterval: 60000,
+    retry: 1,
   });
 
   // Fetch top consumers via RPC
-  const { data: topConsumers, isLoading: consumersLoading } = useQuery({
+  const { 
+    data: topConsumers, 
+    isLoading: consumersLoading,
+    error: consumersError,
+    refetch: refetchConsumers
+  } = useQuery({
     queryKey: ['top-credit-consumers'],
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,9 +67,17 @@ export function APICostsWidget() {
       return (data as unknown as TopConsumer[]) || [];
     },
     refetchInterval: 60000,
+    retry: 1,
   });
 
   const isLoading = summaryLoading || consumersLoading;
+  const hasError = summaryError || consumersError;
+  const errorMessage = (summaryError as Error)?.message || (consumersError as Error)?.message;
+  
+  const handleRetry = () => {
+    refetchSummary();
+    refetchConsumers();
+  };
 
   if (isLoading) {
     return (
@@ -65,6 +87,50 @@ export function APICostsWidget() {
         </CardHeader>
         <CardContent>
           <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Error state - show explicit error message
+  if (hasError) {
+    const isRPCError = errorMessage?.includes('42702') || errorMessage?.includes('ambiguous');
+    return (
+      <Card className="border-destructive/50">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              Erro ao carregar consumo
+            </CardTitle>
+            <CardDescription className="text-destructive">
+              Falha na RPC do Supabase externo
+            </CardDescription>
+          </div>
+          <Badge variant="destructive" className="text-xs">
+            RPC Error
+          </Badge>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-sm text-destructive font-mono break-all">
+              {errorMessage || 'Erro desconhecido'}
+            </p>
+          </div>
+          {isRPCError && (
+            <p className="text-xs text-muted-foreground">
+              💡 Dica: Execute o SQL corrigido em <code className="bg-muted px-1 rounded">docs/sql/credits_rpc_functions.sql</code> no Supabase Dashboard
+            </p>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRetry}
+            className="w-full"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Tentar novamente
+          </Button>
         </CardContent>
       </Card>
     );
