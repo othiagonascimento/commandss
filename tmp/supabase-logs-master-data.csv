@@ -1,0 +1,67 @@
+event_message,event_type,function_id,id,level,timestamp
+shutdown,Shutdown,e605a265-a5d9-4785-aa01-a6e60c3b561b,4685cb3f-dfca-4bf5-9010-dba99668caad,log,1770138884187000
+shutdown,Shutdown,e605a265-a5d9-4785-aa01-a6e60c3b561b,d53e9994-dcc5-4740-9f16-f69aae0a5af8,log,1770138831298000
+"[MASTER-DATA] ERROR - {""message"":""Unknown resource: master-user-full""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,dcb60893-655f-4b33-adb7-36ddc8e35a7c,info,1770138818806000
+"[MASTER-DATA] User authenticated - {""userId"":""cdc32c8f-32cd-439e-8103-e034d16eebf2""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,bfd954c9-479e-4c11-afa3-87503266ee48,info,1770138818806000
+"[MASTER-DATA] Resource requested - {""resource"":""master-user-full"",""pathSuffix"":""master-user-full""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,45dcd9f1-606b-468e-bd75-9270a251e55d,info,1770138818806000
+"Listening on http://localhost:9999/
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,740890b6-df98-439f-aca5-bd1d4db41d98,info,1770138818522000
+booted (time: 29ms),Boot,e605a265-a5d9-4785-aa01-a6e60c3b561b,953d1352-b67a-412f-b94a-e5f1f1481a66,log,1770138818519000
+shutdown,Shutdown,e605a265-a5d9-4785-aa01-a6e60c3b561b,7c3ae74e-b36c-46e4-ab30-4cca15014362,log,1770138818355000
+"Listening on http://localhost:9999/
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,a4e43c16-4d6d-4a26-a61a-b6375af7d961,info,1770138818310000
+booted (time: 23ms),Boot,e605a265-a5d9-4785-aa01-a6e60c3b561b,a52647a8-6c25-40c2-8066-ca088b67fb4b,log,1770138818308000
+shutdown,Shutdown,e605a265-a5d9-4785-aa01-a6e60c3b561b,458015bf-61e5-4479-8663-bdfea86b5049,log,1770138786536000
+"[MASTER-DATA] Resource requested - {""resource"":""master-user-full"",""pathSuffix"":""master-user-full""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,8ff3a06a-911f-4817-a5ec-57856cb1277a,info,1770138764873000
+"[MASTER-DATA] ERROR - {""message"":""Unknown resource: master-user-full""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,f679e444-9c4e-4eee-952b-025ce4631706,info,1770138764873000
+"[MASTER-DATA] User authenticated - {""userId"":""cdc32c8f-32cd-439e-8103-e034d16eebf2""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,3cdb934e-b696-41e6-b9cf-eefbf5f0c68a,info,1770138764873000
+"Listening on http://localhost:9999/
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,376a5875-bd03-43ad-937d-0650ba5b34b6,info,1770138764503000
+booted (time: 40ms),Boot,e605a265-a5d9-4785-aa01-a6e60c3b561b,b74a0233-84fc-4a36-8962-b8e027166657,log,1770138764499000
+"Listening on http://localhost:9999/
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,be5ddec2-495c-4145-8a36-9b4199aee171,info,1770138764210000
+booted (time: 30ms),Boot,e605a265-a5d9-4785-aa01-a6e60c3b561b,b2604877-0bf8-455e-a1ef-b9417e70f25a,log,1770138764204000
+shutdown,Shutdown,e605a265-a5d9-4785-aa01-a6e60c3b561b,912222c9-bbe0-4247-9f3b-3eff089f7a33,log,1770138760278000
+shutdown,Shutdown,e605a265-a5d9-4785-aa01-a6e60c3b561b,d7dcd8f4-a179-49b7-b3dc-f4e48f2deafc,log,1770138756007000
+shutdown,Shutdown,e605a265-a5d9-4785-aa01-a6e60c3b561b,81e539c8-ada2-4358-92c1-aec81d7edc8b,log,1770138717373000
+"[MASTER-DATA] User authenticated - {""userId"":""cdc32c8f-32cd-439e-8103-e034d16eebf2""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,3dd0553b-04eb-4e96-bcaf-5ce0fafd6fcb,info,1770138685537000
+"[MASTER-DATA] Resource requested - {""resource"":""master-user-full"",""pathSuffix"":""master-user-full""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,0ec3ddde-b70d-43b7-9c49-9b3d6dfdddb9,info,1770138685537000
+"[MASTER-DATA] ERROR - {""message"":""Unknown resource: master-user-full""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,caf62c80-6922-46d1-9ee9-962990e0d5a0,info,1770138685537000
+"Listening on http://localhost:9999/
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,17644e7c-af6f-420b-b4e9-bc1d145220ad,info,1770138685267000
+booted (time: 30ms),Boot,e605a265-a5d9-4785-aa01-a6e60c3b561b,c69216dc-a6cc-4ac4-bdce-aec2b4c7f3bd,log,1770138685263000
+"[MASTER-DATA] Resource requested - {""resource"":""master-user-full"",""pathSuffix"":""master-user-full""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,f749820a-2375-4479-b907-94fb57da117f,info,1770138681440000
+"[MASTER-DATA] ERROR - {""message"":""Unknown resource: master-user-full""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,7b584bce-f17e-487e-82c8-f53daa6d7334,info,1770138681440000
+"[MASTER-DATA] User authenticated - {""userId"":""cdc32c8f-32cd-439e-8103-e034d16eebf2""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,4b7f650b-5614-4397-a021-643821d3db33,info,1770138681440000
+"Listening on http://localhost:9999/
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,f1e90432-9c64-49ae-9c4d-52a46f84434d,info,1770138681164000
+booted (time: 25ms),Boot,e605a265-a5d9-4785-aa01-a6e60c3b561b,89951056-42cc-4437-bd2e-698407225018,log,1770138681161000
+"Listening on http://localhost:9999/
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,87f72ef9-020b-4f3f-92c7-ef1460a8a684,info,1770138680991000
+booted (time: 31ms),Boot,e605a265-a5d9-4785-aa01-a6e60c3b561b,dc6e9134-f95a-4c63-a6b3-a49bc91fbe5c,log,1770138680988000
+shutdown,Shutdown,e605a265-a5d9-4785-aa01-a6e60c3b561b,4a76e1e3-b77e-48ba-9336-53d6b88c34e6,log,1770138128610000
+shutdown,Shutdown,e605a265-a5d9-4785-aa01-a6e60c3b561b,9a5d1eb0-484a-44f6-9062-6e7d4a274ee0,log,1770138126190000
+"[MASTER-DATA] Resource requested - {""resource"":""master-user-full"",""pathSuffix"":""master-user-full""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,95644a36-bd3d-471c-be71-7335d406ab25,info,1770138088743000
+"[MASTER-DATA] ERROR - {""message"":""Unknown resource: master-user-full""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,82d17434-2894-4bce-aa40-4d6e2cd4ed2f,info,1770138088743000
+"[MASTER-DATA] User authenticated - {""userId"":""cdc32c8f-32cd-439e-8103-e034d16eebf2""}
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,93f37380-5e6d-4c3e-97fe-2fbb8e276e16,info,1770138088743000
+"Listening on http://localhost:9999/
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,65f681b5-9eb4-4ce6-b95d-07a5ea2f3a6e,info,1770138087863000
+booted (time: 45ms),Boot,e605a265-a5d9-4785-aa01-a6e60c3b561b,5be01378-3eaa-4b38-a533-3a5b5dd31787,log,1770138087858000
+"Listening on http://localhost:9999/
+",Log,e605a265-a5d9-4785-aa01-a6e60c3b561b,163c6e2c-3c1e-428d-a165-1e11d2a946f2,info,1770138087585000
+booted (time: 31ms),Boot,e605a265-a5d9-4785-aa01-a6e60c3b561b,b2be3298-8996-4f77-aa0e-a9afef1b8105,log,1770138087580000
