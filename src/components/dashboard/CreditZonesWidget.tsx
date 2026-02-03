@@ -37,6 +37,7 @@ export function CreditZonesWidget() {
       // Get all tenant usage for current period using flexible date range
       const today = new Date().toISOString().split('T')[0];
       
+      // Query tenant_usage with tenant info and features (credits_per_user)
       const { data: tenantUsages, error: usageError } = await supabase
         .from('tenant_usage')
         .select(`
@@ -44,14 +45,37 @@ export function CreditZonesWidget() {
           ai_credits_used,
           tenants:tenant_id (
             id,
-            name,
-            limit_ai_credits_monthly
+            name
+          ),
+          tenant_features:tenant_id (
+            credits_per_user
           )
         `)
         .lte('period_start', today)
         .gte('period_end', today);
 
       if (usageError) throw usageError;
+
+      // Get unique tenant IDs to fetch user counts
+      const tenantIds = (tenantUsages || [])
+        .map((u) => u.tenant_id)
+        .filter((id): id is string => !!id);
+
+      // Fetch user counts per tenant from profiles
+      let usersPerTenant: Record<string, number> = {};
+      if (tenantIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('tenant_id')
+          .in('tenant_id', tenantIds);
+
+        usersPerTenant = (profiles || []).reduce((acc, p) => {
+          if (p.tenant_id) {
+            acc[p.tenant_id] = (acc[p.tenant_id] || 0) + 1;
+          }
+          return acc;
+        }, {} as Record<string, number>);
+      }
 
       // Calculate zones
       let green = 0;
@@ -62,10 +86,14 @@ export function CreditZonesWidget() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (tenantUsages || []).forEach((usage: any) => {
         const tenant = usage.tenants;
+        const features = usage.tenant_features;
         if (!tenant) return;
 
         const creditsUsed = usage.ai_credits_used || 0;
-        const creditsLimit = tenant.limit_ai_credits_monthly || 500;
+        // Limite = credits_per_user × número de usuários (mínimo 1)
+        const creditsPerUser = features?.credits_per_user || 500;
+        const usersCount = usersPerTenant[usage.tenant_id] || 1;
+        const creditsLimit = creditsPerUser * Math.max(usersCount, 1);
         const usagePercent = creditsLimit > 0 ? (creditsUsed / creditsLimit) * 100 : 0;
         
         let zone: 'green' | 'yellow' | 'red' = 'green';
