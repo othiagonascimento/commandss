@@ -1,378 +1,244 @@
 
 
-# Plano: Flexibilização dos Templates de Nicho + Documentação Completa
+# Auditoria de Segurança e Alinhamento: Projeto Master
 
-## 1. Problema Identificado
+## Resumo Executivo
 
-Atualmente, a validação de publicação no `TemplateEditor.tsx` (linhas 143-200) exige **muitos campos obrigatórios**:
+Realizei uma auditoria completa do projeto Master comparando com a arquitetura documentada do CRM. Encontrei **4 problemas críticos** e **3 pontos de atenção** que precisam ser corrigidos para garantir a sincronização correta entre os sistemas.
 
-| Campo | Linha | Obrigatório Atual |
-|-------|-------|-------------------|
-| `slug` | 146-150 | Sim |
-| `name` | 152-156 | Sim |
-| `funnel_stages` (mínimo 3) | 158-162 | Sim |
-| Etapa "Ganho" (`is_won`) | 165-173 | Sim |
-| Etapa "Perdido" (`is_lost`) | 166-178 | Sim |
-| Etapa de entrada | 167-185 | Sim |
-| `prompts.greeting` | 187-191 | Sim |
-| `prompts.system_prompt` | 193-197 | Sim |
+---
 
-**Impacto**: Um template que só quer aproveitar o funil não pode ser criado porque exige prompts. E vice-versa.
+## 1. PROBLEMAS CRITICOS
 
-## 2. Solução Proposta
+### 1.1 Webhook `settings.updated` NAO IMPLEMENTADO
 
-### Mudança 1: Remover Obrigatoriedade de Prompts
+**Severidade:** CRITICA
 
-Os prompts (greeting e system_prompt) não devem ser obrigatórios porque:
-- O tenant já herda o prompt global do Master
-- O template é um "boost" personalizado, não uma substituição completa
+O prompt de arquitetura exige que quando as configurações de AI Engine forem atualizadas no Master, um webhook seja enviado ao CRM com o evento `settings.updated`. Isso **NAO existe** no codigo atual.
 
-**Remover validações das linhas 187-197**.
+**Arquivo afetado:** `supabase/functions/master-settings/index.ts`
 
-### Mudança 2: Permitir Funil Mínimo Opcional
-
-Se o template não quiser configurar funil, permitir usar o padrão. Mas se configurar, manter as regras de consistência (ter ganho/perdido).
-
-**Tornar a validação de funil condicional**: só validar se houver customização.
-
-### Mudança 3: Adicionar Flag de Seções Ativas
-
-Adicionar ao formulário uma forma de indicar quais seções o template customiza:
-
+**Situacao atual (linhas 249-259):**
 ```typescript
-active_sections: {
-  funnel: boolean;      // Customiza funil?
-  prompts: boolean;     // Customiza prompts?
-  ai_models: boolean;   // Customiza modelos de IA?
-  playbook: boolean;    // Customiza playbook?
-  operations: boolean;  // Customiza SLA/operações?
-  catalog: boolean;     // Customiza catálogo?
+// Notificar os tenants sobre a mudança
+const aiSettings: AISettings = {...};
+notifyTenantsAISettingsUpdated(supabaseAdmin, aiSettings);
+```
+
+**Problema:** A funcao `notifyTenantsAISettingsUpdated` envia para cada tenant individualmente via `/functions/v1/sync-master-settings`, mas NAO envia o webhook padronizado para o CRM em `master-core/webhooks` com:
+- Header `x-webhook-signature`
+- Evento `settings.updated`
+- Algoritmo de assinatura `btoa(MASTER_WEBHOOK_SECRET + payload.substring(0, 32))`
+
+**Solucao necessaria:** Adicionar chamada ao webhook do CRM apos salvar settings de AI.
+
+---
+
+### 1.2 Webhook `template.updated` NAO IMPLEMENTADO
+
+**Severidade:** CRITICA
+
+**Arquivo afetado:** `supabase/functions/master-templates-proxy/index.ts`
+
+Quando um template eh publicado (action `publish`), o sistema atualiza diretamente no banco do CRM via `crmSupabase.from('master_niche_templates').update()`, mas NAO envia o webhook padronizado `template.updated`.
+
+**Problema:** O CRM pode ter logica adicional no handler de webhook que nao eh executada.
+
+---
+
+### 1.3 Webhook `tenant.provision` PARCIALMENTE IMPLEMENTADO
+
+**Severidade:** ALTA
+
+**Arquivo afetado:** `supabase/functions/sync-tenant-to-crm/index.ts`
+
+O codigo atual faz INSERT direto no banco do CRM (linhas 124-145), mas NAO chama o webhook `tenant.provision` como backup. Isso significa que a logica de provisionamento duplicada no `master-core/webhooks` nunca eh acionada.
+
+**O que falta:**
+1. Usar `MASTER_WEBHOOK_SECRET` para assinar
+2. Enviar para `master-core/webhooks` com evento `tenant.provision`
+
+---
+
+### 1.4 Secret `MASTER_WEBHOOK_SECRET` NAO UTILIZADO
+
+**Severidade:** CRITICA
+
+Embora a secret `MASTER_WEBHOOK_SECRET` esteja configurada nas secrets do projeto, ela NAO esta sendo usada em nenhum lugar do codigo:
+
+```
+Busca por 'MASTER_WEBHOOK_SECRET': 0 resultados
+Busca por 'x-webhook-signature': 0 resultados
+```
+
+**Impacto:** Nenhum webhook esta sendo assinado corretamente, o que significa que o CRM pode rejeitar chamadas ou a autenticacao nao esta funcionando.
+
+---
+
+## 2. PONTOS DE ATENCAO
+
+### 2.1 Estrutura de `funnel_stages` Divergente
+
+**Arquivo:** `src/types/templates.ts`
+
+O documento de arquitetura diz:
+> funnel_stages: `is_won`, `is_lost` existem. `slug`, `system_type`, `is_system`, `is_active` NAO EXISTEM no CRM.
+
+Mas o codigo atual usa:
+```typescript
+export interface FunnelStage {
+  slug: string;        // <-- NAO existe no CRM!
+  is_system?: boolean; // <-- NAO existe no CRM!
+  ...
 }
 ```
 
-## 3. Arquivos a Modificar
+**Risco:** Ao sincronizar templates para o CRM, campos inexistentes podem causar erros.
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/types/templates.ts` | Adicionar `active_sections` ao `TemplateFormData` |
-| `src/pages/TemplateEditor.tsx` | Remover validações obrigatórias de prompts e funil |
-| `src/components/templates/TemplateIdentityEditor.tsx` | Adicionar checkboxes de seções ativas |
+---
 
-## 4. Nova Lógica de Validação
+### 2.2 Client do Frontend Configurado Corretamente
+
+**Status:** OK
 
 ```typescript
-const handlePublish = () => {
-  const formData = methods.getValues();
-  
-  // Apenas nome e slug são REALMENTE obrigatórios
-  if (!formData.slug || !/^[a-z0-9-]+$/.test(formData.slug)) {
-    toast.error('Slug inválido.');
-    return;
-  }
-  
-  if (!formData.name) {
-    toast.error('Nome do template é obrigatório');
+// .env
+VITE_SUPABASE_URL="https://btoyclznuuwvxbsacemw.supabase.co"
+```
+
+O frontend esta apontando corretamente para o Supabase externo.
+
+---
+
+### 2.3 Secrets Configurados
+
+**Status:** PARCIALMENTE OK
+
+| Secret | Status |
+|--------|--------|
+| `REMOTE_SUPABASE_URL` | Configurado |
+| `REMOTE_SUPABASE_SERVICE_ROLE_KEY` | Configurado |
+| `REMOTE_SUPABASE_ANON_KEY` | Configurado |
+| `MASTER_WEBHOOK_SECRET` | Configurado mas NAO UTILIZADO |
+
+---
+
+## 3. ACOES RECOMENDADAS
+
+### Prioridade CRITICA
+
+| # | Acao | Arquivo |
+|---|------|---------|
+| 1 | Implementar envio de webhook `settings.updated` com assinatura | `master-settings/index.ts` |
+| 2 | Implementar envio de webhook `template.updated` com assinatura | `master-templates-proxy/index.ts` |
+| 3 | Adicionar chamada de webhook `tenant.provision` como backup | `sync-tenant-to-crm/index.ts` |
+| 4 | Criar funcao utilitaria para assinatura de webhooks | `supabase/functions/_shared/webhookSignature.ts` |
+
+### Prioridade ALTA
+
+| # | Acao | Arquivo |
+|---|------|---------|
+| 5 | Revisar mapeamento de `funnel_stages` para remover campos inexistentes no CRM | `master-templates-proxy/index.ts` |
+| 6 | Documentar qual algoritmo de assinatura esta em uso | Documentacao |
+
+---
+
+## 4. CODIGO A IMPLEMENTAR
+
+### 4.1 Funcao Utilitaria de Assinatura (Nova)
+
+Criar `supabase/functions/_shared/webhookSignature.ts`:
+
+```typescript
+export function signWebhookPayload(secret: string, payload: string): string {
+  return btoa(secret + payload.substring(0, 32));
+}
+
+export async function sendWebhookToCRM(
+  event: string,
+  data: Record<string, unknown>
+): Promise<void> {
+  const secret = Deno.env.get('MASTER_WEBHOOK_SECRET');
+  if (!secret) {
+    console.warn('[WEBHOOK] MASTER_WEBHOOK_SECRET not configured');
     return;
   }
 
-  // Validação de funil SÓ SE tiver etapas customizadas além das padrão
-  const hasCustomFunnel = formData.funnel_stages.length > 0 && 
-    !arraysEqual(formData.funnel_stages, defaultTemplateFormData.funnel_stages);
-  
-  if (hasCustomFunnel) {
-    if (formData.funnel_stages.length < 3) {
-      toast.error('Funil customizado precisa ter pelo menos 3 etapas');
-      return;
-    }
-    // ... validações de ganho/perdido
-  }
-  
-  // Prompts não são mais obrigatórios - herdam do global
-  setShowPublishModal(true);
-};
+  const payload = JSON.stringify({ event, data });
+  const signature = signWebhookPayload(secret, payload);
+
+  await fetch('https://btoyclznuuwvxbsacemw.supabase.co/functions/v1/master-core', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-webhook-signature': signature,
+      'x-webhook-action': 'webhooks',
+    },
+    body: payload,
+  });
+}
+```
+
+### 4.2 Adicionar ao `master-settings/index.ts`
+
+Apos salvar AI settings:
+
+```typescript
+import { sendWebhookToCRM } from '../_shared/webhookSignature.ts';
+
+// Dentro do handler de PATCH para ai_global_engine:
+await sendWebhookToCRM('settings.updated', {
+  ai_layer_1_model,
+  ai_layer_2_model,
+  ai_layer_3_model,
+  ai_layer_1_instructions,
+  ai_layer_2_instructions,
+  ai_layer_3_instructions,
+  ai_layer_1_cost: 0,
+  ai_layer_2_cost: 1,
+  ai_layer_3_cost: 15,
+});
+```
+
+### 4.3 Adicionar ao `sync-tenant-to-crm/index.ts`
+
+Apos criar tenant no CRM:
+
+```typescript
+import { sendWebhookToCRM } from '../_shared/webhookSignature.ts';
+
+// Apos INSERT bem-sucedido:
+await sendWebhookToCRM('tenant.provision', {
+  id: masterTenant.id,
+  name: masterTenant.name,
+  subdomain: masterTenant.subdomain,
+  subdomain_slug: masterTenant.subdomain,
+  plan_type: masterTenant.plan_type,
+  owner_email: masterTenant.contact_email,
+});
 ```
 
 ---
 
-# Documentação: Campos do Template de Nicho
+## 5. CHECKLIST DE VERIFICACAO
 
-## Campos Obrigatórios (Mínimo para Criar)
+Antes de cada deploy, verificar:
 
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `name` | `string` | Nome exibido do template (Ex: "Veículos") |
-| `slug` | `string` | Identificador único (Ex: "veiculos") - apenas minúsculas, números e hífens |
-
-## Campos de Identidade (Opcionais)
-
-| Campo | Tipo | Padrão | Descrição |
-|-------|------|--------|-----------|
-| `description` | `string` | `""` | Descrição do propósito do template |
-| `category` | `'universal' \| 'vendas' \| 'custom'` | `'universal'` | Categoria para organização |
-| `icon` | `string` | `'📋'` | Emoji representativo |
-| `is_base_template` | `boolean` | `false` | Se pode ser herdado por outros templates |
-
-## Contexto de Negócio (business_context)
-
-| Campo | Tipo | Padrão | Descrição |
-|-------|------|--------|-----------|
-| `business_type` | `'B2B' \| 'B2C' \| 'D2C' \| 'B2B2C'` | `'B2C'` | Modelo de negócio |
-| `market_segment` | `string` | `""` | Segmento (Ex: "Automotivo") |
-| `average_ticket` | `number` | `0` | Ticket médio em R$ |
-| `sales_cycle_days` | `number` | `7` | Duração média do ciclo de vendas |
-| `value_proposition` | `string` | `""` | Proposta de valor única |
-| `competitive_advantages` | `string[]` | `[]` | Lista de diferenciais |
-| `target_audience` | `string` | `""` | Descrição do público-alvo |
-| `main_products_services` | `string` | `""` | Principais produtos/serviços |
-
-## Funil de Vendas (funnel_stages)
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `name` | `string` | Nome da etapa (Ex: "Novos") |
-| `slug` | `string` | Identificador (Ex: "novos") |
-| `color` | `string` | Cor em hex (Ex: "#3B82F6") |
-| `sort_order` | `number` | Ordem de exibição (1, 2, 3...) |
-| `is_won` | `boolean` | Marca como etapa de ganho |
-| `is_lost` | `boolean` | Marca como etapa de perda |
-| `is_system` | `boolean` | Etapa protegida (não pode remover) |
-| `objective` | `string` | Objetivo da etapa |
-| `criteria_to_advance` | `string[]` | Critérios para avançar |
-| `max_time_hours` | `number` | SLA máximo na etapa |
-| `stage_prompt` | `string` | Prompt específico da etapa |
-
-**Etapas padrão** (criadas automaticamente):
-- Novos (entrada)
-- Frio
-- Morno  
-- Quente
-- Ganho (is_won: true)
-- Perdido (is_lost: true)
-
-## Configuração de IA (uopa_ai_core)
-
-| Campo | Tipo | Padrão | Descrição |
-|-------|------|--------|-----------|
-| `tone_of_voice` | `'formal' \| 'casual' \| 'technical' \| 'friendly' \| 'consultative'` | `'friendly'` | Tom de comunicação |
-| `proactivity_level` | `'low' \| 'medium' \| 'high'` | `'medium'` | Nível de proatividade |
-| `communication_style` | `'direct' \| 'consultative' \| 'educational' \| 'empathetic'` | `'consultative'` | Estilo de comunicação |
-| `language_regionalism` | `string` | `'pt-BR'` | Variação linguística |
-| `layer_1_model` | `string \| undefined` | `undefined` (herda global) | Modelo Router |
-| `layer_2_model` | `string \| undefined` | `undefined` (herda global) | Modelo Standard |
-| `layer_3_model` | `string \| undefined` | `undefined` (herda global) | Modelo Elite |
-
-## Prompts (prompts)
-
-| Campo | Tipo | Padrão | Descrição |
-|-------|------|--------|-----------|
-| `greeting` | `string` | `"Olá! Bem-vindo..."` | Mensagem inicial |
-| `system_prompt` | `string` | `"Você é um assistente..."` | Prompt principal |
-| `objection_handlers` | `Record<string, string>` | `{}` | Mapa de objeções e respostas |
-| `qualification_criteria` | `Record<string, QualificationCriterion>` | `{}` | Critérios de qualificação |
-
-**Importante**: Se vazio, herda automaticamente do prompt global do Master.
-
-## Configuração Copilot (copilot_config)
-
-| Campo | Tipo | Padrão | Descrição |
-|-------|------|--------|-----------|
-| `is_enabled` | `boolean` | `true` | Habilita modo copilot |
-| `assistance_level` | `'suggestion' \| 'draft' \| 'autocomplete'` | `'suggestion'` | Nível de assistência |
-| `suggestion_triggers` | `string[]` | `['pergunta detectada'...]` | Gatilhos para sugestões |
-| `suggestion_format` | `'bullet' \| 'prose' \| 'options'` | `'options'` | Formato das sugestões |
-| `options_count` | `1 \| 2 \| 3` | `2` | Quantidade de opções |
-| `response_speed` | `'fast' \| 'balanced' \| 'elaborate'` | `'balanced'` | Velocidade de resposta |
-| `confidence_threshold` | `number` | `0.7` | Limiar de confiança (0-1) |
-
-## Configuração Insights (insights_config)
-
-| Campo | Tipo | Padrão | Descrição |
-|-------|------|--------|-----------|
-| `metrics_to_track` | `string[]` | `['tempo_resposta',...]` | Métricas monitoradas |
-| `intent_detection_enabled` | `boolean` | `true` | Detectar intenção de compra |
-| `sentiment_analysis_enabled` | `boolean` | `true` | Análise de sentimento |
-| `competitor_detection_enabled` | `boolean` | `false` | Detectar menções a concorrentes |
-| `auto_summary_enabled` | `boolean` | `true` | Gerar resumos automáticos |
-| `suggested_tags_enabled` | `boolean` | `true` | Sugerir tags |
-| `auto_tags_enabled` | `boolean` | `false` | Aplicar tags automaticamente |
-
-## Agentes de IA (agents)
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | `string` | Identificador único |
-| `name` | `string` | Nome do agente |
-| `type` | `'qualification' \| 'followup' \| 'closing' \| 'post_sale' \| 'support' \| 'custom'` | Tipo do agente |
-| `description` | `string` | Descrição da função |
-| `objective` | `string` | Objetivo principal |
-| `prompt` | `string` | System prompt específico |
-| `temperature` | `number` | Temperatura (0-1) |
-| `allowed_actions` | `string[]` | Ações permitidas |
-| `transfer_rules` | `string[]` | Regras de transferência |
-| `is_active` | `boolean` | Ativo/inativo |
-
-## Playbook de Vendas (playbook)
-
-### Metodologias (playbook.methodologies)
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | `string` | Identificador |
-| `name` | `string` | Nome (Ex: "SPIN Selling") |
-| `description` | `string` | Descrição da metodologia |
-| `steps` | `MethodologyStep[]` | Etapas da metodologia |
-| `is_active` | `boolean` | Ativo/inativo |
-
-### Tratadores de Objeções (playbook.objection_handlers)
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | `string` | Identificador |
-| `objection` | `string` | A objeção (Ex: "Está caro") |
-| `root_cause` | `string` | Causa raiz da objeção |
-| `responses` | `ObjectionResponse[]` | Respostas por intensidade |
-| `severity` | `'light' \| 'moderate' \| 'strong'` | Severidade da objeção |
-
-### Scripts de Fechamento (playbook.closing_scripts)
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | `string` | Identificador |
-| `name` | `string` | Nome do script |
-| `type` | `'assumptive' \| 'alternative' \| 'urgency' \| 'summary' \| 'trial' \| 'custom'` | Tipo |
-| `content` | `string` | Conteúdo do script |
-| `transition_phrases` | `string[]` | Frases de transição |
-
-## Respostas Rápidas (quick_replies)
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | `string` | Identificador |
-| `label` | `string` | Rótulo exibido |
-| `trigger` | `string` | Gatilho de ativação |
-| `message` | `string` | Mensagem a enviar |
-| `technique` | `string` | Técnica de vendas associada |
-| `category` | `string` | Categoria (organização) |
-| `tags` | `string[]` | Tags para contexto |
-
-## Automações (automations)
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `id` | `string` | Identificador |
-| `name` | `string` | Nome da automação |
-| `trigger_type` | `string` | Tipo de gatilho |
-| `trigger_value` | `number` | Valor (ex: horas) |
-| `action_type` | `string` | Tipo de ação |
-| `action_message` | `string` | Mensagem da ação |
-| `is_active` | `boolean` | Ativo/inativo |
-
-## Operações e SLA (operations)
-
-| Campo | Tipo | Padrão | Descrição |
-|-------|------|--------|-----------|
-| `sla.first_response_minutes` | `number` | `5` | SLA primeira resposta |
-| `sla.follow_up_hours` | `number` | `24` | Horas para follow-up |
-| `sla.escalation_hours` | `number` | `48` | Horas para escalonar |
-| `sla.working_hours_start` | `string` | `'08:00'` | Início expediente |
-| `sla.working_hours_end` | `string` | `'18:00'` | Fim expediente |
-| `sla.working_days` | `number[]` | `[1,2,3,4,5]` | Dias úteis (1=Seg) |
-| `escalation_rules` | `EscalationRule[]` | `[]` | Regras de escalonamento |
-| `success_metrics` | `SuccessMetric[]` | `[]` | Métricas de sucesso |
-| `out_of_hours_message` | `string` | `"Obrigado..."` | Mensagem fora do horário |
-
-## Catálogo (catalog)
-
-| Campo | Tipo | Descrição |
-|-------|------|-----------|
-| `categories` | `ProductCategory[]` | Categorias de produtos |
-| `products` | `Product[]` | Lista de produtos |
-| `competitors` | `Competitor[]` | Concorrentes conhecidos |
-| `general_policies` | `FAQItem[]` | Políticas gerais (FAQ) |
+- [ ] Webhooks usam header `x-webhook-signature`?
+- [ ] Algoritmo de assinatura: `btoa(secret + payload.substring(0, 32))`?
+- [ ] Eventos corretos: `settings.updated`, `template.updated`, `tenant.provision`?
+- [ ] `MASTER_WEBHOOK_SECRET` igual ao configurado no CRM?
+- [ ] Colunas de `funnel_stages` compatíveis com CRM (sem `slug`, `is_system`)?
 
 ---
 
-## Exemplo de Template Mínimo (Só Funil)
+## Conclusao
 
-```json
-{
-  "name": "Funil Básico E-commerce",
-  "slug": "ecommerce-basico",
-  "category": "vendas",
-  "icon": "🛒",
-  "funnel_stages": [
-    { "name": "Lead", "slug": "lead", "color": "#3B82F6", "sort_order": 1 },
-    { "name": "Carrinho", "slug": "carrinho", "color": "#F59E0B", "sort_order": 2 },
-    { "name": "Checkout", "slug": "checkout", "color": "#EF4444", "sort_order": 3 },
-    { "name": "Comprou", "slug": "comprou", "color": "#10B981", "sort_order": 4, "is_won": true },
-    { "name": "Abandonou", "slug": "abandonou", "color": "#6B7280", "sort_order": 5, "is_lost": true }
-  ]
-}
-```
+O projeto Master esta **funcionando parcialmente**, mas **NAO esta enviando webhooks assinados** conforme a arquitetura documentada. Isso pode causar:
 
-## Exemplo de Template Mínimo (Só Prompts)
+1. Dessincronizacao entre Master e CRM
+2. Falhas silenciosas de provisionamento
+3. AI Engine nao atualizado no CRM quando alterado no Master
 
-```json
-{
-  "name": "IA Especializada Moda",
-  "slug": "moda-ia",
-  "category": "custom",
-  "icon": "👗",
-  "prompts": {
-    "system_prompt": "Você é uma consultora de moda especializada em ajudar clientes a escolher looks...",
-    "greeting": "Olá! Sou a Ana, sua consultora de moda virtual. Como posso ajudar?"
-  },
-  "uopa_ai_core": {
-    "tone_of_voice": "friendly",
-    "communication_style": "empathetic"
-  }
-}
-```
-
----
-
-## Seção Técnica
-
-### Mudanças no TemplateEditor.tsx
-
-**Remover** (linhas 187-197):
-```typescript
-// REMOVER - Prompts não são mais obrigatórios
-if (!formData.prompts.greeting) {
-  toast.error('Mensagem de saudação é obrigatória');
-  setActiveTab('uopa-core');
-  return;
-}
-
-if (!formData.prompts.system_prompt) {
-  toast.error('System prompt é obrigatório');
-  setActiveTab('uopa-core');
-  return;
-}
-```
-
-**Modificar** validação de funil (linhas 158-185):
-```typescript
-// Validação de funil SÓ SE tiver customização
-const defaultSlugs = ['novos', 'frio', 'morno', 'quente', 'ganho', 'perdido'];
-const currentSlugs = formData.funnel_stages.map(s => s.slug);
-const hasCustomFunnel = JSON.stringify(currentSlugs) !== JSON.stringify(defaultSlugs);
-
-if (hasCustomFunnel && formData.funnel_stages.length > 0) {
-  if (formData.funnel_stages.length < 3) {
-    toast.error('Funil customizado precisa ter pelo menos 3 etapas');
-    setActiveTab('funnel');
-    return;
-  }
-  
-  const hasWonStage = formData.funnel_stages.some(s => s.is_won === true);
-  const hasLostStage = formData.funnel_stages.some(s => s.is_lost === true);
-  
-  if (!hasWonStage || !hasLostStage) {
-    toast.error('Funil customizado precisa ter etapas de Ganho e Perdido');
-    setActiveTab('funnel');
-    return;
-  }
-}
-```
+Recomendo implementar as correcoes na ordem de prioridade indicada.
 
