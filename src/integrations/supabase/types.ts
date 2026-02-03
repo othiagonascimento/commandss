@@ -1722,7 +1722,7 @@ export type Database = {
           resolved_by: string | null
           sla_breached_at: string | null
           status: string | null
-          tenant_id: string | null
+          tenant_id: string
           unread_count: number | null
           uopa_agent_activated_at: string | null
           uopa_agent_activated_by: string | null
@@ -1779,7 +1779,7 @@ export type Database = {
           resolved_by?: string | null
           sla_breached_at?: string | null
           status?: string | null
-          tenant_id?: string | null
+          tenant_id: string
           unread_count?: number | null
           uopa_agent_activated_at?: string | null
           uopa_agent_activated_by?: string | null
@@ -1836,7 +1836,7 @@ export type Database = {
           resolved_by?: string | null
           sla_breached_at?: string | null
           status?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           unread_count?: number | null
           uopa_agent_activated_at?: string | null
           uopa_agent_activated_by?: string | null
@@ -3335,12 +3335,14 @@ export type Database = {
       }
       lead_memory: {
         Row: {
+          anonymized_at: string | null
           budget_info: Json | null
           communication_style: string | null
           competitor_mentions: string[] | null
           conversation_summary: string | null
           created_at: string | null
           decision_factors: string[] | null
+          deleted_at: string | null
           id: string
           interests: string[] | null
           key_quotes: string[] | null
@@ -3359,12 +3361,14 @@ export type Database = {
           urgency_level: string | null
         }
         Insert: {
+          anonymized_at?: string | null
           budget_info?: Json | null
           communication_style?: string | null
           competitor_mentions?: string[] | null
           conversation_summary?: string | null
           created_at?: string | null
           decision_factors?: string[] | null
+          deleted_at?: string | null
           id?: string
           interests?: string[] | null
           key_quotes?: string[] | null
@@ -3383,12 +3387,14 @@ export type Database = {
           urgency_level?: string | null
         }
         Update: {
+          anonymized_at?: string | null
           budget_info?: Json | null
           communication_style?: string | null
           competitor_mentions?: string[] | null
           conversation_summary?: string | null
           created_at?: string | null
           decision_factors?: string[] | null
+          deleted_at?: string | null
           id?: string
           interests?: string[] | null
           key_quotes?: string[] | null
@@ -3408,14 +3414,123 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_transfers: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          from_user_id: string | null
+          id: string
+          lead_id: string | null
+          reason: string | null
+          task_id: string | null
+          tenant_id: string
+          to_user_id: string | null
+          transfer_type: string
+          transferred_by: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          from_user_id?: string | null
+          id?: string
+          lead_id?: string | null
+          reason?: string | null
+          task_id?: string | null
+          tenant_id: string
+          to_user_id?: string | null
+          transfer_type?: string
+          transferred_by?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          from_user_id?: string | null
+          id?: string
+          lead_id?: string | null
+          reason?: string | null
+          task_id?: string | null
+          tenant_id?: string
+          to_user_id?: string | null
+          transfer_type?: string
+          transferred_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_transfers_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_transfers_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_transfers_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_transfers_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_transfers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_transfers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "lead_transfers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "lead_transfers_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_transfers_transferred_by_fkey"
+            columns: ["transferred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
+          anonymized_at: string | null
           assigned_to: string | null
           avatar: string | null
           birth_date: string | null
           created_at: string | null
           custom_fields: Json | null
           deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           email: string | null
           funnel_id: string | null
           funnel_stage_id: string | null
@@ -3443,12 +3558,15 @@ export type Database = {
           whatsapp_verified: boolean | null
         }
         Insert: {
+          anonymized_at?: string | null
           assigned_to?: string | null
           avatar?: string | null
           birth_date?: string | null
           created_at?: string | null
           custom_fields?: Json | null
           deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           email?: string | null
           funnel_id?: string | null
           funnel_stage_id?: string | null
@@ -3476,12 +3594,15 @@ export type Database = {
           whatsapp_verified?: boolean | null
         }
         Update: {
+          anonymized_at?: string | null
           assigned_to?: string | null
           avatar?: string | null
           birth_date?: string | null
           created_at?: string | null
           custom_fields?: Json | null
           deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           email?: string | null
           funnel_id?: string | null
           funnel_stage_id?: string | null
@@ -3512,6 +3633,13 @@ export type Database = {
           {
             foreignKeyName: "leads_assigned_to_fkey"
             columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_deleted_by_fkey"
+            columns: ["deleted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -4013,6 +4141,7 @@ export type Database = {
           content: string | null
           conversation_id: string
           created_at: string | null
+          deleted_at: string | null
           delivered_at: string | null
           external_message_id: string | null
           id: string
@@ -4038,6 +4167,7 @@ export type Database = {
           content?: string | null
           conversation_id: string
           created_at?: string | null
+          deleted_at?: string | null
           delivered_at?: string | null
           external_message_id?: string | null
           id?: string
@@ -4063,6 +4193,7 @@ export type Database = {
           content?: string | null
           conversation_id?: string
           created_at?: string | null
+          deleted_at?: string | null
           delivered_at?: string | null
           external_message_id?: string | null
           id?: string
@@ -4867,8 +4998,11 @@ export type Database = {
       profiles: {
         Row: {
           access_profile_id: string | null
+          anonymized_at: string | null
           avatar: string | null
           created_at: string | null
+          deleted_at: string | null
+          deletion_reason: string | null
           department: string | null
           email: string | null
           first_login_at: string | null
@@ -4888,13 +5022,16 @@ export type Database = {
           phone: string | null
           role: string | null
           status: Database["public"]["Enums"]["user_status"] | null
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string | null
         }
         Insert: {
           access_profile_id?: string | null
+          anonymized_at?: string | null
           avatar?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deletion_reason?: string | null
           department?: string | null
           email?: string | null
           first_login_at?: string | null
@@ -4914,13 +5051,16 @@ export type Database = {
           phone?: string | null
           role?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null
-          tenant_id?: string | null
+          tenant_id: string
           updated_at?: string | null
         }
         Update: {
           access_profile_id?: string | null
+          anonymized_at?: string | null
           avatar?: string | null
           created_at?: string | null
+          deleted_at?: string | null
+          deletion_reason?: string | null
           department?: string | null
           email?: string | null
           first_login_at?: string | null
@@ -4940,7 +5080,7 @@ export type Database = {
           phone?: string | null
           role?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -5161,7 +5301,7 @@ export type Database = {
           },
         ]
       }
-      rotation_config: {
+      rotation_members: {
         Row: {
           created_at: string | null
           id: string
@@ -5223,6 +5363,76 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotation_settings: {
+        Row: {
+          conflict_auto_decision: string | null
+          conflict_timeout_minutes: number | null
+          created_at: string | null
+          current_index: number | null
+          is_enabled: boolean | null
+          max_active_per_seller: number | null
+          mode: string | null
+          send_conflict_reminders: boolean | null
+          skip_offline: boolean | null
+          sticky_agent_enabled: boolean | null
+          sticky_window_days: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          conflict_auto_decision?: string | null
+          conflict_timeout_minutes?: number | null
+          created_at?: string | null
+          current_index?: number | null
+          is_enabled?: boolean | null
+          max_active_per_seller?: number | null
+          mode?: string | null
+          send_conflict_reminders?: boolean | null
+          skip_offline?: boolean | null
+          sticky_agent_enabled?: boolean | null
+          sticky_window_days?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          conflict_auto_decision?: string | null
+          conflict_timeout_minutes?: number | null
+          created_at?: string | null
+          current_index?: number | null
+          is_enabled?: boolean | null
+          max_active_per_seller?: number | null
+          mode?: string | null
+          send_conflict_reminders?: boolean | null
+          skip_offline?: boolean | null
+          sticky_agent_enabled?: boolean | null
+          sticky_window_days?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotation_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotation_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "rotation_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
           },
         ]
       }
@@ -5746,6 +5956,8 @@ export type Database = {
           completed_at: string | null
           conversation_id: string | null
           created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
           description: string | null
           due_date: string | null
           due_time: string | null
@@ -5769,6 +5981,8 @@ export type Database = {
           completed_at?: string | null
           conversation_id?: string | null
           created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           due_time?: string | null
@@ -5792,6 +6006,8 @@ export type Database = {
           completed_at?: string | null
           conversation_id?: string | null
           created_at?: string | null
+          created_by?: string | null
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           due_time?: string | null
@@ -7197,7 +7413,7 @@ export type Database = {
           granted_by: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
-          tenant_id: string | null
+          tenant_id: string
           user_id: string
         }
         Insert: {
@@ -7205,7 +7421,7 @@ export type Database = {
           granted_by?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
-          tenant_id?: string | null
+          tenant_id: string
           user_id: string
         }
         Update: {
@@ -7213,7 +7429,7 @@ export type Database = {
           granted_by?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
-          tenant_id?: string | null
+          tenant_id?: string
           user_id?: string
         }
         Relationships: [
@@ -8104,6 +8320,14 @@ export type Database = {
         Args: { p_conversation_id: string; p_lock_timestamp?: string }
         Returns: Json
       }
+      anonymize_lead_data: {
+        Args: { p_lead_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      archive_lead: {
+        Args: { p_lead_id: string; p_reason?: string }
+        Returns: undefined
+      }
       calculate_credits_from_cost: {
         Args: { cost_brl: number }
         Returns: number
@@ -8315,6 +8539,7 @@ export type Database = {
         }[]
       }
       get_queue_stats: { Args: { p_tenant_id: string }; Returns: Json }
+      get_rotation_sellers: { Args: { p_tenant_id: string }; Returns: string[] }
       get_tenant_smart_timing_stats: {
         Args: { p_tenant_id: string }
         Returns: Json
@@ -8328,10 +8553,15 @@ export type Database = {
         Args: { _permission_code: string; _user_id: string }
         Returns: boolean
       }
-      has_permission: {
-        Args: { _permission: string; _user_id: string }
-        Returns: boolean
-      }
+      has_permission:
+        | {
+            Args: {
+              _permission: Database["public"]["Enums"]["permission_type"]
+              _user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { _permission: string; _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -8445,6 +8675,7 @@ export type Database = {
           type: string
         }[]
       }
+      recalculate_all_tenant_usage: { Args: never; Returns: undefined }
       record_lead_interaction: {
         Args: {
           p_lead_id: string
@@ -8459,6 +8690,7 @@ export type Database = {
         Returns: Json
       }
       reset_monthly_usage: { Args: never; Returns: undefined }
+      restore_lead: { Args: { p_lead_id: string }; Returns: undefined }
       select_best_instance: {
         Args: { p_strategy?: string; p_tenant_id: string }
         Returns: string
@@ -8525,6 +8757,13 @@ export type Database = {
         | "edit_product_status"
         | "edit_product_prices"
         | "delete_products"
+        | "view_all_leads"
+        | "view_all_conversations"
+        | "manage_quick_replies"
+        | "manage_campaigns"
+        | "manage_flows"
+        | "access_admin_panel"
+        | "edit_product_details"
       plan_type: "trial" | "basic" | "pro" | "enterprise"
       recipient_status:
         | "pending"
@@ -8712,6 +8951,13 @@ export const Constants = {
         "edit_product_status",
         "edit_product_prices",
         "delete_products",
+        "view_all_leads",
+        "view_all_conversations",
+        "manage_quick_replies",
+        "manage_campaigns",
+        "manage_flows",
+        "access_admin_panel",
+        "edit_product_details",
       ],
       plan_type: ["trial", "basic", "pro", "enterprise"],
       recipient_status: [
