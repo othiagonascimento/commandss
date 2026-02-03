@@ -1,76 +1,139 @@
 
-# Plano: Adicionar Filtro de Período ao Dashboard Master
+# Plano: Corrigir CreditZonesWidget para usar estrutura correta de limites
 
-## Status Atual
+## Problema Identificado
 
-As RPCs de créditos foram validadas com sucesso e estão funcionando:
-- `get_global_credits_summary('2026-01-01', '2026-01-31')` retorna 749 créditos ✅
-- `get_tenant_credits_summary(uuid, date, date)` funcionando ✅
-- O componente `TenantUserCreditsTable` já possui o `PeriodFilter` integrado ✅
+O erro `column tenants_1.limit_ai_credits_monthly does not exist` ocorre porque o `CreditZonesWidget` está tentando buscar uma coluna inexistente diretamente da tabela `tenants`.
 
-## O que falta
-
-O **Dashboard Master** (`Index.tsx`) chama `useGlobalCredits()` **sem filtros**, dependendo do comportamento padrão das RPCs. Para dar controle completo ao admin, precisamos adicionar o seletor de período.
-
----
-
-## Implementação
-
-### 1. Adicionar PeriodFilter ao Dashboard (Index.tsx)
-
-Criar um estado para armazenar o período selecionado e passar para o hook:
-
-```text
-Arquivo: src/pages/Index.tsx
-
-Mudanças:
-- Importar PeriodFilter e getDefaultPeriod
-- Criar estado: const [period, setPeriod] = useState(getDefaultPeriod())
-- Passar filtros para useGlobalCredits: useGlobalCredits({ periodStart: period.periodStart, periodEnd: period.periodEnd })
-- Adicionar componente PeriodFilter na seção de cards de créditos
+### Query Atual (Incorreta)
+```typescript
+.select(`
+  tenant_id,
+  ai_credits_used,
+  tenants:tenant_id (
+    id,
+    name,
+    limit_ai_credits_monthly  // ❌ NÃO EXISTE!
+  )
+`)
 ```
 
-### 2. Melhorar exibição do período no StatCard
-
-Mostrar o período selecionado no card de "Créditos Consumidos" para que o usuário saiba qual intervalo está visualizando.
-
-### 3. Atualizar doc SQL com versão final
-
-O arquivo `docs/sql/credits_rpc_functions.sql` já contém a versão v5 correta. Apenas adicionar um comentário indicando que foi validado.
+### Estrutura Correta do Sistema
+- **Limites de créditos** estão na tabela `tenant_features` (campo `credits_per_user`)
+- O limite total é **calculado**: `credits_per_user × número de usuários ativos`
+- Esta é a mesma lógica usada pela Edge Function `master-usage`
 
 ---
 
-## Resumo Visual
+## Solução
+
+### Arquivo: `src/components/dashboard/CreditZonesWidget.tsx`
+
+1. **Corrigir a query** para buscar dados de `tenant_features` junto com `tenants`
+2. **Buscar contagem de usuários** por tenant para calcular limite total
+3. **Aplicar a fórmula correta**: `limite = credits_per_user × users_count`
+
+### Nova Query
 
 ```text
-┌────────────────────────────────────────────────────────────┐
-│  Dashboard Master                                          │
-│                                          [Período: ▾ Fev]  │
-├────────────────────────────────────────────────────────────┤
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
-│  │ Tenants  │ │ Usuários │ │  Leads   │ │   MRR    │       │
-│  │   12     │ │   156    │ │  2.340   │ │ R$ 15k   │       │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
-│                                                            │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───┐ │
-│  │Créditos  │ │Mensagens │ │ Assin.   │ │New Tenant│ │...│ │
-│  │  749     │ │  22.781  │ │   8      │ │    2     │ │   │ │
-│  │R$ 7,49   │ │          │ │ 3 trial  │ │          │ │   │ │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └───┘ │
-└────────────────────────────────────────────────────────────┘
+SELECT tenant_usage:
+  - tenant_id
+  - ai_credits_used
+
+JOIN tenants:
+  - id
+  - name
+
+JOIN tenant_features:
+  - credits_per_user
+```
+
+### Lógica de Cálculo
+
+```text
+Para cada tenant:
+  creditsUsed = tenant_usage.ai_credits_used
+  creditsPerUser = tenant_features.credits_per_user || 500 (default)
+  usersCount = (buscar contagem de profiles do tenant)
+  creditsLimit = creditsPerUser × max(usersCount, 1)
+  usagePercent = (creditsUsed / creditsLimit) × 100
 ```
 
 ---
 
-## Arquivos a Modificar
+## Implementação Detalhada
+
+### Passo 1: Corrigir a query do widget
+
+A query precisa fazer join com `tenant_features` em vez de buscar campo inexistente de `tenants`:
+
+```typescript
+const { data: tenantUsages } = await supabase
+  .from('tenant_usage')
+  .select(`
+    tenant_id,
+    ai_credits_used,
+    tenants:tenant_id (
+      id,
+      name
+    ),
+    tenant_features:tenant_id (
+      credits_per_user
+    )
+  `)
+  .lte('period_start', today)
+  .gte('period_end', today);
+```
+
+### Passo 2: Buscar contagem de usuários
+
+Como o limite depende de usuários ativos, precisamos buscar a contagem:
+
+```typescript
+// Buscar contagem de usuários por tenant
+const tenantIds = tenantUsages.map(u => u.tenant_id);
+const { data: userCounts } = await supabase
+  .from('profiles')
+  .select('tenant_id')
+  .in('tenant_id', tenantIds);
+
+// Agregar por tenant
+const usersPerTenant = userCounts.reduce((acc, p) => {
+  acc[p.tenant_id] = (acc[p.tenant_id] || 0) + 1;
+  return acc;
+}, {});
+```
+
+### Passo 3: Calcular limite corretamente
+
+```typescript
+tenantUsages.forEach((usage) => {
+  const tenant = usage.tenants;
+  const features = usage.tenant_features;
+  
+  const creditsUsed = usage.ai_credits_used || 0;
+  const creditsPerUser = features?.credits_per_user || 500;
+  const usersCount = usersPerTenant[usage.tenant_id] || 1;
+  const creditsLimit = creditsPerUser * usersCount;
+  const usagePercent = creditsLimit > 0 ? (creditsUsed / creditsLimit) * 100 : 0;
+  
+  // ... resto da lógica de zones
+});
+```
+
+---
+
+## Resumo das Mudanças
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/pages/Index.tsx` | Adicionar estado de período + PeriodFilter + passar para useGlobalCredits |
-| `docs/sql/credits_rpc_functions.sql` | Adicionar nota de validação |
+| `src/components/dashboard/CreditZonesWidget.tsx` | Corrigir query para usar `tenant_features.credits_per_user` + contagem de usuários |
+
+---
 
 ## Resultado Esperado
 
-- Dashboard Master mostra seletor de mês no topo da seção de créditos
-- Ao mudar o mês, os dados de créditos/custo são atualizados automaticamente
-- Usuário consegue visualizar consumo de meses anteriores diretamente no dashboard
+- Widget "Saúde dos Créditos" carrega sem erros
+- Zonas (Verde/Amarelo/Vermelho) calculadas corretamente baseadas em `credits_per_user × users`
+- Tenants em modo degradado (>115%) mostrados corretamente
+- Consistência com a lógica da Edge Function `master-usage`
