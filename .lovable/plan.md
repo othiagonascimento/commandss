@@ -1,215 +1,127 @@
 
-# PLANO: CONSUMO DE CRÉDITOS GLOBAL, POR TENANT E POR USUÁRIO
+# PLANO: CORRIGIR FALLBACK DO master-user-full
 
-## PROBLEMA IDENTIFICADO
+## PROBLEMA RAIZ IDENTIFICADO
 
-O sistema **armazena corretamente** os créditos consumidos em 3 níveis:
-1. **api_usage_logs.credits_consumed** → cada chamada individual
-2. **user_usage.credits_consumed_month** → agregado por usuário
-3. **tenant_usage.credits_consumed** → agregado por tenant
+Os logs do Supabase confirmam:
+```
+Resource requested - {"resource":"master-user-full"}
+ERROR - {"message":"Unknown resource: master-user-full"}
+```
 
-**Porém, o Dashboard (Index.tsx) e Analytics NÃO exibem esses dados:**
-- O `APICostsWidget` calcula créditos como `totalCostBrl * 100` a partir de logs brutos (row-limit de 100)
-- Não existe agregação SQL real (RPC functions) que contorne o limite de linhas
-- O Dashboard não mostra créditos globais em nenhum card
+A Edge Function no Supabase externo **NÃO FOI ATUALIZADA** - ela ainda está com o código antigo que não tem o `case 'master-user-full'`.
+
+## POR QUE O FALLBACK NÃO FUNCIONA
+
+O problema está em **como o Supabase SDK trata status 500**:
+
+1. Quando a Edge Function retorna `500`, o SDK pode:
+   - Colocar a mensagem no `error.message`
+   - Ou colocar no `data` como JSON parseado
+   - Ou lançar uma exceção diferente
+
+2. O fallback atual verifica apenas:
+   ```typescript
+   if (msg.includes('Unknown resource: master-user-full'))
+   ```
+   
+3. Mas o erro pode vir como:
+   - `error = { message: "FunctionsHttpError" }` (genérico)
+   - `data = { error: "Unknown resource: master-user-full" }` (corpo da resposta)
+
+## SOLUÇÃO: DETECTAR ERRO DE FORMA ROBUSTA
+
+### Modificar src/hooks/usePermissions.ts
+
+Verificar o erro de múltiplas formas:
+
+```typescript
+const { data, error } = await supabase.functions.invoke('master-data', {
+  headers: { 'x-path-suffix': 'master-user-full' },
+});
+
+// Detectar erro de múltiplas formas
+const errorMessage = 
+  (error as any)?.message || 
+  (data as any)?.error ||
+  '';
+
+// Verificar se é o erro conhecido de resource não implementado
+if (errorMessage.includes('Unknown resource') || 
+    (error && data?.error)) {
+  console.log('[usePermissions] Falling back to legacy queries');
+  return await fetchConsolidatedUserDataFallback();
+}
+```
 
 ---
 
-## QUESTÃO 1: DEPLOY VIA SQL?
+## ARQUIVOS A MODIFICAR
 
-**Não é possível fazer deploy de Edge Functions via SQL.**
+| Arquivo | Mudança |
+|---------|---------|
+| `src/hooks/usePermissions.ts` | Melhorar detecção de erro para ativar fallback |
 
-Alternativas para fazer o deploy da Edge Function `master-data`:
+---
 
-### Opção A: Via Supabase Dashboard (recomendado)
-1. Acesse: https://supabase.com/dashboard/project/btoyclznuuwvxbsacemw/functions
-2. Encontre a função `master-data`
-3. Clique em "Redeploy" ou atualize manualmente o código
+## LÓGICA DE FALLBACK MELHORADA
 
-### Opção B: Via CLI local
+```typescript
+// Linha 98-128 - Substituir por:
+
+const { data, error } = await supabase.functions.invoke('master-data', {
+  headers: { 'x-path-suffix': 'master-user-full' },
+});
+
+// Check if response contains error (500 returns error in body)
+const responseError = (data as any)?.error;
+const errorMsg = (error as any)?.message || responseError || '';
+
+// Fallback for older deployed versions without master-user-full
+if (errorMsg.includes('Unknown resource') || responseError) {
+  console.log('[usePermissions] master-user-full not available, using fallback');
+  return await fetchConsolidatedUserDataFallback();
+}
+
+if (error) {
+  console.warn('[usePermissions] Error fetching consolidated user data:', error);
+  return { data: null, roles: [], permissions: [], isMasterUser: false };
+}
+
+// Success case
+return {
+  data: (data?.data as MasterUser | null) ?? null,
+  roles: ((data?.roles || []) as MasterRole[]) ?? [],
+  permissions: ((data?.permissions || []) as MasterPermission[]) ?? [],
+  isMasterUser: !!data?.isMasterUser,
+};
+```
+
+---
+
+## RESULTADO ESPERADO
+
+1. Frontend tenta `master-user-full`
+2. Edge Function retorna 500 com `{"error":"Unknown resource: master-user-full"}`
+3. Frontend detecta o erro no corpo da resposta (`data.error`)
+4. Fallback é ativado automaticamente
+5. Sistema funciona com as 3 queries legadas
+6. Quando você fizer deploy da nova Edge Function, usará automaticamente a query consolidada
+
+---
+
+## NOTA SOBRE DEPLOY
+
+O código da Edge Function local está **CORRETO** e tem o `case 'master-user-full'`. O problema é que o Supabase externo não tem esse código.
+
+Para fazer o deploy, você precisa:
+1. Acessar https://supabase.com/dashboard/project/btoyclznuuwvxbsacemw/functions
+2. Clicar na função `master-data`
+3. Clicar em "Deploy" ou atualizar o código manualmente
+
+Ou usar a CLI:
 ```bash
 npx supabase functions deploy master-data --project-ref btoyclznuuwvxbsacemw
 ```
 
-### Opção C: Via GitHub Actions (se configurado)
-Se você tem CI/CD configurado, faça push das alterações e o deploy será automático.
-
----
-
-## QUESTÃO 2: IMPLEMENTAR CONSUMO DE CRÉDITOS VISÍVEL
-
-### Solução: Criar RPC Functions no Supabase para Agregação Real
-
-Estas funções SQL retornam agregados diretamente do banco, sem limite de linhas.
-
-### 2.1 Função SQL: Créditos Globais
-
-```sql
-CREATE OR REPLACE FUNCTION get_global_credits_summary()
-RETURNS TABLE (
-  total_credits_consumed BIGINT,
-  total_cost_brl NUMERIC,
-  total_api_calls BIGINT,
-  total_tenants_with_usage BIGINT
-)
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT
-    COALESCE(SUM(credits_consumed), 0)::BIGINT as total_credits_consumed,
-    COALESCE(SUM(estimated_cost_brl), 0) as total_cost_brl,
-    COALESCE(SUM(api_calls), 0)::BIGINT as total_api_calls,
-    COUNT(DISTINCT tenant_id)::BIGINT as total_tenants_with_usage
-  FROM tenant_usage
-  WHERE period_start >= date_trunc('month', current_date);
-$$;
-```
-
-### 2.2 Função SQL: Créditos por Tenant
-
-```sql
-CREATE OR REPLACE FUNCTION get_tenant_credits_summary(tenant_id_param UUID)
-RETURNS TABLE (
-  total_credits_consumed BIGINT,
-  total_cost_brl NUMERIC,
-  total_api_calls BIGINT,
-  users_with_usage BIGINT,
-  period_start DATE,
-  period_end DATE
-)
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT
-    COALESCE(credits_consumed, 0)::BIGINT,
-    COALESCE(estimated_cost_brl, 0),
-    COALESCE(api_calls, 0)::BIGINT,
-    (SELECT COUNT(DISTINCT user_id) FROM user_usage WHERE user_usage.tenant_id = tenant_id_param)::BIGINT,
-    period_start,
-    period_end
-  FROM tenant_usage
-  WHERE tenant_id = tenant_id_param
-    AND period_start >= date_trunc('month', current_date)
-  ORDER BY period_start DESC
-  LIMIT 1;
-$$;
-```
-
-### 2.3 Função SQL: Créditos por Usuário
-
-```sql
-CREATE OR REPLACE FUNCTION get_user_credits_summary(user_id_param UUID)
-RETURNS TABLE (
-  total_credits_consumed BIGINT,
-  total_api_calls BIGINT,
-  total_tokens BIGINT,
-  billing_period_start TIMESTAMPTZ
-)
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT
-    COALESCE(credits_consumed_month, 0)::BIGINT,
-    COALESCE(api_calls_month, 0)::BIGINT,
-    COALESCE(ai_tokens_month, 0)::BIGINT,
-    billing_period_start
-  FROM user_usage
-  WHERE user_id = user_id_param
-  ORDER BY last_updated_at DESC
-  LIMIT 1;
-$$;
-```
-
-### 2.4 Função SQL: Top Consumidores (Tenants)
-
-```sql
-CREATE OR REPLACE FUNCTION get_top_credit_consumers(limit_count INT DEFAULT 10)
-RETURNS TABLE (
-  tenant_id UUID,
-  tenant_name TEXT,
-  credits_consumed BIGINT,
-  cost_brl NUMERIC,
-  api_calls BIGINT
-)
-LANGUAGE sql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT
-    tu.tenant_id,
-    t.name,
-    COALESCE(tu.credits_consumed, 0)::BIGINT,
-    COALESCE(tu.estimated_cost_brl, 0),
-    COALESCE(tu.api_calls, 0)::BIGINT
-  FROM tenant_usage tu
-  JOIN tenants t ON t.id = tu.tenant_id
-  WHERE tu.period_start >= date_trunc('month', current_date)
-  ORDER BY tu.credits_consumed DESC NULLS LAST
-  LIMIT limit_count;
-$$;
-```
-
----
-
-## ARQUIVOS A MODIFICAR NO FRONTEND
-
-### 1. Dashboard (Index.tsx) - Adicionar Card de Créditos Globais
-
-Adicionar um novo `StatCard` que mostre:
-- Total de créditos consumidos globalmente
-- Custo estimado em R$
-- Top consumidores (link para detalhes)
-
-### 2. APICostsWidget.tsx - Usar RPC ao invés de logs brutos
-
-Substituir a query atual que busca logs individuais por:
-```typescript
-const { data } = await supabase.rpc('get_global_credits_summary');
-const { data: topConsumers } = await supabase.rpc('get_top_credit_consumers', { limit_count: 5 });
-```
-
-### 3. TenantDetail.tsx - Exibir créditos do tenant
-
-Na tab Overview ou em card dedicado:
-```typescript
-const { data: credits } = await supabase.rpc('get_tenant_credits_summary', { tenant_id_param: tenantId });
-```
-
-### 4. UserUsageCard.tsx - Já funciona, mas pode usar RPC
-
-Otimizar para usar a nova função:
-```typescript
-const { data: userCredits } = await supabase.rpc('get_user_credits_summary', { user_id_param: userId });
-```
-
----
-
-## RESUMO DE AÇÕES
-
-### Ações no Supabase (SQL)
-1. Criar função `get_global_credits_summary`
-2. Criar função `get_tenant_credits_summary`
-3. Criar função `get_user_credits_summary`
-4. Criar função `get_top_credit_consumers`
-
-### Ações no Frontend (Código)
-1. Atualizar `APICostsWidget.tsx` para usar RPC
-2. Adicionar card de créditos globais no `Index.tsx`
-3. Adicionar seção de créditos no `TenantDetail.tsx`
-4. Garantir que `TenantUsageProgress.tsx` mostre os créditos corretamente (já faz)
-
-### Ação de Deploy
-1. Fazer redeploy manual da Edge Function `master-data` via Supabase Dashboard
-
----
-
-## COMO APLICAR AS FUNÇÕES SQL
-
-1. Acesse: https://supabase.com/dashboard/project/btoyclznuuwvxbsacemw/sql
-2. Cole cada função SQL e execute
-3. Teste chamando: `SELECT * FROM get_global_credits_summary();`
-
-Ou eu posso criar uma migration SQL que será aplicada automaticamente.
+Se não conseguir fazer deploy, a correção do fallback resolverá o problema temporariamente.
