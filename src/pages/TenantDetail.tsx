@@ -14,6 +14,7 @@ import {
   TenantFeatures,
   TenantUsageDetail,
 } from '@/services/masterApi';
+import { useTenantCredits } from '@/hooks/useTenantCredits';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +61,7 @@ import {
   Settings2,
   Brain,
   Briefcase,
+  Coins,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -159,6 +161,9 @@ export default function TenantDetail() {
     staleTime: 30000,
     gcTime: 60000,
   });
+
+  // Fetch tenant credits summary via RPC
+  const { data: tenantCredits, isLoading: creditsLoading } = useTenantCredits(isIdValid ? id : undefined);
 
   // Update features mutation
   const updateFeaturesMutation = useMutation({
@@ -485,7 +490,23 @@ export default function TenantDetail() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardDescription className="flex items-center gap-1">
+                    <Coins className="h-3 w-3" />
+                    Créditos Consumidos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-primary">
+                    {creditsLoading ? '...' : tenantCredits?.total_credits_consumed || 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    R$ {tenantCredits?.total_cost_brl?.toFixed(2) || '0.00'}
+                  </p>
+                </CardContent>
+              </Card>
               <Card>
                 <CardHeader className="pb-2">
                   <CardDescription>Leads</CardDescription>

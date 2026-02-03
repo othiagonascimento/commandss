@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useMasterDashboard } from '@/hooks/useMasterDashboard';
+import { useGlobalCredits } from '@/hooks/useGlobalCredits';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ import {
   UserPlus,
   Target,
   LayoutDashboard,
+  Coins,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -146,6 +148,7 @@ function CustomTooltip({ active, payload, label, valuePrefix = '', valueSuffix =
 export default function Index() {
   const [chartView, setChartView] = useState<'mrr' | 'growth' | 'activity'>('mrr');
   const { overview, revenue, timeSeries, isLoading, error, refetch } = useMasterDashboard();
+  const { data: globalCredits, isLoading: creditsLoading } = useGlobalCredits();
 
   const chartData = timeSeries?.data || [];
 
@@ -361,7 +364,14 @@ export default function Index() {
         </Card>
 
         {/* Secondary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <StatCard
+            title="Créditos Consumidos"
+            value={globalCredits ? formatNumber(globalCredits.total_credits_consumed) : '-'}
+            description={globalCredits ? `R$ ${globalCredits.total_cost_brl.toFixed(2)}` : undefined}
+            icon={Coins}
+            loading={creditsLoading}
+          />
           <StatCard
             title="Mensagens Enviadas"
             value={overview ? formatNumber(overview.usage.total_messages) : '-'}
