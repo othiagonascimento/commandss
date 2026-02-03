@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UsageAlertsWidget } from '@/components/dashboard/UsageAlertsWidget';
 import { AIInsightsWidget } from '@/components/dashboard/AIInsightsWidget';
 import { APICostsWidget } from '@/components/dashboard/APICostsWidget';
+import { CreditZonesWidget } from '@/components/dashboard/CreditZonesWidget';
 import { 
   Building2, 
   Users, 
@@ -416,10 +417,13 @@ export default function Index() {
           <AIInsightsWidget />
         </div>
 
-        {/* Usage Alerts, API Costs & Plans Distribution */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Usage Alerts, Credit Zones, API Costs & Plans Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
           {/* Usage Alerts Widget */}
           <UsageAlertsWidget />
+
+          {/* Credit Zones Widget */}
+          <CreditZonesWidget />
 
           {/* API Costs Widget */}
           <APICostsWidget />

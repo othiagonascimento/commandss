@@ -76,10 +76,10 @@ serve(async (req) => {
         throw new Error('Missing required fields: user_id, tenant_id, provider, model');
       }
 
-      // Get cost config for this model
+      // Get cost config for this model (includes layer_category)
       const { data: costConfig, error: costError } = await supabaseAdmin
         .from('api_cost_config')
-        .select('*')
+        .select('*, layer_category')
         .eq('provider', payload.provider)
         .eq('model', payload.model)
         .eq('operation', payload.operation || 'chat')
@@ -90,7 +90,52 @@ serve(async (req) => {
       let costBrl = 0;
       let usdToBrlRate = 5.50;
       let markupPercent = 0;
+      let creditsConsumed = 0;
 
+      // Determine layer category from cost config or infer from model name
+      let layerCategory = costConfig?.layer_category || 'layer_2';
+      
+      // Fallback: infer layer from model name if not configured
+      if (!costConfig?.layer_category) {
+        const modelLower = payload.model.toLowerCase();
+        if (modelLower.includes('flash') || modelLower.includes('mini') || modelLower.includes('haiku') || modelLower.includes('nano')) {
+          layerCategory = 'layer_1';
+        } else if (modelLower.includes('sonnet') || modelLower.includes('opus') || modelLower.includes('claude-3-5') || modelLower.includes('gpt-4-turbo')) {
+          layerCategory = 'layer_3';
+        }
+      }
+
+      // Get credit rate for this layer/operation from credit_rates table
+      let operationType = layerCategory;
+      if (payload.operation === 'transcription' || payload.audio_seconds) {
+        operationType = 'transcription';
+      } else if (payload.operation === 'image' || payload.image_count) {
+        operationType = 'image_generation';
+      }
+
+      const { data: creditRate } = await supabaseAdmin
+        .from('credit_rates')
+        .select('credits_per_unit')
+        .eq('operation_type', operationType)
+        .eq('is_active', true)
+        .single();
+
+      // Calculate credits based on layer rates
+      const creditsPerUnit = creditRate?.credits_per_unit || 2; // Default to layer_2 rate
+
+      if (payload.audio_seconds) {
+        // Transcription: charge per minute (round up)
+        const minutes = Math.ceil(payload.audio_seconds / 60);
+        creditsConsumed = minutes * creditsPerUnit;
+      } else if (payload.image_count) {
+        // Image generation: charge per image
+        creditsConsumed = payload.image_count * creditsPerUnit;
+      } else {
+        // Chat: charge per message (1 unit)
+        creditsConsumed = creditsPerUnit;
+      }
+
+      // Still calculate USD/BRL costs for internal tracking/reporting
       if (costConfig) {
         usdToBrlRate = costConfig.usd_to_brl_rate || 5.50;
         markupPercent = costConfig.markup_percent || 0;
@@ -110,17 +155,26 @@ serve(async (req) => {
         const costWithMarkup = costUsd * (1 + markupPercent / 100);
         costBrl = costWithMarkup * usdToBrlRate;
       } else {
-        logStep('No cost config found, using defaults', { provider: payload.provider, model: payload.model });
-        // Default fallback calculation
+        logStep('No cost config found, using layer-based credits', { 
+          provider: payload.provider, 
+          model: payload.model,
+          layer: layerCategory,
+          creditsPerUnit 
+        });
+        // Default fallback calculation for cost tracking
         const tokens = (payload.input_tokens || 0) + (payload.output_tokens || 0);
         costUsd = (tokens / 1_000_000) * 0.50; // $0.50 per 1M tokens default
         costBrl = costUsd * usdToBrlRate;
       }
-
-      // Calculate credits consumed (1 credit = R$ 0.01)
-      const creditsConsumed = Math.round(costBrl * 100);
       
-      logStep('Cost calculated', { costUsd, costBrl, creditsConsumed, usdToBrlRate, markupPercent });
+      logStep('Credits calculated', { 
+        layerCategory, 
+        operationType,
+        creditsPerUnit,
+        creditsConsumed, 
+        costUsd, 
+        costBrl 
+      });
 
       // Insert usage log with credits
       const { data: usageLog, error: insertError } = await supabaseAdmin
@@ -142,7 +196,10 @@ serve(async (req) => {
           latency_ms: payload.latency_ms,
           success: payload.success ?? true,
           error_message: payload.error_message,
-          metadata: payload.metadata || {},
+          metadata: {
+            ...payload.metadata,
+            layer_category: layerCategory,
+          },
         })
         .select()
         .single();
@@ -218,7 +275,7 @@ serve(async (req) => {
             ai_tokens_used: (existingTenantUsage.ai_tokens_used || 0) + totalTokens,
             api_calls: (existingTenantUsage.api_calls || 0) + 1,
             estimated_cost_brl: (parseFloat(existingTenantUsage.estimated_cost_brl) || 0) + costBrl,
-            credits_consumed: (existingTenantUsage.credits_consumed || 0) + creditsConsumed,
+            ai_credits_used: (existingTenantUsage.ai_credits_used || 0) + creditsConsumed,
             last_calculated_at: new Date().toISOString(),
           })
           .eq('id', existingTenantUsage.id);
@@ -236,7 +293,7 @@ serve(async (req) => {
             ai_tokens_used: totalTokens,
             api_calls: 1,
             estimated_cost_brl: costBrl,
-            credits_consumed: creditsConsumed,
+            ai_credits_used: creditsConsumed,
           });
 
         if (insertTenantError) {
@@ -244,12 +301,14 @@ serve(async (req) => {
         }
       }
 
-      logStep('Usage logged successfully', { logId: usageLog.id });
+      logStep('Usage logged successfully', { logId: usageLog.id, creditsConsumed });
 
       return new Response(JSON.stringify({
         success: true,
         log: usageLog,
         cost: { usd: costUsd, brl: costBrl },
+        credits: creditsConsumed,
+        layer: layerCategory,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -284,17 +343,19 @@ serve(async (req) => {
       const totalCostBrl = data?.reduce((sum, log) => sum + parseFloat(log.cost_brl || 0), 0) || 0;
       const totalCostUsd = data?.reduce((sum, log) => sum + parseFloat(log.cost_usd || 0), 0) || 0;
       const totalTokens = data?.reduce((sum, log) => sum + (log.total_tokens || 0), 0) || 0;
+      const totalCredits = data?.reduce((sum, log) => sum + (log.credits_consumed || 0), 0) || 0;
 
       // Group by provider
       const byProvider = data?.reduce((acc, log) => {
         if (!acc[log.provider]) {
-          acc[log.provider] = { count: 0, tokens: 0, costBrl: 0 };
+          acc[log.provider] = { count: 0, tokens: 0, costBrl: 0, credits: 0 };
         }
         acc[log.provider].count++;
         acc[log.provider].tokens += log.total_tokens || 0;
         acc[log.provider].costBrl += parseFloat(log.cost_brl || 0);
+        acc[log.provider].credits += log.credits_consumed || 0;
         return acc;
-      }, {} as Record<string, { count: number; tokens: number; costBrl: number }>);
+      }, {} as Record<string, { count: number; tokens: number; costBrl: number; credits: number }>);
 
       return new Response(JSON.stringify({
         logs: data,
@@ -303,6 +364,7 @@ serve(async (req) => {
           totalTokens,
           totalCostUsd,
           totalCostBrl,
+          totalCredits,
           byProvider,
         },
       }), {

@@ -1,10 +1,10 @@
 -- =====================================================
--- FUNÇÕES RPC DE AGREGAÇÃO DE CRÉDITOS (v2 - CORRIGIDO)
+-- FUNÇÕES RPC DE AGREGAÇÃO DE CRÉDITOS (v3 - ai_credits_used)
 -- Execute este SQL no Supabase Dashboard (SQL Editor)
 -- Projeto: btoyclznuuwvxbsacemw
 -- =====================================================
--- IMPORTANTE: Variáveis locais usam prefixo v_ para evitar
--- ambiguidade com colunas de tabela (erro 42702)
+-- IMPORTANTE: Atualizado para usar ai_credits_used em vez de credits_consumed
+-- A coluna credits_consumed foi depreciada em favor de ai_credits_used
 -- =====================================================
 
 -- Limpa versões anteriores para evitar conflitos
@@ -29,7 +29,7 @@ DECLARE
 BEGIN
   RETURN QUERY
   SELECT 
-    COALESCE(SUM(tu.credits_consumed), 0)::BIGINT,
+    COALESCE(SUM(tu.ai_credits_used), 0)::BIGINT,
     COALESCE(SUM(tu.estimated_cost_brl), 0.00)::NUMERIC,
     COALESCE(SUM(tu.api_calls), 0)::BIGINT,
     COUNT(DISTINCT tu.tenant_id)::BIGINT
@@ -60,20 +60,20 @@ BEGIN
   SELECT 
     tu.tenant_id,
     COALESCE(t.name, 'Desconhecido')::TEXT,
-    COALESCE(tu.credits_consumed, 0)::BIGINT,
+    COALESCE(tu.ai_credits_used, 0)::BIGINT,
     COALESCE(tu.estimated_cost_brl, 0.00)::NUMERIC,
     COALESCE(tu.api_calls, 0)::BIGINT
   FROM public.tenant_usage tu
   LEFT JOIN public.tenants t ON t.id = tu.tenant_id
   WHERE tu.period_start >= v_period_start
-  ORDER BY tu.credits_consumed DESC NULLS LAST
+  ORDER BY tu.ai_credits_used DESC NULLS LAST
   LIMIT limit_count;
 END;
 $$;
 
 -- 3. get_tenant_credits_summary: Resume consumo de um tenant específico
 CREATE OR REPLACE FUNCTION public.get_tenant_credits_summary(
-  tenant_id_param UUID
+  p_tenant_id UUID
 )
 RETURNS TABLE (
   total_credits_consumed BIGINT,
@@ -93,17 +93,17 @@ DECLARE
 BEGIN
   RETURN QUERY
   SELECT 
-    COALESCE(SUM(tu.credits_consumed), 0)::BIGINT,
+    COALESCE(SUM(tu.ai_credits_used), 0)::BIGINT,
     COALESCE(SUM(tu.estimated_cost_brl), 0.00)::NUMERIC,
     COALESCE(SUM(tu.api_calls), 0)::BIGINT,
     (SELECT COUNT(DISTINCT uu.user_id) 
      FROM public.user_usage uu 
-     WHERE uu.tenant_id = tenant_id_param 
+     WHERE uu.tenant_id = p_tenant_id 
      AND uu.credits_consumed_month > 0)::BIGINT,
     v_p_start,
     v_p_end
   FROM public.tenant_usage tu
-  WHERE tu.tenant_id = tenant_id_param
+  WHERE tu.tenant_id = p_tenant_id
   AND tu.period_start >= v_p_start;
 END;
 $$;

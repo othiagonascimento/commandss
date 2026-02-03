@@ -18,7 +18,7 @@ export function useTenantCredits(tenantId: string | undefined) {
       // Using type cast since RPC functions are on external Supabase
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase.rpc as any)('get_tenant_credits_summary', { 
-        tenant_id_param: tenantId 
+        p_tenant_id: tenantId 
       });
       if (error) throw error;
       const result = data as unknown as TenantCreditsSummary[];
