@@ -212,6 +212,18 @@ export const usageApi = {
   
   recalculate: (tenantId: string) =>
     callMasterApi<{ success: boolean; usage: unknown }>('master-usage', 'POST', `${tenantId}/recalculate`),
+  
+  // NEW: Dashboard endpoints for external Supabase data
+  getZones: () =>
+    callMasterApi<ZonesSummaryResponse>('master-usage', 'GET', 'zones'),
+  
+  getGlobalSummary: (periodStart?: string, periodEnd?: string) => {
+    const params = new URLSearchParams();
+    if (periodStart) params.set('periodStart', periodStart);
+    if (periodEnd) params.set('periodEnd', periodEnd);
+    const query = params.toString();
+    return callMasterApi<GlobalCreditsSummaryResponse>('master-usage', 'GET', query ? `global-summary?${query}` : 'global-summary');
+  },
 };
 
 // ============================================
@@ -691,6 +703,35 @@ export interface UsageAlertsResponse {
     alerts: string[];
   }[];
   total: number;
+}
+
+// NEW: Dashboard Zones Summary Response
+export interface ZonesSummaryResponse {
+  zones: {
+    green: number;
+    yellow: number;
+    red: number;
+  };
+  degradedTenants: {
+    tenant_id: string;
+    tenant_name: string;
+    credits_used: number;
+    credits_limit: number;
+    usage_percent: number;
+    zone: string;
+    is_degraded: boolean;
+  }[];
+  totalTenants: number;
+}
+
+// NEW: Global Credits Summary Response
+export interface GlobalCreditsSummaryResponse {
+  total_credits_consumed: number;
+  total_cost_brl: number;
+  total_api_calls: number;
+  total_tenants_with_usage: number;
+  period_start: string;
+  period_end: string;
 }
 
 // ============================================

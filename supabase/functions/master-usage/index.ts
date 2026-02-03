@@ -77,6 +77,213 @@ Deno.serve(async (req) => {
 
     console.log(`[master-usage] ${req.method} tenantId=${tenantId} subPath=${subPath} pathSuffix=${pathSuffix}`);
 
+    // GET /master-usage/zones - Get credit zones summary for all tenants (DASHBOARD)
+    if (req.method === 'GET' && tenantId === 'zones') {
+      console.log('[master-usage] Fetching credit zones summary...');
+      
+      // Get current period dates
+      const now = new Date();
+      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      
+      // 1. Fetch all active tenants
+      const { data: tenants, error: tenantsError } = await supabase
+        .from('tenants')
+        .select('id, name')
+        .eq('is_active', true);
+      
+      if (tenantsError) {
+        console.error('[master-usage] Error fetching tenants:', tenantsError);
+        return new Response(JSON.stringify({ error: tenantsError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const tenantIds = (tenants || []).map(t => t.id);
+      console.log('[master-usage] Found tenants:', tenantIds.length);
+
+      if (tenantIds.length === 0) {
+        return new Response(JSON.stringify({ 
+          zones: { green: 0, yellow: 0, red: 0 }, 
+          degradedTenants: [],
+          totalTenants: 0 
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // 2. Fetch tenant_usage for current period
+      const { data: usages } = await supabase
+        .from('tenant_usage')
+        .select('tenant_id, ai_credits_used, credits_consumed')
+        .in('tenant_id', tenantIds)
+        .lte('period_start', now.toISOString())
+        .gte('period_end', now.toISOString());
+      
+      console.log('[master-usage] Found usages:', usages?.length || 0);
+
+      // 3. Fetch tenant_features separately
+      const { data: features } = await supabase
+        .from('tenant_features')
+        .select('tenant_id, credits_per_user')
+        .in('tenant_id', tenantIds);
+
+      const featuresMap = (features || []).reduce((acc, f) => {
+        if (f.tenant_id) acc[f.tenant_id] = f;
+        return acc;
+      }, {} as Record<string, { credits_per_user: number | null }>);
+      
+      console.log('[master-usage] Found features:', features?.length || 0);
+
+      // 4. Count users per tenant
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .in('tenant_id', tenantIds);
+
+      const usersPerTenant = (profiles || []).reduce((acc, p) => {
+        if (p.tenant_id) acc[p.tenant_id] = (acc[p.tenant_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      console.log('[master-usage] Users per tenant map entries:', Object.keys(usersPerTenant).length);
+
+      // Create maps for quick lookup
+      const tenantsMap = (tenants || []).reduce((acc, t) => {
+        acc[t.id] = t;
+        return acc;
+      }, {} as Record<string, { id: string; name: string }>);
+
+      const usagesMap = (usages || []).reduce((acc, u) => {
+        if (u.tenant_id) acc[u.tenant_id] = u;
+        return acc;
+      }, {} as Record<string, { ai_credits_used: number | null; credits_consumed: number | null }>);
+
+      // 5. Calculate zones
+      let green = 0;
+      let yellow = 0;
+      let red = 0;
+      const degradedTenants: Array<{
+        tenant_id: string;
+        tenant_name: string;
+        credits_used: number;
+        credits_limit: number;
+        usage_percent: number;
+        zone: string;
+        is_degraded: boolean;
+      }> = [];
+
+      tenantIds.forEach((tenantId) => {
+        const tenant = tenantsMap[tenantId];
+        const usage = usagesMap[tenantId];
+        const feature = featuresMap[tenantId];
+
+        const creditsUsed = usage?.ai_credits_used || usage?.credits_consumed || 0;
+        const creditsPerUser = feature?.credits_per_user || 500;
+        const usersCount = usersPerTenant[tenantId] || 1;
+        const creditsLimit = creditsPerUser * Math.max(usersCount, 1);
+        const usagePercent = creditsLimit > 0 ? (creditsUsed / creditsLimit) * 100 : 0;
+
+        if (usagePercent <= 100) {
+          green++;
+        } else if (usagePercent <= 115) {
+          yellow++;
+        } else {
+          red++;
+          degradedTenants.push({
+            tenant_id: tenantId,
+            tenant_name: tenant?.name || 'Sem nome',
+            credits_used: creditsUsed,
+            credits_limit: creditsLimit,
+            usage_percent: usagePercent,
+            zone: 'red',
+            is_degraded: true,
+          });
+        }
+      });
+
+      // Sort degraded by usage percent
+      degradedTenants.sort((a, b) => b.usage_percent - a.usage_percent);
+
+      console.log('[master-usage] Zones calculated:', { green, yellow, red, degraded: degradedTenants.length });
+
+      return new Response(JSON.stringify({
+        zones: { green, yellow, red },
+        degradedTenants,
+        totalTenants: tenantIds.length,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // GET /master-usage/global-summary - Get global credits summary (DASHBOARD)
+    if (req.method === 'GET' && tenantId === 'global-summary') {
+      console.log('[master-usage] Fetching global credits summary...');
+      
+      const urlParams = new URL(req.url).searchParams;
+      const periodStart = urlParams.get('periodStart');
+      const periodEnd = urlParams.get('periodEnd');
+
+      // Default to current month if no period specified
+      const now = new Date();
+      const startDate = periodStart || new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const endDate = periodEnd || new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+      // Sum credits from tenant_usage for the period
+      const { data: usages, error: usagesError } = await supabase
+        .from('tenant_usage')
+        .select('tenant_id, ai_credits_used, credits_consumed')
+        .gte('period_start', startDate.split('T')[0])
+        .lte('period_end', endDate.split('T')[0]);
+
+      if (usagesError) {
+        console.error('[master-usage] Error fetching usages:', usagesError);
+        return new Response(JSON.stringify({ error: usagesError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Aggregate totals
+      let totalCredits = 0;
+      let totalCost = 0;
+      const uniqueTenants = new Set<string>();
+
+      (usages || []).forEach(u => {
+        const credits = u.ai_credits_used || u.credits_consumed || 0;
+        totalCredits += credits;
+        // Estimate cost at R$0.02 per credit (can be adjusted)
+        totalCost += credits * 0.02;
+        if (u.tenant_id) uniqueTenants.add(u.tenant_id);
+      });
+
+      // Count API calls from api_usage_logs if available
+      const { count: apiCalls } = await supabase
+        .from('api_usage_logs')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+
+      const result = {
+        total_credits_consumed: totalCredits,
+        total_cost_brl: totalCost,
+        total_api_calls: apiCalls || 0,
+        total_tenants_with_usage: uniqueTenants.size,
+        period_start: startDate,
+        period_end: endDate,
+      };
+
+      console.log('[master-usage] Global summary:', result);
+
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // GET /master-usage/:tenantId - Get tenant usage with limits comparison
     if (req.method === 'GET' && tenantId && !subPath) {
       // Get tenant features (limits) from local database

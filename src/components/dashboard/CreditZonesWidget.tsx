@@ -11,7 +11,6 @@ import {
   AlertCircle,
   TrendingDown,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface TenantCreditStatus {
   tenant_id: string;
@@ -24,121 +23,34 @@ interface TenantCreditStatus {
 }
 
 interface ZoneSummary {
-  green: number;
-  yellow: number;
-  red: number;
+  zones: {
+    green: number;
+    yellow: number;
+    red: number;
+  };
   degradedTenants: TenantCreditStatus[];
+  totalTenants: number;
 }
 
 export function CreditZonesWidget() {
   const { data: zoneSummary, isLoading, error } = useQuery({
     queryKey: ['credit-zones-summary'],
     queryFn: async (): Promise<ZoneSummary> => {
-      // Get all tenant usage for current period using flexible date range
-      const today = new Date().toISOString().split('T')[0];
-      
-      // 1. Query tenant_usage with tenant info ONLY (no FK to tenant_features)
-      const { data: tenantUsages, error: usageError } = await supabase
-        .from('tenant_usage')
-        .select(`
-          tenant_id,
-          ai_credits_used,
-          tenants:tenant_id (
-            id,
-            name
-          )
-        `)
-        .lte('period_start', today)
-        .gte('period_end', today);
-
-      if (usageError) throw usageError;
-
-      // Get unique tenant IDs
-      const tenantIds = (tenantUsages || [])
-        .map((u) => u.tenant_id)
-        .filter((id): id is string => !!id);
-
-      if (tenantIds.length === 0) {
-        return { green: 0, yellow: 0, red: 0, degradedTenants: [] };
-      }
-
-      // 2. Fetch tenant_features SEPARATELY (no join)
-      const { data: features } = await supabase
-        .from('tenant_features')
-        .select('tenant_id, credits_per_user')
-        .in('tenant_id', tenantIds);
-
-      // Create a map for quick lookup
-      const featuresMap = (features || []).reduce((acc, f) => {
-        if (f.tenant_id) {
-          acc[f.tenant_id] = f;
-        }
-        return acc;
-      }, {} as Record<string, { tenant_id: string; credits_per_user: number | null }>);
-
-      // 3. Fetch user counts per tenant from profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .in('tenant_id', tenantIds);
-
-      const usersPerTenant = (profiles || []).reduce((acc, p) => {
-        if (p.tenant_id) {
-          acc[p.tenant_id] = (acc[p.tenant_id] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
-
-      // Calculate zones
-      let green = 0;
-      let yellow = 0;
-      let red = 0;
-      const degradedTenants: TenantCreditStatus[] = [];
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (tenantUsages || []).forEach((usage: any) => {
-        const tenant = usage.tenants;
-        if (!tenant) return;
-
-        // Get features from the separate map (not from join)
-        const tenantFeatures = featuresMap[usage.tenant_id];
-
-        const creditsUsed = usage.ai_credits_used || 0;
-        // Limite = credits_per_user × número de usuários (mínimo 1)
-        const creditsPerUser = tenantFeatures?.credits_per_user || 500;
-        const usersCount = usersPerTenant[usage.tenant_id] || 1;
-        const creditsLimit = creditsPerUser * Math.max(usersCount, 1);
-        const usagePercent = creditsLimit > 0 ? (creditsUsed / creditsLimit) * 100 : 0;
-        
-        let zone: 'green' | 'yellow' | 'red' = 'green';
-        let isDegraded = false;
-
-        if (usagePercent <= 100) {
-          zone = 'green';
-          green++;
-        } else if (usagePercent <= 115) {
-          zone = 'yellow';
-          yellow++;
-        } else {
-          zone = 'red';
-          red++;
-          isDegraded = true;
-          degradedTenants.push({
-            tenant_id: tenant.id,
-            tenant_name: tenant.name || 'Sem nome',
-            credits_used: creditsUsed,
-            credits_limit: creditsLimit,
-            usage_percent: usagePercent,
-            zone,
-            is_degraded: isDegraded,
-          });
-        }
+      // Call Edge Function to get zones from external Supabase
+      const { data, error } = await supabase.functions.invoke('master-usage', {
+        headers: { 'x-path-suffix': 'zones' },
       });
 
-      // Sort degraded tenants by usage percent (highest first)
-      degradedTenants.sort((a, b) => b.usage_percent - a.usage_percent);
+      if (error) {
+        console.error('[CreditZonesWidget] Edge function error:', error);
+        throw new Error(error.message || 'Erro ao carregar zonas de crédito');
+      }
 
-      return { green, yellow, red, degradedTenants };
+      if (!data) {
+        return { zones: { green: 0, yellow: 0, red: 0 }, degradedTenants: [], totalTenants: 0 };
+      }
+
+      return data as ZoneSummary;
     },
     refetchInterval: 60000, // Refresh every minute
     staleTime: 30000,
@@ -173,7 +85,9 @@ export function CreditZonesWidget() {
     );
   }
 
-  const totalTenants = (zoneSummary?.green || 0) + (zoneSummary?.yellow || 0) + (zoneSummary?.red || 0);
+  const totalTenants = zoneSummary?.totalTenants || 0;
+  const zones = zoneSummary?.zones || { green: 0, yellow: 0, red: 0 };
+  const degradedTenants = zoneSummary?.degradedTenants || [];
 
   return (
     <Card>
@@ -198,7 +112,7 @@ export function CreditZonesWidget() {
           <div className="flex flex-col items-center p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mb-1" />
             <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-              {zoneSummary?.green || 0}
+              {zones.green}
             </span>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Verde</span>
             <span className="text-[10px] text-emerald-500 dark:text-emerald-500">0-100%</span>
@@ -208,7 +122,7 @@ export function CreditZonesWidget() {
           <div className="flex flex-col items-center p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
             <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mb-1" />
             <span className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-              {zoneSummary?.yellow || 0}
+              {zones.yellow}
             </span>
             <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">Amarelo</span>
             <span className="text-[10px] text-amber-500 dark:text-amber-500">100-115%</span>
@@ -218,7 +132,7 @@ export function CreditZonesWidget() {
           <div className="flex flex-col items-center p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
             <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mb-1" />
             <span className="text-2xl font-bold text-red-700 dark:text-red-300">
-              {zoneSummary?.red || 0}
+              {zones.red}
             </span>
             <span className="text-xs text-red-600 dark:text-red-400 font-medium">Vermelho</span>
             <span className="text-[10px] text-red-500 dark:text-red-500">&gt;115%</span>
@@ -226,17 +140,17 @@ export function CreditZonesWidget() {
         </div>
 
         {/* Degraded Tenants List */}
-        {zoneSummary?.degradedTenants && zoneSummary.degradedTenants.length > 0 && (
+        {degradedTenants.length > 0 && (
           <div className="border-t pt-3">
             <div className="flex items-center gap-2 mb-2">
               <TrendingDown className="h-4 w-4 text-red-500" />
               <span className="text-sm font-medium text-red-700 dark:text-red-400">
-                Tenants em modo degradado ({zoneSummary.degradedTenants.length})
+                Tenants em modo degradado ({degradedTenants.length})
               </span>
             </div>
             <ScrollArea className="h-[100px]">
               <div className="space-y-2">
-                {zoneSummary.degradedTenants.slice(0, 5).map((tenant) => (
+                {degradedTenants.slice(0, 5).map((tenant) => (
                   <div 
                     key={tenant.tenant_id}
                     className="flex items-center justify-between text-sm p-2 rounded bg-red-50 dark:bg-red-950/20"
@@ -258,7 +172,7 @@ export function CreditZonesWidget() {
         )}
 
         {/* All Good State */}
-        {(!zoneSummary?.degradedTenants || zoneSummary.degradedTenants.length === 0) && (
+        {degradedTenants.length === 0 && (
           <div className="border-t pt-3">
             <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="h-4 w-4" />
