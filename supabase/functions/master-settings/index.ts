@@ -165,6 +165,117 @@ serve(async (req) => {
       );
     }
 
+    // POST /master-settings - Actions (sync-to-crm, etc)
+    if (method === 'POST') {
+      const body = await req.json();
+      
+      if (body.action === 'sync-to-crm') {
+        logStep('Starting sync-to-crm action');
+        
+        // 1. Get local AI settings
+        const { data: localSettings, error: fetchError } = await supabaseAdmin
+          .from('master_settings')
+          .select('*')
+          .eq('key', 'ai_global_engine')
+          .single();
+        
+        if (fetchError || !localSettings) {
+          logStep('Failed to fetch local AI settings', { error: fetchError?.message });
+          return new Response(
+            JSON.stringify({ success: false, error: 'AI settings not found locally' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        logStep('Local AI settings fetched', {
+          hasLayer1: !!localSettings.ai_layer_1_model,
+          hasLayer2: !!localSettings.ai_layer_2_model,
+          hasLayer3: !!localSettings.ai_layer_3_model,
+        });
+        
+        // 2. Connect to CRM (external Supabase)
+        const crmUrl = Deno.env.get('REMOTE_SUPABASE_URL');
+        const crmKey = Deno.env.get('REMOTE_SUPABASE_SERVICE_ROLE_KEY');
+        
+        if (!crmUrl || !crmKey) {
+          logStep('CRM credentials not configured');
+          return new Response(
+            JSON.stringify({ success: false, error: 'CRM credentials not configured' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        const crmSupabase = createClient(crmUrl, crmKey, {
+          auth: { persistSession: false }
+        });
+        
+        // 3. Upsert to CRM with Master Tenant ID
+        const MASTER_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+        
+        const upsertData = {
+          key: 'ai_global_engine',
+          tenant_id: MASTER_TENANT_ID,
+          category: 'ai',
+          value: {},
+          ai_layer_1_model: localSettings.ai_layer_1_model || null,
+          ai_layer_1_instructions: localSettings.ai_layer_1_instructions || null,
+          ai_layer_2_model: localSettings.ai_layer_2_model || null,
+          ai_layer_2_instructions: localSettings.ai_layer_2_instructions || null,
+          ai_layer_3_model: localSettings.ai_layer_3_model || null,
+          ai_layer_3_instructions: localSettings.ai_layer_3_instructions || null,
+          ai_layer_1_cost: localSettings.ai_layer_1_cost || 0,
+          ai_layer_2_cost: localSettings.ai_layer_2_cost || 0,
+          ai_layer_3_cost: localSettings.ai_layer_3_cost || 0,
+          updated_at: new Date().toISOString(),
+        };
+        
+        logStep('Upserting to CRM', { 
+          tenantId: MASTER_TENANT_ID,
+          l1InstructionsLength: upsertData.ai_layer_1_instructions?.length || 0,
+          l2InstructionsLength: upsertData.ai_layer_2_instructions?.length || 0,
+          l3InstructionsLength: upsertData.ai_layer_3_instructions?.length || 0,
+        });
+        
+        const { data: crmResult, error: crmError } = await crmSupabase
+          .from('master_settings')
+          .upsert(upsertData, { onConflict: 'key,tenant_id' })
+          .select()
+          .single();
+        
+        if (crmError) {
+          logStep('CRM upsert failed', { error: crmError.message, code: crmError.code });
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `CRM sync failed: ${crmError.message}`,
+              details: crmError
+            }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        logStep('CRM sync successful', { crmRecordId: crmResult?.id });
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'AI settings synchronized to CRM',
+            data: {
+              layers_synced: 3,
+              crm_record_id: crmResult?.id,
+            }
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // Unknown POST action
+      return new Response(
+        JSON.stringify({ error: 'Unknown action' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // PUT /master-settings - Update settings (bulk)
     if (method === 'PUT') {
       const body = await req.json();

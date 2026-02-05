@@ -735,6 +735,20 @@ export interface GlobalCreditsSummaryResponse {
 }
 
 // ============================================
+// Settings API - for global settings sync
+// ============================================
+export const settingsApi = {
+  syncAISettingsToCRM: async (): Promise<ApiResponse<{ success: boolean; message: string; data?: unknown }>> => {
+    const { data, error } = await supabase.functions.invoke('master-settings', {
+      method: 'POST',
+      body: { action: 'sync-to-crm' },
+    });
+    if (error) return { data: null, error: error.message };
+    return { data: data as { success: boolean; message: string; data?: unknown }, error: null };
+  },
+};
+
+// ============================================
 // Domains API - for tenant domain resolution
 // ============================================
 export const domainsApi = {
