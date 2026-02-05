@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { useGroupedModels } from '@/hooks/useAvailableModels';
 import { ModelCatalogManager } from '@/components/ai-engine/ModelCatalogManager';
+import { settingsApi } from '@/services/masterApi';
 import { 
   Settings as SettingsIcon,
   Bell,
@@ -82,6 +83,9 @@ export default function Settings() {
     follow_up_rules_base: '',
   });
   const [isSavingBasePrompts, setIsSavingBasePrompts] = useState(false);
+  
+  // CRM Sync
+  const [isSyncingToCRM, setIsSyncingToCRM] = useState(false);
 
   // Load AI Engine settings
   const { data: aiEngineSettings, isLoading: isLoadingAiSettings, refetch: refetchAiSettings } = useQuery({
@@ -445,17 +449,47 @@ export default function Settings() {
                       Configure os modelos e instruções de IA que afetam todos os tenants
                     </p>
                   </div>
-                  <Button 
-                    onClick={() => saveAiEngineMutation.mutate()}
-                    disabled={isSavingAiEngine}
-                  >
-                    {isSavingAiEngine ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4 mr-2" />
-                    )}
-                    Salvar Configurações
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => saveAiEngineMutation.mutate()}
+                      disabled={isSavingAiEngine}
+                    >
+                      {isSavingAiEngine ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      Salvar Configurações
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={async () => {
+                        setIsSyncingToCRM(true);
+                        try {
+                          const result = await settingsApi.syncAISettingsToCRM();
+                          if (result.error) {
+                            toast.error(`Erro ao sincronizar: ${result.error}`);
+                          } else if (result.data?.success) {
+                            toast.success('Configurações sincronizadas com o CRM!');
+                          } else {
+                            toast.error(result.data?.message || 'Erro desconhecido');
+                          }
+                        } catch (err) {
+                          toast.error(`Erro: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
+                        } finally {
+                          setIsSyncingToCRM(false);
+                        }
+                      }}
+                      disabled={isSyncingToCRM}
+                    >
+                      {isSyncingToCRM ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                      )}
+                      Sincronizar com CRM
+                    </Button>
+                  </div>
                 </div>
 
                 {isLoadingAiSettings ? (
