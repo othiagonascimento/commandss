@@ -319,9 +319,9 @@ serve(async (req) => {
         );
       }
 
-      logStep('Welcome email resent successfully', { email: userEmail });
+      logStep('Welcome email resent successfully', { email: userEmail, resendId: emailResult.id });
       return new Response(
-        JSON.stringify({ success: true, message: 'Email de boas-vindas reenviado', temp_password: newTempPassword }),
+        JSON.stringify({ success: true, message: 'Email de boas-vindas reenviado', temp_password: newTempPassword, resend_id: emailResult.id }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
