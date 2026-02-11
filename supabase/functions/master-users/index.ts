@@ -253,10 +253,12 @@ serve(async (req) => {
       const body = await req.json();
       logStep('Creating user', { email: body.email, role: body.role, tenantId });
 
+      const fullName = String(body.full_name || body.name || '').trim();
+
       // Validate required fields
-      if (!body.email || !body.password) {
+      if (!body.email || !body.password || !fullName) {
         return new Response(
-          JSON.stringify({ error: 'Email and password are required' }),
+          JSON.stringify({ error: 'Email, nome e senha são obrigatórios' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -281,7 +283,8 @@ serve(async (req) => {
         password: body.password,
         email_confirm: true,
         user_metadata: {
-          full_name: body.full_name || body.name,
+          full_name: fullName,
+          name: fullName,
           tenant_id: tenantId,
           role: appRole,
         },
@@ -308,7 +311,8 @@ serve(async (req) => {
         .upsert({
           id: authUser.id,
           tenant_id: tenantId,
-          full_name: body.full_name || body.name,
+          full_name: fullName,
+          name: fullName,
           is_active: true,
         }, { onConflict: 'id' });
 

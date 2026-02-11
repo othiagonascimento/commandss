@@ -24,18 +24,40 @@ async function callMasterApi<T>(
       headers['x-path-suffix'] = pathSuffix;
     }
 
-    const { data, error } = await supabase.functions.invoke(functionName, {
+    const { data, error, response } = await supabase.functions.invoke(functionName, {
       method,
       headers,
       body: requestBody || undefined,
     });
 
     if (error) {
-      // Extract real error message from response body when available
-      const realMessage = typeof data === 'object' && data !== null && (data as Record<string, unknown>)?.error
-        ? String((data as Record<string, unknown>).error)
-        : error.message;
-      console.error('[MasterAPI] Error:', { error: error.message, realMessage, data });
+      // For non-2xx responses, `data` is null and the real body is on `response`
+      let responseBody: unknown = null;
+      try {
+        if (response) {
+          const contentType = response.headers.get('Content-Type') || '';
+          const cloned = response.clone();
+          responseBody = contentType.includes('application/json') ? await cloned.json() : await cloned.text();
+        }
+      } catch {
+        // ignore body parsing errors
+      }
+
+      const bodyError =
+        typeof responseBody === 'object' && responseBody !== null && 'error' in (responseBody as Record<string, unknown>)
+          ? String((responseBody as Record<string, unknown>).error)
+          : null;
+
+      const realMessage = bodyError || error.message;
+
+      console.error('[MasterAPI] Error:', {
+        name: (error as Error).name,
+        error: (error as Error).message,
+        status: response?.status,
+        realMessage,
+        responseBody,
+      });
+
       return { data: null, error: realMessage };
     }
 
