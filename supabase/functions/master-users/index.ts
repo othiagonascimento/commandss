@@ -3,6 +3,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 declare const EdgeRuntime: { waitUntil: (promise: Promise<unknown>) => void };
 
+// Remote CRM Supabase (where tenants operate)
+const REMOTE_SUPABASE_URL = Deno.env.get('REMOTE_SUPABASE_URL') || '';
+const REMOTE_SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('REMOTE_SUPABASE_SERVICE_ROLE_KEY') || '';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -74,6 +78,11 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     { auth: { persistSession: false } }
   );
+
+  // Remote CRM client (for dual-write)
+  const crmSupabase = REMOTE_SUPABASE_URL && REMOTE_SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(REMOTE_SUPABASE_URL, REMOTE_SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+    : null;
 
   try {
     // Verify auth
@@ -356,6 +365,55 @@ serve(async (req) => {
         }
       }
 
+      // ===== DUAL-WRITE: Create user in CRM =====
+      if (crmSupabase) {
+        try {
+          logStep('Creating user in CRM (dual-write)', { email: body.email, tenantId });
+
+          // Create auth user in CRM with same metadata
+          const { data: crmAuthData, error: crmAuthError } = await crmSupabase.auth.admin.createUser({
+            email: body.email,
+            password: body.password,
+            email_confirm: true,
+            user_metadata: {
+              full_name: fullName,
+              name: fullName,
+              tenant_id: tenantId,
+              role: appRole,
+            },
+          });
+
+          if (crmAuthError) {
+            logStep('CRM user creation failed (non-blocking)', { error: crmAuthError.message });
+          } else {
+            logStep('CRM user created successfully', { crmUserId: crmAuthData.user?.id });
+
+            // Upsert profile in CRM (trigger may handle it, but ensure consistency)
+            if (crmAuthData.user) {
+              await crmSupabase.from('profiles').upsert({
+                id: crmAuthData.user.id,
+                tenant_id: tenantId,
+                full_name: fullName,
+                name: fullName,
+                email: body.email,
+                is_active: true,
+              }, { onConflict: 'id' });
+
+              // Upsert role in CRM
+              await crmSupabase.from('user_roles').upsert({
+                user_id: crmAuthData.user.id,
+                tenant_id: tenantId,
+                role: appRole,
+              }, { onConflict: 'user_id,tenant_id' });
+
+              logStep('CRM profile and role synced');
+            }
+          }
+        } catch (crmErr) {
+          logStep('CRM dual-write error (non-blocking)', { error: crmErr instanceof Error ? crmErr.message : crmErr });
+        }
+      }
+
       // Send welcome email in background (non-blocking)
       EdgeRuntime.waitUntil(sendWelcomeEmail(
         body.email,
@@ -443,6 +501,51 @@ serve(async (req) => {
           );
         }
         logStep('Password updated successfully');
+      }
+
+      // ===== DUAL-WRITE: Sync edits to CRM =====
+      if (crmSupabase) {
+        try {
+          logStep('Syncing user edits to CRM', { targetUserId, tenantId });
+
+          // Find CRM user by email
+          const { data: masterAuth } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
+          const userEmail = masterAuth?.user?.email;
+
+          if (userEmail) {
+            const { data: { users: crmUsers } } = await crmSupabase.auth.admin.listUsers({ filter: userEmail });
+            const crmUser = crmUsers?.find(u => u.email === userEmail);
+
+            if (crmUser) {
+              // Sync profile
+              if (body.full_name || body.name) {
+                const nameVal = body.full_name || body.name;
+                await crmSupabase.from('profiles')
+                  .update({ full_name: nameVal, name: nameVal })
+                  .eq('id', crmUser.id)
+                  .eq('tenant_id', tenantId);
+              }
+
+              // Sync role
+              if (body.role) {
+                const appRoleSync = mapToValidRole(body.role);
+                await crmSupabase.from('user_roles')
+                  .upsert({ user_id: crmUser.id, tenant_id: tenantId, role: appRoleSync }, { onConflict: 'user_id,tenant_id' });
+              }
+
+              // Sync password
+              if (body.password) {
+                await crmSupabase.auth.admin.updateUserById(crmUser.id, { password: body.password });
+              }
+
+              logStep('CRM user synced', { crmUserId: crmUser.id });
+            } else {
+              logStep('CRM user not found for sync (will be created on next login)', { email: userEmail });
+            }
+          }
+        } catch (crmErr) {
+          logStep('CRM sync error (non-blocking)', { error: crmErr instanceof Error ? crmErr.message : crmErr });
+        }
       }
 
       logStep('User updated', { targetUserId, tenantId });
