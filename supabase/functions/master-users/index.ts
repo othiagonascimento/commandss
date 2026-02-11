@@ -34,7 +34,7 @@ function mapToValidRole(role: string | undefined): AppRole {
 }
 
 // Background task to send welcome email
-async function sendWelcomeEmail(email: string, name: string, tenantId: string) {
+async function sendWelcomeEmail(email: string, name: string, tenantId: string, tempPassword: string) {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -48,8 +48,9 @@ async function sendWelcomeEmail(email: string, name: string, tenantId: string) {
         'Authorization': `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify({
-        email,
-        name,
+        userEmail: email,
+        userName: name,
+        tempPassword: tempPassword,
         tenant_id: tenantId,
       }),
     });
@@ -418,7 +419,8 @@ serve(async (req) => {
       EdgeRuntime.waitUntil(sendWelcomeEmail(
         body.email,
         body.full_name || body.name || '',
-        tenantId
+        tenantId,
+        body.password || ''
       ));
 
       return new Response(
