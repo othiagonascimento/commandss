@@ -291,14 +291,22 @@ serve(async (req) => {
       });
 
       if (authError) {
-        logStep('Auth user creation failed', { 
-          error: authError.message, 
-          code: authError.code,
-          status: authError.status,
-          details: JSON.stringify(authError)
+        const authErrorInfo = {
+          message: authError.message,
+          code: (authError as unknown as { code?: string }).code,
+          status: (authError as unknown as { status?: number }).status,
+        };
+
+        logStep('Auth user creation failed', {
+          ...authErrorInfo,
+          details: JSON.stringify(authError),
         });
+
         return new Response(
-          JSON.stringify({ error: `Erro ao criar usuário: ${authError.message}` }),
+          JSON.stringify({
+            error: `Erro ao criar usuário (${authErrorInfo.code || 'unknown'}): ${authErrorInfo.message}`,
+            auth: authErrorInfo,
+          }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
