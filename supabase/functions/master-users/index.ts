@@ -185,6 +185,25 @@ serve(async (req) => {
       const userEmail = authData.user.email || '';
       const userName = authData.user.user_metadata?.full_name || authData.user.user_metadata?.name || '';
 
+      // Generate a new temporary password and update the user
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
+      let newTempPassword = '';
+      for (let i = 0; i < 12; i++) {
+        newTempPassword += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+
+      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+        password: newTempPassword,
+      });
+
+      if (updateErr) {
+        logStep('Failed to reset password for resend', { error: updateErr.message });
+        return new Response(
+          JSON.stringify({ error: 'Falha ao gerar nova senha temporária' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Call send-welcome-email function
       const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
       const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -198,7 +217,7 @@ serve(async (req) => {
         body: JSON.stringify({
           userEmail,
           userName,
-          tempPassword: '',
+          tempPassword: newTempPassword,
           tenant_id: tenantId,
         }),
       });
