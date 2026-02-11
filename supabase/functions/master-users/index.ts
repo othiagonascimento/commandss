@@ -33,6 +33,25 @@ function mapToValidRole(role: string | undefined): AppRole {
   return 'seller';
 }
 
+// Fetch logo and convert to base64 data URI for inline embedding
+async function getLogoBase64(): Promise<string> {
+  try {
+    const logoUrl = 'https://btoyclznuuwvxbsacemw.supabase.co/storage/v1/object/public/branding/uopa-logo-color.png';
+    const res = await fetch(logoUrl);
+    if (!res.ok) throw new Error(`Logo fetch failed: ${res.status}`);
+    const buf = await res.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return `data:image/png;base64,${btoa(binary)}`;
+  } catch (e) {
+    logStep('Logo base64 conversion failed', { error: e instanceof Error ? e.message : 'unknown' });
+    return '';
+  }
+}
+
 // Send welcome email directly via Resend API (no dependency on separate function)
 async function sendWelcomeEmailDirect(email: string, name: string, tenantId: string, tempPassword: string) {
   const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
@@ -44,101 +63,158 @@ async function sendWelcomeEmailDirect(email: string, name: string, tenantId: str
   const firstName = (name || '').split(' ')[0] || 'usuário';
   logStep('Sending welcome email via Resend', { email, name, tenantId });
 
-  const logoUrl = 'https://btoyclznuuwvxbsacemw.supabase.co/storage/v1/object/public/branding/uopa-logo-color.png';
+  const logoDataUri = await getLogoBase64();
+  const logoHtml = logoDataUri
+    ? `<img src="${logoDataUri}" alt="Uôpa CRM" width="140" style="display:block;max-width:140px;height:auto;" />`
+    : `<span style="font-size:28px;font-weight:800;color:#2d2b55;letter-spacing:-1px;">UÔPA <span style="color:#a1a1aa;font-weight:400;font-size:16px;">CRM</span></span>`;
+
+  const year = new Date().getFullYear();
 
   const htmlContent = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f0f0f5;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f0f5;padding:48px 16px;">
-    <tr>
-      <td align="center">
-        <!-- Logo above card -->
-        <table width="580" cellpadding="0" cellspacing="0">
-          <tr>
-            <td align="center" style="padding-bottom:24px;">
-              <img src="${logoUrl}" alt="Uôpa CRM" width="160" style="display:block;max-width:160px;height:auto;" />
-            </td>
-          </tr>
-        </table>
-        <!-- Main card -->
-        <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(99,102,241,0.12);">
-          <!-- Header gradient -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%);padding:40px 48px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:30px;font-weight:800;letter-spacing:-0.5px;">Bem-vindo ao Uôpa! 🎉</h1>
-              <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:15px;font-weight:400;">Sua jornada no Uôpa CRM começa agora</p>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:36px 48px 32px;">
-              <p style="font-size:17px;color:#18181b;line-height:1.7;margin:0 0 20px;">
-                Olá <strong>${firstName}</strong>,
+<body style="margin:0;padding:0;background-color:#f4f2ee;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+
+  <!-- Wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f2ee;padding:40px 16px;">
+    <tr><td align="center">
+
+      <!-- Logo -->
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+        <tr><td align="center" style="padding:0 0 32px;">${logoHtml}</td></tr>
+      </table>
+
+      <!-- Main Card -->
+      <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;">
+
+        <!-- Headline Block -->
+        <tr>
+          <td style="padding:48px 44px 0;">
+            <h1 style="margin:0;font-size:32px;font-weight:800;color:#1a1a2e;line-height:1.2;letter-spacing:-0.5px;">
+              Que bom ter você aqui, ${firstName}! 🎉
+            </h1>
+            <p style="margin:16px 0 0;font-size:17px;color:#4a4a68;line-height:1.7;">
+              A gente preparou tudo pra você. Seu espaço no Uôpa CRM já está pronto — e a gente tá muito feliz com isso.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Highlight Band (Will Bank style) -->
+        <tr>
+          <td style="padding:28px 44px 0;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 60%,#a78bfa 100%);border-radius:16px;">
+              <tr>
+                <td style="padding:28px 32px;">
+                  <p style="margin:0;font-size:15px;font-weight:600;color:rgba(255,255,255,0.85);letter-spacing:0.3px;">
+                    PRA COMEÇAR
+                  </p>
+                  <p style="margin:8px 0 0;font-size:20px;font-weight:700;color:#ffffff;line-height:1.3;">
+                    Separamos seus dados de acesso 👇
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Credentials Box -->
+        <tr>
+          <td style="padding:24px 44px 0;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #ededf5;border-radius:14px;overflow:hidden;">
+              <!-- Email row -->
+              <tr>
+                <td style="padding:20px 24px 16px;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td width="32" valign="top" style="padding-right:12px;">
+                        <span style="font-size:20px;">✉️</span>
+                      </td>
+                      <td>
+                        <span style="font-size:12px;color:#9191ab;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Seu email</span><br/>
+                        <span style="font-size:16px;color:#1a1a2e;font-weight:600;line-height:1.8;">${email}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <!-- Divider -->
+              <tr><td style="padding:0 24px;"><div style="border-top:1px solid #ededf5;"></div></td></tr>
+              <!-- Password row -->
+              <tr>
+                <td style="padding:16px 24px 20px;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td width="32" valign="top" style="padding-right:12px;">
+                        <span style="font-size:20px;">🔑</span>
+                      </td>
+                      <td>
+                        <span style="font-size:12px;color:#9191ab;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Senha temporária</span><br/>
+                        <span style="font-size:20px;color:#6366f1;font-weight:800;font-family:'Courier New',Courier,monospace;letter-spacing:2px;line-height:1.8;">${tempPassword}</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Security Tip -->
+        <tr>
+          <td style="padding:20px 44px 0;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#faf9f6;border-radius:12px;">
+              <tr>
+                <td style="padding:16px 20px;">
+                  <p style="margin:0;font-size:14px;color:#6b6b80;line-height:1.6;">
+                    💡 <strong style="color:#4a4a68;">Dica:</strong> troque sua senha no primeiro acesso. Segurança nunca é demais.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- CTA Button -->
+        <tr>
+          <td style="padding:32px 44px 0;" align="center">
+            <a href="https://uopacrm.com" style="display:inline-block;background:#6366f1;color:#ffffff;text-decoration:none;padding:18px 48px;border-radius:60px;font-size:17px;font-weight:700;letter-spacing:0.3px;mso-padding-alt:0;">
+              Acessar minha conta →
+            </a>
+          </td>
+        </tr>
+
+        <!-- Emotional Closing -->
+        <tr>
+          <td style="padding:36px 44px 0;">
+            <p style="margin:0;font-size:16px;color:#4a4a68;line-height:1.7;">
+              Estamos juntos nessa jornada.<br/>Conte com a gente! 💜
+            </p>
+            <p style="margin:20px 0 0;font-size:15px;color:#9191ab;font-style:italic;">
+              Com carinho,<br/>
+              <strong style="color:#4a4a68;font-style:normal;">Equipe Uôpa CRM</strong>
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:36px 44px 32px;">
+            <div style="border-top:1px solid #ededf5;padding-top:24px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:12px;color:#b5b5c3;">
+                © ${year} Uôpa CRM — Transformando vendas em resultados
               </p>
-              <p style="font-size:16px;color:#3f3f46;line-height:1.7;margin:0 0 20px;">
-                Sua conta no <strong>Uôpa CRM</strong> foi criada com sucesso! Use os dados abaixo para fazer seu primeiro acesso:
+              <p style="margin:0;font-size:11px;color:#d0d0d8;">
+                Este email foi enviado automaticamente. Se você não solicitou esta conta, ignore este email.
               </p>
-              <!-- Credentials box -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-                <tr>
-                  <td style="background:#f5f3ff;border:1px solid #e9e5ff;border-radius:12px;padding:20px 24px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="padding:4px 0;">
-                          <span style="font-size:13px;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Email</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding:0 0 12px;">
-                          <span style="font-size:15px;color:#18181b;font-weight:600;">${email}</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="border-top:1px solid #e9e5ff;padding:12px 0 4px;">
-                          <span style="font-size:13px;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Senha temporária</span>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <span style="font-size:18px;color:#6366f1;font-weight:700;font-family:'Courier New',monospace;letter-spacing:1px;">${tempPassword}</span>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-              <p style="font-size:14px;color:#71717a;line-height:1.6;margin:0 0 28px;">
-                ⚠️ Recomendamos que você altere sua senha no primeiro acesso para maior segurança.
-              </p>
-              <!-- CTA Button -->
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td align="center">
-                    <a href="https://uopacrm.com" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:10px;font-size:16px;font-weight:700;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(99,102,241,0.35);">
-                      Acessar o Uôpa CRM →
-                    </a>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="padding:28px 48px;background-color:#fafafa;border-top:1px solid #f0f0f5;text-align:center;">
-              <p style="font-size:13px;color:#a1a1aa;margin:0 0 8px;font-weight:500;">
-                Uôpa CRM — Transformando vendas em resultados
-              </p>
-              <p style="font-size:12px;color:#d4d4d8;margin:0;">
-                Este email foi enviado automaticamente. Se você não solicitou esta conta, ignore este email.<br/>
-                © ${new Date().getFullYear()} Uôpa CRM. Todos os direitos reservados.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
+            </div>
+          </td>
+        </tr>
+
+      </table>
+
+    </td></tr>
   </table>
+
 </body>
 </html>`;
 
@@ -152,7 +228,7 @@ async function sendWelcomeEmailDirect(email: string, name: string, tenantId: str
       body: JSON.stringify({
         from: 'Uopa CRM <boasvindas@uopacrm.com>',
         to: [email],
-        subject: `Bem-vindo ao Uôpa CRM, ${firstName}! 🎉`,
+        subject: `${firstName}, sua conta no Uôpa CRM está pronta!`,
         html: htmlContent,
       }),
     });
