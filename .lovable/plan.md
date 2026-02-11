@@ -1,78 +1,70 @@
 
 
-## Fix: Erro ao criar usuário do tenant
+# Correção definitiva: Reenvio de email de boas-vindas
 
-### Problema identificado
+## Diagnóstico (causa raiz encontrada)
 
-O erro "Edge Function returned a non-2xx status code" e generico -- o frontend nao exibe a mensagem real de erro retornada pela Edge Function. Existem dois problemas:
+O erro `"Email and password are required"` **nao existe em nenhum lugar do codigo local**. A mensagem local equivalente e `"Email, nome e senha sao obrigatorios"` (em portugues). Isso confirma que a **Edge Function `master-users` deployada no Supabase externo esta desatualizada** e nao possui a rota `resend-welcome`.
 
-### 1. Frontend nao extrai o erro real da resposta
+Quando o request POST chega com path suffix `tenantId/userId/resend-welcome`, a versao antiga nao reconhece essa rota, cai no handler generico de criacao de usuario, e retorna o erro porque o body `{}` nao tem email/password.
 
-Quando a Edge Function retorna um status nao-2xx (ex: 400, 500), o Supabase client coloca a mensagem generica no `error.message`, mas o corpo da resposta com o erro real vai para `data`. O `callMasterApi` ignora o `data` quando ha `error`.
+## Solucao
 
-**Correcao:** Modificar `callMasterApi` em `src/services/masterApi.ts` para extrair a mensagem real do `data` quando houver erro.
+### 1. Redesenhar o master-users para ser mais robusto na separacao de rotas
 
-### 2. Edge Function com possivel falha no upsert de `user_roles`
+Adicionar um `return` explicito com erro 404 para rotas POST nao reconhecidas ANTES do handler de criacao de usuario. Isso evita que requests para acoes especificas caiam no handler de criacao por engano.
 
-A Edge Function faz `upsert` com `onConflict: 'user_id,tenant_id'`, mas pode nao existir uma constraint UNIQUE nessa combinacao no banco. Alem disso, `listUsers()` sem filtros busca TODOS os usuarios do Auth para verificar duplicatas, o que pode causar timeout.
+```text
+Fluxo atual (problematico quando desatualizado):
+  POST + pathSuffix -> nao encontra rota resend-welcome -> cai no "if POST" generico -> erro
 
-**Correcoes na Edge Function `master-users/index.ts`:**
-- Substituir `listUsers()` por uma busca filtrada via `listUsers({ filter: email })` ou query direta
-- Tratar o upsert de `user_roles` com fallback para insert/update separados caso o onConflict falhe
-- Melhorar o log de erros para facilitar diagnostico
+Fluxo corrigido:
+  POST + targetUserId + action definido -> se action != rota conhecida -> retorna 404
+  POST + sem targetUserId -> handler de criacao (que exige email/password)
+```
 
-### Arquivos a modificar
+### 2. Mudancas no arquivo `supabase/functions/master-users/index.ts`
 
-1. **`src/services/masterApi.ts`** -- Melhorar extracaco de erros reais:
-   - Quando `error` existe, verificar se `data` contem uma mensagem de erro mais especifica
-   - Usar `data?.error || error.message` como mensagem
+- Mover o check de `action` para ANTES do handler generico de POST
+- Adicionar uma guarda: se `action` esta definido mas nao e uma acao reconhecida, retornar 404 imediatamente
+- Isso garante que mesmo se o deploy estiver parcialmente desatualizado, o erro sera claro
 
-2. **`supabase/functions/master-users/index.ts`** -- Corrigir criacao de usuario:
-   - Substituir `listUsers()` (busca todos) por busca filtrada por email
-   - Tratar o upsert de `user_roles` com try/catch e fallback para delete+insert
-   - Adicionar logs mais detalhados
+### 3. Garantir que o send-welcome-email receba os campos corretos
 
-### Detalhes tecnicos
+O send-welcome-email local espera `{ email, name, tenant_id }` mas o master-users envia `{ userEmail, userName, tempPassword, tenant_id }`. Ha um **mismatch de campos** entre as duas funcoes. Corrigir o master-users para enviar os campos que a funcao de email espera, OU ajustar ambos para usar os mesmos nomes de campo.
 
-**masterApi.ts - callMasterApi:**
+Opcao escolhida: alinhar o master-users para enviar `email` e `name` (como o send-welcome-email espera).
+
+### 4. Resumo das alteracoes
+
+| Arquivo | Alteracao |
+|---|---|
+| `supabase/functions/master-users/index.ts` | Adicionar guarda para acoes POST desconhecidas; corrigir campos enviados ao send-welcome-email (`email`/`name` em vez de `userEmail`/`userName`) |
+
+### Secao tecnica
+
+No `master-users/index.ts`, logo antes do handler generico `if (method === 'POST')` (linha 334), adicionar:
+
 ```typescript
-if (error) {
-  // Extract real error from response body
-  const realMessage = typeof data === 'object' && data?.error 
-    ? data.error 
-    : error.message;
-  return { data: null, error: realMessage };
+// Guard: if POST has a specific action but it wasn't handled above, return 404
+if (method === 'POST' && targetUserId && action) {
+  return new Response(
+    JSON.stringify({ error: `Ação desconhecida: ${action}` }),
+    { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 }
 ```
 
-**master-users/index.ts - Busca de usuario existente:**
-```typescript
-// ANTES (busca TODOS os usuarios):
-const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-const existingUser = existingUsers?.users?.find(u => u.email === body.email);
+No handler de resend-welcome (linhas 217-222), corrigir o payload:
 
-// DEPOIS (busca filtrada):
-const { data: { users: existingUsers } } = await supabaseAdmin.auth.admin.listUsers({
-  filter: body.email,
-});
-const existingUser = existingUsers?.find(u => u.email === body.email);
+```typescript
+body: JSON.stringify({
+  email: userEmail,      // era "userEmail"
+  name: userName,        // era "userName"
+  tempPassword: newTempPassword,
+  tenant_id: tenantId,
+}),
 ```
 
-**master-users/index.ts - Upsert de roles com fallback:**
-```typescript
-// Tentar upsert, se falhar por falta de constraint, fazer delete+insert
-try {
-  const { error: roleError } = await supabaseAdmin
-    .from('user_roles')
-    .upsert({ user_id: authUser.id, tenant_id: tenantId, role: appRole }, 
-      { onConflict: 'user_id,tenant_id' });
-  if (roleError) throw roleError;
-} catch {
-  // Fallback: delete existing + insert new
-  await supabaseAdmin.from('user_roles')
-    .delete().eq('user_id', authUser.id).eq('tenant_id', tenantId);
-  await supabaseAdmin.from('user_roles')
-    .insert({ user_id: authUser.id, tenant_id: tenantId, role: appRole });
-}
-```
+**Importante:** Apos aprovar e implementar, voce precisa **fazer o redeploy da Edge Function `master-users` no Supabase externo** para que as mudancas tenham efeito. O codigo local esta correto, mas so funciona quando deployado.
 
