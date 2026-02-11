@@ -274,7 +274,8 @@ serve(async (req) => {
         );
       }
 
-      // Create auth user with tenant_id in metadata
+      // Create auth user with tenant_id and role in metadata (required by handle_new_user trigger)
+      const appRole = mapToValidRole(body.role);
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: body.email,
         password: body.password,
@@ -282,6 +283,7 @@ serve(async (req) => {
         user_metadata: {
           full_name: body.full_name || body.name,
           tenant_id: tenantId,
+          role: appRole,
         },
       });
 
@@ -317,8 +319,7 @@ serve(async (req) => {
         logStep('Profile upserted');
       }
 
-      // Assign user role with fallback strategy
-      const appRole = mapToValidRole(body.role);
+      // Assign user role with fallback strategy (appRole already computed above)
       try {
         const { error: roleError } = await supabaseAdmin
           .from('user_roles')
