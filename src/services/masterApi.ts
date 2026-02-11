@@ -31,8 +31,12 @@ async function callMasterApi<T>(
     });
 
     if (error) {
-      console.error('[MasterAPI] Error:', error);
-      return { data: null, error: error.message };
+      // Extract real error message from response body when available
+      const realMessage = typeof data === 'object' && data !== null && (data as Record<string, unknown>)?.error
+        ? String((data as Record<string, unknown>).error)
+        : error.message;
+      console.error('[MasterAPI] Error:', { error: error.message, realMessage, data });
+      return { data: null, error: realMessage };
     }
 
     return { data: data as T, error: null };
