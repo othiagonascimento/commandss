@@ -44,46 +44,94 @@ async function sendWelcomeEmailDirect(email: string, name: string, tenantId: str
   const firstName = (name || '').split(' ')[0] || 'usuário';
   logStep('Sending welcome email via Resend', { email, name, tenantId });
 
+  const logoUrl = 'https://btoyclznuywvxbsacemw.supabase.co/storage/v1/object/public/branding/uopa-logo-color.png';
+
   const htmlContent = `<!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 0;">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f0f0f5;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f0f5;padding:48px 16px;">
     <tr>
       <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+        <!-- Logo above card -->
+        <table width="580" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:32px 40px;text-align:center;">
-              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">Bem-vindo à Uopa! 🎉</h1>
+            <td align="center" style="padding-bottom:24px;">
+              <img src="${logoUrl}" alt="Uôpa CRM" width="160" style="display:block;max-width:160px;height:auto;" />
             </td>
           </tr>
+        </table>
+        <!-- Main card -->
+        <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(99,102,241,0.12);">
+          <!-- Header gradient -->
           <tr>
-            <td style="padding:32px 40px;">
-              <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">
+            <td style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%);padding:40px 48px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:30px;font-weight:800;letter-spacing:-0.5px;">Bem-vindo ao Uôpa! 🎉</h1>
+              <p style="color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:15px;font-weight:400;">Sua jornada no Uôpa CRM começa agora</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:36px 48px 32px;">
+              <p style="font-size:17px;color:#18181b;line-height:1.7;margin:0 0 20px;">
                 Olá <strong>${firstName}</strong>,
               </p>
-              <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">
-                Sua conta foi criada com sucesso! Você já pode acessar a plataforma usando o email <strong>${email}</strong> e a senha temporária: <strong>${tempPassword}</strong>
+              <p style="font-size:16px;color:#3f3f46;line-height:1.7;margin:0 0 20px;">
+                Sua conta no <strong>Uôpa CRM</strong> foi criada com sucesso! Use os dados abaixo para fazer seu primeiro acesso:
               </p>
-              <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 24px;">
-                Recomendamos que você altere sua senha no primeiro acesso para maior segurança.
+              <!-- Credentials box -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="background:#f5f3ff;border:1px solid #e9e5ff;border-radius:12px;padding:20px 24px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding:4px 0;">
+                          <span style="font-size:13px;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Email</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:0 0 12px;">
+                          <span style="font-size:15px;color:#18181b;font-weight:600;">${email}</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="border-top:1px solid #e9e5ff;padding:12px 0 4px;">
+                          <span style="font-size:13px;color:#71717a;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;">Senha temporária</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <span style="font-size:18px;color:#6366f1;font-weight:700;font-family:'Courier New',monospace;letter-spacing:1px;">${tempPassword}</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-size:14px;color:#71717a;line-height:1.6;margin:0 0 28px;">
+                ⚠️ Recomendamos que você altere sua senha no primeiro acesso para maior segurança.
               </p>
+              <!-- CTA Button -->
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <a href="https://uopacrm.com" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:600;">
-                      Acessar Plataforma
+                    <a href="https://uopacrm.com" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#ffffff;text-decoration:none;padding:16px 40px;border-radius:10px;font-size:16px;font-weight:700;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(99,102,241,0.35);">
+                      Acessar o Uôpa CRM →
                     </a>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
+          <!-- Footer -->
           <tr>
-            <td style="padding:24px 40px;background-color:#f9fafb;border-top:1px solid #e4e4e7;text-align:center;">
-              <p style="font-size:13px;color:#71717a;margin:0;">
-                Este email foi enviado automaticamente pela plataforma Uopa.<br/>
-                Se você não solicitou esta conta, por favor ignore este email.
+            <td style="padding:28px 48px;background-color:#fafafa;border-top:1px solid #f0f0f5;text-align:center;">
+              <p style="font-size:13px;color:#a1a1aa;margin:0 0 8px;font-weight:500;">
+                Uôpa CRM — Transformando vendas em resultados
+              </p>
+              <p style="font-size:12px;color:#d4d4d8;margin:0;">
+                Este email foi enviado automaticamente. Se você não solicitou esta conta, ignore este email.<br/>
+                © ${new Date().getFullYear()} Uôpa CRM. Todos os direitos reservados.
               </p>
             </td>
           </tr>
@@ -102,9 +150,9 @@ async function sendWelcomeEmailDirect(email: string, name: string, tenantId: str
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'Uopa <boasvindas@uopacrm.com>',
+        from: 'Uôpa CRM <boasvindas@uopacrm.com>',
         to: [email],
-        subject: `Bem-vindo à Uopa, ${firstName}! 🎉`,
+        subject: `Bem-vindo ao Uôpa CRM, ${firstName}! 🎉`,
         html: htmlContent,
       }),
     });
@@ -273,7 +321,7 @@ serve(async (req) => {
 
       logStep('Welcome email resent successfully', { email: userEmail });
       return new Response(
-        JSON.stringify({ success: true, message: 'Email de boas-vindas reenviado' }),
+        JSON.stringify({ success: true, message: 'Email de boas-vindas reenviado', temp_password: newTempPassword }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

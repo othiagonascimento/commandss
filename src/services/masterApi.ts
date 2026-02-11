@@ -160,7 +160,7 @@ export const usersApi = {
     callMasterApi<void>('master-users', 'DELETE', `${tenantId}/${userId}`),
   
   resendWelcomeEmail: (tenantId: string, userId: string) =>
-    callMasterApi<{ success: boolean; message: string }>('master-users', 'POST', `${tenantId}/${userId}/resend-welcome`, {}),
+    callMasterApi<{ success: boolean; message: string; temp_password?: string }>('master-users', 'POST', `${tenantId}/${userId}/resend-welcome`, {}),
 };
 
 // Branding API
