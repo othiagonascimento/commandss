@@ -37,9 +37,19 @@ function mapToValidRole(role: string | undefined): AppRole {
 // Fetch logo and convert to base64 data URI for inline embedding (uses Deno std base64)
 async function getLogoBase64(): Promise<string> {
   try {
-    const logoUrl = 'https://btoyclznuuwvxbsacemw.supabase.co/storage/v1/object/public/branding/uopa-logo-color.png';
-    const res = await fetch(logoUrl);
-    if (!res.ok) throw new Error(`Logo fetch failed: ${res.status}`);
+    // Try multiple logo sources for reliability
+    const logoUrls = [
+      'https://btoyclznuuwvxbsacemw.supabase.co/storage/v1/object/public/branding/uopa-logo-color.png',
+      'https://commandss.lovable.app/images/uopa-logo-email.png',
+    ];
+    let res: Response | null = null;
+    for (const url of logoUrls) {
+      try {
+        const r = await fetch(url);
+        if (r.ok) { res = r; logStep('Logo fetched from', { url }); break; }
+      } catch (_) { /* try next */ }
+    }
+    if (!res) throw new Error('All logo URLs failed');
     const buf = await res.arrayBuffer();
     const b64 = base64Encode(new Uint8Array(buf));
     logStep('Logo base64 conversion success', { size: buf.byteLength });
@@ -50,13 +60,6 @@ async function getLogoBase64(): Promise<string> {
   }
 }
 
-// Generate initials from name for avatar
-function getInitials(name: string): string {
-  const parts = (name || '').trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  if (parts.length === 1 && parts[0]) return parts[0][0].toUpperCase();
-  return 'U';
-}
 
 // Send welcome email directly via Resend API (no dependency on separate function)
 async function sendWelcomeEmailDirect(email: string, name: string, tenantId: string, tempPassword: string) {
@@ -96,14 +99,6 @@ async function sendWelcomeEmailDirect(email: string, name: string, tenantId: str
         <!-- Avatar + Headline Block -->
         <tr>
           <td style="padding:48px 44px 0;">
-            <!-- User Avatar -->
-            <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
-              <tr>
-                <td style="width:64px;height:64px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:50%;text-align:center;vertical-align:middle;">
-                  <span style="font-size:26px;font-weight:800;color:#ffffff;line-height:64px;">${getInitials(name)}</span>
-                </td>
-              </tr>
-            </table>
             <h1 style="margin:0;font-size:32px;font-weight:800;color:#1a1a2e;line-height:1.2;letter-spacing:-0.5px;">
               Que bom ter você aqui, ${firstName}! 🎉
             </h1>
