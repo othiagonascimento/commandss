@@ -261,9 +261,11 @@ serve(async (req) => {
         );
       }
 
-      // Check if user with this email already exists
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(u => u.email === body.email);
+      // Check if user with this email already exists (filtered lookup)
+      const { data: { users: matchedUsers } } = await supabaseAdmin.auth.admin.listUsers({
+        filter: body.email,
+      });
+      const existingUser = matchedUsers?.find(u => u.email === body.email);
       if (existingUser) {
         logStep('User already exists', { email: body.email, existingUserId: existingUser.id });
         return new Response(
@@ -315,21 +317,30 @@ serve(async (req) => {
         logStep('Profile upserted');
       }
 
-      // Upsert user role with valid enum value (trigger may have already created it)
+      // Assign user role with fallback strategy
       const appRole = mapToValidRole(body.role);
-      const { error: roleError } = await supabaseAdmin
-        .from('user_roles')
-        .upsert({
-          user_id: authUser.id,
-          tenant_id: tenantId,
-          role: appRole,
-        }, { onConflict: 'user_id,tenant_id' });
-
-      if (roleError) {
-        logStep('User role upsert failed', { error: roleError.message });
-        // Continue anyway, role can be set later
-      } else {
-      logStep('User role upserted', { role: appRole });
+      try {
+        const { error: roleError } = await supabaseAdmin
+          .from('user_roles')
+          .upsert({
+            user_id: authUser.id,
+            tenant_id: tenantId,
+            role: appRole,
+          }, { onConflict: 'user_id,tenant_id' });
+        if (roleError) throw roleError;
+        logStep('User role upserted', { role: appRole });
+      } catch (roleErr) {
+        logStep('Upsert failed, trying delete+insert fallback', { error: roleErr instanceof Error ? roleErr.message : roleErr });
+        // Fallback: delete existing + insert new
+        await supabaseAdmin.from('user_roles')
+          .delete().eq('user_id', authUser.id).eq('tenant_id', tenantId);
+        const { error: insertRoleError } = await supabaseAdmin.from('user_roles')
+          .insert({ user_id: authUser.id, tenant_id: tenantId, role: appRole });
+        if (insertRoleError) {
+          logStep('Role insert fallback also failed', { error: insertRoleError.message });
+        } else {
+          logStep('User role inserted via fallback', { role: appRole });
+        }
       }
 
       // Send welcome email in background (non-blocking)
