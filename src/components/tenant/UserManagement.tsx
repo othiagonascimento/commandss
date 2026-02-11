@@ -40,7 +40,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Plus, Loader2, Edit, Power, Trash2, Key, Mail } from 'lucide-react';
+import { Plus, Loader2, Edit, Power, Trash2, Key, Mail, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -161,14 +161,24 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
     },
   });
 
+  const [resendPasswordInfo, setResendPasswordInfo] = useState<{ password: string; userName: string } | null>(null);
+
   const resendWelcomeMutation = useMutation({
     mutationFn: async (userId: string) => {
       const result = await usersApi.resendWelcomeEmail(tenantId, userId);
       if (result.error) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: () => {
-      toast.success('Email de boas-vindas reenviado!');
+    onSuccess: (data) => {
+      if (data?.temp_password) {
+        const user = users?.find(u => resendWelcomeMutation.variables === u.id);
+        setResendPasswordInfo({ 
+          password: data.temp_password, 
+          userName: user?.name || user?.email || 'usuário' 
+        });
+      } else {
+        toast.success('Email de boas-vindas reenviado!');
+      }
     },
     onError: (err: Error) => {
       toast.error(`Erro ao reenviar email: ${err.message}`);
@@ -516,6 +526,43 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
           Nenhum usuário encontrado.
         </p>
       )}
+
+      {/* Resend Password Info Dialog */}
+      <Dialog open={!!resendPasswordInfo} onOpenChange={(open) => !open && setResendPasswordInfo(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Email reenviado com sucesso! ✉️</DialogTitle>
+            <DialogDescription>
+              Uma nova senha temporária foi gerada para <strong>{resendPasswordInfo?.userName}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-2">Nova senha temporária:</p>
+            <div className="flex items-center gap-2 bg-muted rounded-lg p-3">
+              <code className="text-lg font-mono font-bold text-primary flex-1 tracking-wider">
+                {resendPasswordInfo?.password}
+              </code>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  navigator.clipboard.writeText(resendPasswordInfo?.password || '');
+                  toast.success('Senha copiada!');
+                }}
+                title="Copiar senha"
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              O email de boas-vindas já foi enviado com esta senha. Você pode copiá-la caso precise informar ao usuário diretamente.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setResendPasswordInfo(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
