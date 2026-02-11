@@ -158,6 +158,9 @@ export const usersApi = {
   
   deactivate: (tenantId: string, userId: string) => 
     callMasterApi<void>('master-users', 'DELETE', `${tenantId}/${userId}`),
+  
+  resendWelcomeEmail: (tenantId: string, userId: string) =>
+    callMasterApi<{ success: boolean; message: string }>('master-users', 'POST', `${tenantId}/${userId}/resend-welcome`),
 };
 
 // Branding API

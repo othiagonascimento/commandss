@@ -104,6 +104,7 @@ serve(async (req) => {
     let tenantId: string | undefined;
     let targetUserId: string | undefined;
     let isCheckRoute = false;
+    let action: string | undefined;
     
     if (pathSuffix) {
       const suffixParts = pathSuffix.split('/').filter(Boolean);
@@ -114,6 +115,7 @@ serve(async (req) => {
       } else {
         tenantId = suffixParts[0];
         targetUserId = suffixParts[1];
+        action = suffixParts[2]; // e.g. "resend-welcome"
       }
     } else {
       if (pathParts[1] === 'check') {
@@ -122,6 +124,7 @@ serve(async (req) => {
       } else {
         tenantId = pathParts[1];
         targetUserId = pathParts[2];
+        action = pathParts[3];
       }
     }
     const method = req.method;
@@ -164,7 +167,57 @@ serve(async (req) => {
       );
     }
 
-    logStep(`${method} request`, { tenantId, targetUserId, pathSuffix });
+    logStep(`${method} request`, { tenantId, targetUserId, action, pathSuffix });
+
+    // POST /master-users/:tenantId/:userId/resend-welcome - Resend welcome email
+    if (method === 'POST' && targetUserId && action === 'resend-welcome') {
+      logStep('Resending welcome email', { targetUserId, tenantId });
+
+      // Get user info
+      const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
+      if (authErr || !authData.user) {
+        return new Response(
+          JSON.stringify({ error: 'Usuário não encontrado' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const userEmail = authData.user.email || '';
+      const userName = authData.user.user_metadata?.full_name || authData.user.user_metadata?.name || '';
+
+      // Call send-welcome-email function
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-welcome-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify({
+          userEmail,
+          userName,
+          tempPassword: '',
+          tenant_id: tenantId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logStep('Resend welcome email failed', { status: response.status, error: errorText });
+        return new Response(
+          JSON.stringify({ error: 'Falha ao reenviar email de boas-vindas' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      logStep('Welcome email resent successfully', { email: userEmail });
+      return new Response(
+        JSON.stringify({ success: true, message: 'Email de boas-vindas reenviado' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // GET /master-users/:tenantId - List users of a tenant
     if (method === 'GET' && !targetUserId) {
