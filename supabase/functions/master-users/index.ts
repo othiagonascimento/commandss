@@ -44,7 +44,7 @@ async function sendWelcomeEmailDirect(email: string, name: string, tenantId: str
   const firstName = (name || '').split(' ')[0] || 'usuário';
   logStep('Sending welcome email via Resend', { email, name, tenantId });
 
-  const logoUrl = 'https://commandss.lovable.app/images/uopa-logo-email.png';
+  const logoUrl = 'https://btoyclznuuwvxbsacemw.supabase.co/storage/v1/object/public/branding/uopa-logo-color.png';
 
   const htmlContent = `<!DOCTYPE html>
 <html lang="pt-BR">
