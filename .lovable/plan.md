@@ -1,70 +1,49 @@
 
 
-# Correção definitiva: Reenvio de email de boas-vindas
+## Plano: Email de Boas-Vindas com Experiencia de Elite
 
-## Diagnóstico (causa raiz encontrada)
+### Problemas Identificados
 
-O erro `"Email and password are required"` **nao existe em nenhum lugar do codigo local**. A mensagem local equivalente e `"Email, nome e senha sao obrigatorios"` (em portugues). Isso confirma que a **Edge Function `master-users` deployada no Supabase externo esta desatualizada** e nao possui a rota `resend-welcome`.
+1. **Senha diferente no reenvio**: Ao reenviar o email, uma nova senha aleatoria e gerada mas nao e exibida no painel. O usuario do painel master nao tem como saber qual senha foi enviada.
+2. **Textos incorretos**: "Bem-vindo a Uopa" em vez de "Bem-vindo ao Uopa!" e "Uopa" em vez de "Uopa CRM"
+3. **Sem logo/imagem**: O email nao tem a identidade visual da marca
 
-Quando o request POST chega com path suffix `tenantId/userId/resend-welcome`, a versao antiga nao reconhece essa rota, cai no handler generico de criacao de usuario, e retorna o erro porque o body `{}` nao tem email/password.
+### Mudancas Planejadas
 
-## Solucao
+#### 1. Edge Function `master-users/index.ts` - Template do Email
 
-### 1. Redesenhar o master-users para ser mais robusto na separacao de rotas
+- Corrigir todos os textos: "Uopa" para "Uopa CRM", "Bem-vindo a Uopa" para "Bem-vindo ao Uopa!"
+- Corrigir o `from`: "Uopa" para "Uopa CRM"
+- Corrigir o `subject`: "Bem-vindo a Uopa" para "Bem-vindo ao Uopa CRM!"
+- Adicionar logo no header do email usando URL publica da imagem hospedada (sera necessario hospedar a logo em URL publica acessivel, como o Storage do Supabase ou CDN)
+- Melhorar o design geral: tipografia, espacamentos, footer mais profissional
+- Adicionar um rodape com links de suporte e redes sociais
 
-Adicionar um `return` explicito com erro 404 para rotas POST nao reconhecidas ANTES do handler de criacao de usuario. Isso evita que requests para acoes especificas caiam no handler de criacao por engano.
+#### 2. Edge Function `master-users/index.ts` - Retorno da Senha no Reenvio
 
-```text
-Fluxo atual (problematico quando desatualizado):
-  POST + pathSuffix -> nao encontra rota resend-welcome -> cai no "if POST" generico -> erro
+- Alterar o endpoint `resend-welcome` para retornar a nova senha temporaria na resposta (`temp_password`)
+- Isso permite que o painel master exiba a senha ao operador
 
-Fluxo corrigido:
-  POST + targetUserId + action definido -> se action != rota conhecida -> retorna 404
-  POST + sem targetUserId -> handler de criacao (que exige email/password)
-```
+#### 3. Frontend `UserManagement.tsx` - Exibir Senha do Reenvio
 
-### 2. Mudancas no arquivo `supabase/functions/master-users/index.ts`
+- Atualizar o tipo de retorno do `resendWelcomeEmail` para incluir `temp_password`
+- Apos o reenvio bem-sucedido, exibir um dialog/toast com a nova senha temporaria para que o operador do painel possa comunicar ao usuario se necessario
 
-- Mover o check de `action` para ANTES do handler generico de POST
-- Adicionar uma guarda: se `action` esta definido mas nao e uma acao reconhecida, retornar 404 imediatamente
-- Isso garante que mesmo se o deploy estiver parcialmente desatualizado, o erro sera claro
+#### 4. API Service `masterApi.ts`
 
-### 3. Garantir que o send-welcome-email receba os campos corretos
+- Atualizar o tipo de retorno para incluir `temp_password`
 
-O send-welcome-email local espera `{ email, name, tenant_id }` mas o master-users envia `{ userEmail, userName, tempPassword, tenant_id }`. Ha um **mismatch de campos** entre as duas funcoes. Corrigir o master-users para enviar os campos que a funcao de email espera, OU ajustar ambos para usar os mesmos nomes de campo.
+### Detalhe Tecnico
 
-Opcao escolhida: alinhar o master-users para enviar `email` e `name` (como o send-welcome-email espera).
+**Logo no email**: Emails HTML nao podem usar imagens locais do projeto. A logo precisa estar em uma URL publica. Opcoes:
+- Usar o Supabase Storage do projeto para hospedar a imagem
+- Usar uma URL publica ja existente
 
-### 4. Resumo das alteracoes
-
-| Arquivo | Alteracao |
-|---|---|
-| `supabase/functions/master-users/index.ts` | Adicionar guarda para acoes POST desconhecidas; corrigir campos enviados ao send-welcome-email (`email`/`name` em vez de `userEmail`/`userName`) |
-
-### Secao tecnica
-
-No `master-users/index.ts`, logo antes do handler generico `if (method === 'POST')` (linha 334), adicionar:
-
-```typescript
-// Guard: if POST has a specific action but it wasn't handled above, return 404
-if (method === 'POST' && targetUserId && action) {
-  return new Response(
-    JSON.stringify({ error: `Ação desconhecida: ${action}` }),
-    { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}
-```
-
-No handler de resend-welcome (linhas 217-222), corrigir o payload:
-
-```typescript
-body: JSON.stringify({
-  email: userEmail,      // era "userEmail"
-  name: userName,        // era "userName"
-  tempPassword: newTempPassword,
-  tenant_id: tenantId,
-}),
-```
-
-**Importante:** Apos aprovar e implementar, voce precisa **fazer o redeploy da Edge Function `master-users` no Supabase externo** para que as mudancas tenham efeito. O codigo local esta correto, mas so funciona quando deployado.
+**Novo template do email** tera:
+- Logo Uopa CRM centralizada no topo
+- Gradiente de marca mantido
+- Texto "Bem-vindo ao Uopa!" com acentuacao correta
+- Nome "Uopa CRM" em todos os lugares
+- Botao de acesso estilizado
+- Footer profissional com copyright
 
