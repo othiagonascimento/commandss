@@ -33,36 +33,92 @@ function mapToValidRole(role: string | undefined): AppRole {
   return 'seller';
 }
 
-// Background task to send welcome email
-async function sendWelcomeEmail(email: string, name: string, tenantId: string, tempPassword: string) {
+// Send welcome email directly via Resend API (no dependency on separate function)
+async function sendWelcomeEmailDirect(email: string, name: string, tenantId: string, tempPassword: string) {
+  const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+  if (!RESEND_API_KEY) {
+    logStep('RESEND_API_KEY not configured, skipping welcome email');
+    return { ok: false, error: 'RESEND_API_KEY not configured' };
+  }
+
+  const firstName = (name || '').split(' ')[0] || 'usuário';
+  logStep('Sending welcome email via Resend', { email, name, tenantId });
+
+  const htmlContent = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:32px 40px;text-align:center;">
+              <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:700;">Bem-vindo à Uopa! 🎉</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 40px;">
+              <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">
+                Olá <strong>${firstName}</strong>,
+              </p>
+              <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 16px;">
+                Sua conta foi criada com sucesso! Você já pode acessar a plataforma usando o email <strong>${email}</strong> e a senha temporária: <strong>${tempPassword}</strong>
+              </p>
+              <p style="font-size:16px;color:#27272a;line-height:1.6;margin:0 0 24px;">
+                Recomendamos que você altere sua senha no primeiro acesso para maior segurança.
+              </p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <a href="https://uopacrm.com" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:600;">
+                      Acessar Plataforma
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 40px;background-color:#f9fafb;border-top:1px solid #e4e4e7;text-align:center;">
+              <p style="font-size:13px;color:#71717a;margin:0;">
+                Este email foi enviado automaticamente pela plataforma Uopa.<br/>
+                Se você não solicitou esta conta, por favor ignore este email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    
-    logStep('Sending welcome email', { email, name, tenantId });
-    
-    const response = await fetch(`${supabaseUrl}/functions/v1/send-welcome-email`, {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        email,
-        name,
-        tempPassword: tempPassword,
-        tenant_id: tenantId,
+        from: 'Uopa <boasvindas@uopacrm.com>',
+        to: [email],
+        subject: `Bem-vindo à Uopa, ${firstName}! 🎉`,
+        html: htmlContent,
       }),
     });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      logStep('Welcome email failed', { status: response.status, error: errorText });
-    } else {
-      logStep('Welcome email sent successfully', { email });
+
+    const result = await res.json();
+    if (!res.ok) {
+      logStep('Resend API error', { status: res.status, error: JSON.stringify(result) });
+      return { ok: false, error: result };
     }
+    logStep('Welcome email sent successfully', { email, id: result.id });
+    return { ok: true, id: result.id };
   } catch (error) {
     logStep('Welcome email error', { error: error instanceof Error ? error.message : 'Unknown error' });
+    return { ok: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -204,29 +260,13 @@ serve(async (req) => {
         );
       }
 
-      // Call send-welcome-email function
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+      // Send email directly via Resend API
+      const emailResult = await sendWelcomeEmailDirect(userEmail, userName, tenantId, newTempPassword);
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/send-welcome-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-        },
-        body: JSON.stringify({
-          email: userEmail,
-          name: userName,
-          tempPassword: newTempPassword,
-          tenant_id: tenantId,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        logStep('Resend welcome email failed', { status: response.status, error: errorText });
+      if (!emailResult.ok) {
+        logStep('Resend welcome email failed', { error: emailResult.error });
         return new Response(
-          JSON.stringify({ error: 'Falha ao reenviar email de boas-vindas' }),
+          JSON.stringify({ error: 'Falha ao reenviar email de boas-vindas', details: emailResult.error }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -496,7 +536,7 @@ serve(async (req) => {
       }
 
       // Send welcome email in background (non-blocking)
-      EdgeRuntime.waitUntil(sendWelcomeEmail(
+      EdgeRuntime.waitUntil(sendWelcomeEmailDirect(
         body.email,
         body.full_name || body.name || '',
         tenantId,
