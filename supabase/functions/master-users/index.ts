@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 declare const EdgeRuntime: { waitUntil: (promise: Promise<unknown>) => void };
@@ -33,23 +34,28 @@ function mapToValidRole(role: string | undefined): AppRole {
   return 'seller';
 }
 
-// Fetch logo and convert to base64 data URI for inline embedding
+// Fetch logo and convert to base64 data URI for inline embedding (uses Deno std base64)
 async function getLogoBase64(): Promise<string> {
   try {
     const logoUrl = 'https://btoyclznuuwvxbsacemw.supabase.co/storage/v1/object/public/branding/uopa-logo-color.png';
     const res = await fetch(logoUrl);
     if (!res.ok) throw new Error(`Logo fetch failed: ${res.status}`);
     const buf = await res.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return `data:image/png;base64,${btoa(binary)}`;
+    const b64 = base64Encode(new Uint8Array(buf));
+    logStep('Logo base64 conversion success', { size: buf.byteLength });
+    return `data:image/png;base64,${b64}`;
   } catch (e) {
     logStep('Logo base64 conversion failed', { error: e instanceof Error ? e.message : 'unknown' });
     return '';
   }
+}
+
+// Generate initials from name for avatar
+function getInitials(name: string): string {
+  const parts = (name || '').trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts.length === 1 && parts[0]) return parts[0][0].toUpperCase();
+  return 'U';
 }
 
 // Send welcome email directly via Resend API (no dependency on separate function)
@@ -87,9 +93,17 @@ async function sendWelcomeEmailDirect(email: string, name: string, tenantId: str
       <!-- Main Card -->
       <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;">
 
-        <!-- Headline Block -->
+        <!-- Avatar + Headline Block -->
         <tr>
           <td style="padding:48px 44px 0;">
+            <!-- User Avatar -->
+            <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+              <tr>
+                <td style="width:64px;height:64px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:50%;text-align:center;vertical-align:middle;">
+                  <span style="font-size:26px;font-weight:800;color:#ffffff;line-height:64px;">${getInitials(name)}</span>
+                </td>
+              </tr>
+            </table>
             <h1 style="margin:0;font-size:32px;font-weight:800;color:#1a1a2e;line-height:1.2;letter-spacing:-0.5px;">
               Que bom ter você aqui, ${firstName}! 🎉
             </h1>
