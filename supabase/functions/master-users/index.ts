@@ -48,8 +48,8 @@ async function sendWelcomeEmail(email: string, name: string, tenantId: string, t
         'Authorization': `Bearer ${supabaseAnonKey}`,
       },
       body: JSON.stringify({
-        userEmail: email,
-        userName: name,
+        email,
+        name,
         tempPassword: tempPassword,
         tenant_id: tenantId,
       }),
@@ -215,8 +215,8 @@ serve(async (req) => {
           'Authorization': `Bearer ${supabaseAnonKey}`,
         },
         body: JSON.stringify({
-          userEmail,
-          userName,
+          email: userEmail,
+          name: userName,
           tempPassword: newTempPassword,
           tenant_id: tenantId,
         }),
@@ -327,6 +327,14 @@ serve(async (req) => {
       return new Response(
         JSON.stringify(user),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Guard: if POST has a specific action but it wasn't handled above, return 404
+    if (method === 'POST' && targetUserId && action) {
+      return new Response(
+        JSON.stringify({ error: `Ação desconhecida: ${action}` }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
