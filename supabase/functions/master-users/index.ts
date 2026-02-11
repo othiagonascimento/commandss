@@ -44,7 +44,7 @@ async function sendWelcomeEmailDirect(email: string, name: string, tenantId: str
   const firstName = (name || '').split(' ')[0] || 'usuário';
   logStep('Sending welcome email via Resend', { email, name, tenantId });
 
-  const logoUrl = 'https://btoyclznuywvxbsacemw.supabase.co/storage/v1/object/public/branding/uopa-logo-color.png';
+  const logoUrl = 'https://btoyclznuuwvxbsacemw.supabase.co/storage/v1/object/public/branding/uopa-logo-color.png';
 
   const htmlContent = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -150,7 +150,7 @@ async function sendWelcomeEmailDirect(email: string, name: string, tenantId: str
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'Uôpa CRM <boasvindas@uopacrm.com>',
+        from: 'Uopa CRM <boasvindas@uopacrm.com>',
         to: [email],
         subject: `Bem-vindo ao Uôpa CRM, ${firstName}! 🎉`,
         html: htmlContent,
