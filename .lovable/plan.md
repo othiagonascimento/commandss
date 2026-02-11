@@ -1,49 +1,57 @@
 
 
-## Plano: Email de Boas-Vindas com Experiencia de Elite
+## Plano: Email de Boas-Vindas Elite — Nivel Will Bank
 
-### Problemas Identificados
+O email atual e funcional, mas e generico e corporativo. As inspiracoes mostram um padrao claro: **storytelling emocional, tipografia bold, tom humano de conversa, e blocos visuais que guiam o olhar**. Vamos reconstruir o template do zero.
 
-1. **Senha diferente no reenvio**: Ao reenviar o email, uma nova senha aleatoria e gerada mas nao e exibida no painel. O usuario do painel master nao tem como saber qual senha foi enviada.
-2. **Textos incorretos**: "Bem-vindo a Uopa" em vez de "Bem-vindo ao Uopa!" e "Uopa" em vez de "Uopa CRM"
-3. **Sem logo/imagem**: O email nao tem a identidade visual da marca
+### O que muda
 
-### Mudancas Planejadas
+**Arquivo**: `supabase/functions/master-users/index.ts` (funcao `sendWelcomeEmailDirect`)
 
-#### 1. Edge Function `master-users/index.ts` - Template do Email
+### Novo Storytelling (fluxo do email)
 
-- Corrigir todos os textos: "Uopa" para "Uopa CRM", "Bem-vindo a Uopa" para "Bem-vindo ao Uopa!"
-- Corrigir o `from`: "Uopa" para "Uopa CRM"
-- Corrigir o `subject`: "Bem-vindo a Uopa" para "Bem-vindo ao Uopa CRM!"
-- Adicionar logo no header do email usando URL publica da imagem hospedada (sera necessario hospedar a logo em URL publica acessivel, como o Storage do Supabase ou CDN)
-- Melhorar o design geral: tipografia, espacamentos, footer mais profissional
-- Adicionar um rodape com links de suporte e redes sociais
+O email deixa de ser um "aviso de conta criada" e passa a ser uma **celebracao de chegada**:
 
-#### 2. Edge Function `master-users/index.ts` - Retorno da Senha no Reenvio
+1. **Logo** — Centralizada, limpa, sobre fundo branco
+2. **Headline emocional** — Tipografia grande e bold: **"Que bom ter voce aqui, {nome}!"** (estilo Will Bank)
+3. **Paragrafo humano** — Tom de conversa, como se fosse uma pessoa falando: *"A gente preparou tudo pra voce. Seu espaco no Uopa CRM ja esta pronto — e a gente ta muito feliz com isso."*
+4. **Bloco visual de destaque** — Fundo com cor da marca (gradiente suave roxo) com texto branco: *"Pra comecar, separamos seus dados de acesso"* (inspirado no bloco amarelo do Will Bank)
+5. **Credenciais** — Caixa limpa, moderna, com icones visuais (emoji de cadeado e envelope) sobre fundo branco
+6. **Dica de seguranca** — Tom amigavel, nao tecnico: *"Dica: troque sua senha no primeiro acesso. Seguranca nunca e demais."*
+7. **Botao CTA** — Grande, arredondado, cor solida: **"Acessar minha conta"**
+8. **Fechamento emocional** — *"Estamos juntos nessa jornada. Conte com a gente!"* + assinatura *"Com carinho, Equipe Uopa CRM"*
+9. **Footer** — Minimalista, copyright, link de suporte
 
-- Alterar o endpoint `resend-welcome` para retornar a nova senha temporaria na resposta (`temp_password`)
-- Isso permite que o painel master exiba a senha ao operador
+### Solucao da Logo
 
-#### 3. Frontend `UserManagement.tsx` - Exibir Senha do Reenvio
+Usar **base64 inline** para garantir que a logo apareca em todos os provedores (Gmail, Outlook, etc.) sem depender de dominio externo. A imagem `public/images/uopa-logo-email.png` sera convertida para base64 e embutida diretamente no HTML.
 
-- Atualizar o tipo de retorno do `resendWelcomeEmail` para incluir `temp_password`
-- Apos o reenvio bem-sucedido, exibir um dialog/toast com a nova senha temporaria para que o operador do painel possa comunicar ao usuario se necessario
+### Diferenciais vs. template atual
 
-#### 4. API Service `masterApi.ts`
+| Aspecto | Atual | Novo |
+|---------|-------|------|
+| Tom | Corporativo, frio | Humano, caloroso, celebratorio |
+| Headline | "Bem-vindo ao Uopa!" | "Que bom ter voce aqui, {nome}!" |
+| Storytelling | Inexistente | 3 blocos narrativos com progressao emocional |
+| Bloco destaque | Nenhum | Faixa colorida estilo Will Bank |
+| Credenciais | Caixa roxa generica | Caixa limpa com icones e hierarquia clara |
+| Fechamento | Copyright generico | Mensagem pessoal + assinatura da equipe |
+| Logo | URL externa (nao carrega) | Base64 inline (sempre aparece) |
+| Emojis | Excessivos no subject | Uso estrategico apenas no corpo |
 
-- Atualizar o tipo de retorno para incluir `temp_password`
+### Subject do email
 
-### Detalhe Tecnico
+De: `Bem-vindo ao Uopa CRM, {nome}! ` 
 
-**Logo no email**: Emails HTML nao podem usar imagens locais do projeto. A logo precisa estar em uma URL publica. Opcoes:
-- Usar o Supabase Storage do projeto para hospedar a imagem
-- Usar uma URL publica ja existente
+Para: `{nome}, sua conta no Uopa CRM esta pronta!`
 
-**Novo template do email** tera:
-- Logo Uopa CRM centralizada no topo
-- Gradiente de marca mantido
-- Texto "Bem-vindo ao Uopa!" com acentuacao correta
-- Nome "Uopa CRM" em todos os lugares
-- Botao de acesso estilizado
-- Footer profissional com copyright
+Mais direto, sem emoji no subject (melhora deliverability), informativo.
+
+### Detalhes tecnicos
+
+- A logo sera lida do filesystem da Edge Function ou hardcoded como string base64 no codigo
+- Todo o HTML sera inline-styled (padrao para emails)
+- Compatibilidade testada: Gmail, Outlook, Apple Mail, Yahoo
+- Nenhuma dependencia externa para imagens
+- Mantida toda a logica existente (envio, temp_password, resend_id)
 
