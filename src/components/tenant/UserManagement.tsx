@@ -40,7 +40,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Plus, Loader2, Edit, Power, Trash2, Key } from 'lucide-react';
+import { Plus, Loader2, Edit, Power, Trash2, Key, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -158,6 +158,20 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
     },
     onError: (err: Error) => {
       setPasswordError(err.message);
+    },
+  });
+
+  const resendWelcomeMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const result = await usersApi.resendWelcomeEmail(tenantId, userId);
+      if (result.error) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success('Email de boas-vindas reenviado!');
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao reenviar email: ${err.message}`);
     },
   });
 
@@ -454,6 +468,15 @@ export function UserManagement({ tenantId, users, isLoading }: UserManagementPro
                       title="Alterar senha"
                     >
                       <Key className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => resendWelcomeMutation.mutate(user.id)}
+                      disabled={resendWelcomeMutation.isPending}
+                      title="Reenviar email de boas-vindas"
+                    >
+                      <Mail className="w-4 h-4" />
                     </Button>
                     
                     {user.is_active && (
