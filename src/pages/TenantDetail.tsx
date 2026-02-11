@@ -121,6 +121,7 @@ export default function TenantDetail() {
     queryKey: ['tenant', id],
     queryFn: async () => {
       const result = await tenantsApi.get(id!);
+      if (result.error) throw new Error(result.error);
       return result.data;
     },
     enabled: isIdValid,
@@ -132,6 +133,10 @@ export default function TenantDetail() {
     queryKey: ['tenant-users', id],
     queryFn: async () => {
       const result = await usersApi.list(id!);
+      if (result.error) {
+        console.warn('[TenantDetail] Users load failed:', result.error);
+        return [];
+      }
       return result.data?.data || [];
     },
     enabled: isIdValid,
@@ -144,6 +149,10 @@ export default function TenantDetail() {
     queryKey: ['tenant-features', id],
     queryFn: async () => {
       const result = await featuresApi.get(id!);
+      if (result.error) {
+        console.warn('[TenantDetail] Features load failed:', result.error);
+        return null;
+      }
       return result.data;
     },
     enabled: isIdValid,
@@ -156,6 +165,10 @@ export default function TenantDetail() {
     queryKey: ['tenant-usage', id],
     queryFn: async () => {
       const result = await usageApi.get(id!);
+      if (result.error) {
+        console.warn('[TenantDetail] Usage load failed:', result.error);
+        return null;
+      }
       return result.data;
     },
     enabled: isIdValid,
