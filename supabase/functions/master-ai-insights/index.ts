@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -115,7 +115,19 @@ CUSTOS DE API (mês atual):
 - Custo total: R$ ${metricsData.apiUsage.totalCostBrl.toFixed(2)}
 - Tokens consumidos: ${metricsData.apiUsage.totalTokens.toLocaleString('pt-BR')}
 - Por provedor: ${Object.entries(metricsData.apiUsage.byProvider).map(([p, d]) => `${p}: R$${d.costBrl.toFixed(2)}`).join(', ') || 'Nenhum uso registrado'}
-
+${metricsData.apiUsage.aiSummary ? `
+DADOS DE IA (CRM - últimos 30 dias):
+- Total de mensagens IA: ${metricsData.apiUsage.aiSummary.total_messages}
+- Créditos consumidos: ${metricsData.apiUsage.aiSummary.total_credits}
+- Latência média: ${metricsData.apiUsage.aiSummary.avg_latency_ms}ms
+- Fallbacks: ${metricsData.apiUsage.aiSummary.fallbacks}
+- Bloqueios: ${metricsData.apiUsage.aiSummary.blocks}
+- Feedback positivo: ${metricsData.apiUsage.aiSummary.feedback_positive} | negativo: ${metricsData.apiUsage.aiSummary.feedback_negative} | editado: ${metricsData.apiUsage.aiSummary.feedback_edited}
+` : ''}
+${metricsData.apiUsage.aiModels && metricsData.apiUsage.aiModels.length > 0 ? `
+MODELOS DE IA EM USO:
+${metricsData.apiUsage.aiModels.map(m => `- ${m.model}: ${m.count} chamadas (${m.pct.toFixed(1)}%), latência ${m.avg_latency}ms`).join('\n')}
+` : ''}
 Retorne JSON no formato:
 {
   "insights": [
@@ -420,35 +432,87 @@ async function gatherMetrics(supabase: any): Promise<MetricsData> {
     .from('billing_subscriptions')
     .select('tenant_id, status, plan_type');
 
-  // Get API usage for current month
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  // Fetch real AI data from CRM ai_advanced endpoint
+  const remoteUrl = Deno.env.get('REMOTE_SUPABASE_URL');
+  const remoteAnonKey = Deno.env.get('REMOTE_SUPABASE_ANON_KEY');
 
-  const { data: apiLogs } = await supabase
-    .from('api_usage_logs')
-    .select('provider, total_tokens, cost_brl')
-    .gte('created_at', startOfMonth.toISOString());
+  let aiAdvancedData: {
+    layers?: { layer: string; model: string; count: number }[];
+    models?: { model: string; count: number; avg_latency: number; credits: number; pct: number }[];
+    providers?: { provider: string; count: number; credits: number }[];
+    summary?: { total_messages: number; total_credits: number; total_tokens: number; avg_latency_ms: number; fallbacks: number; blocks: number; feedback_positive: number; feedback_negative: number; feedback_edited: number };
+  } | null = null;
 
+  if (remoteUrl && remoteAnonKey) {
+    try {
+      const crmResponse = await fetch(
+        `${remoteUrl}/functions/v1/master-core?action=ai_advanced&days=30`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${remoteAnonKey}`,
+            'apikey': remoteAnonKey,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (crmResponse.ok) {
+        aiAdvancedData = await crmResponse.json();
+        logStep('AI Advanced data fetched from CRM', {
+          models: aiAdvancedData?.models?.length,
+          providers: aiAdvancedData?.providers?.length,
+        });
+      } else {
+        logStep('Failed to fetch AI Advanced from CRM', { status: crmResponse.status });
+      }
+    } catch (e) {
+      logStep('Error fetching AI Advanced from CRM', { error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  // Build API usage: prefer CRM data, fallback to local api_usage_logs
   const apiUsage = {
     totalCostBrl: 0,
     totalTokens: 0,
-    byProvider: {} as Record<string, { tokens: number; costBrl: number }>
+    byProvider: {} as Record<string, { tokens: number; costBrl: number }>,
+    // Enriched AI data from CRM
+    aiLayers: aiAdvancedData?.layers || [],
+    aiModels: aiAdvancedData?.models || [],
+    aiSummary: aiAdvancedData?.summary || null,
   };
 
-  (apiLogs || []).forEach((log: { provider: string; total_tokens: number | null; cost_brl: number | null }) => {
-    const cost = log.cost_brl || 0;
-    const tokens = log.total_tokens || 0;
-    
-    apiUsage.totalCostBrl += cost;
-    apiUsage.totalTokens += tokens;
-    
-    if (!apiUsage.byProvider[log.provider]) {
-      apiUsage.byProvider[log.provider] = { tokens: 0, costBrl: 0 };
+  if (aiAdvancedData?.providers && aiAdvancedData.providers.length > 0) {
+    // Use real CRM provider data
+    for (const p of aiAdvancedData.providers) {
+      apiUsage.byProvider[p.provider] = { tokens: 0, costBrl: p.credits };
+      apiUsage.totalCostBrl += p.credits;
     }
-    apiUsage.byProvider[log.provider].tokens += tokens;
-    apiUsage.byProvider[log.provider].costBrl += cost;
-  });
+    apiUsage.totalTokens = aiAdvancedData.summary?.total_tokens || 0;
+  } else {
+    // Fallback to local api_usage_logs
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { data: apiLogs } = await supabase
+      .from('api_usage_logs')
+      .select('provider, total_tokens, cost_brl')
+      .gte('created_at', startOfMonth.toISOString());
+
+    (apiLogs || []).forEach((log: { provider: string; total_tokens: number | null; cost_brl: number | null }) => {
+      const cost = log.cost_brl || 0;
+      const tokens = log.total_tokens || 0;
+      
+      apiUsage.totalCostBrl += cost;
+      apiUsage.totalTokens += tokens;
+      
+      if (!apiUsage.byProvider[log.provider]) {
+        apiUsage.byProvider[log.provider] = { tokens: 0, costBrl: 0 };
+      }
+      apiUsage.byProvider[log.provider].tokens += tokens;
+      apiUsage.byProvider[log.provider].costBrl += cost;
+    });
+  }
 
   // Calculate summary with correct MRR
   const activeTenants = tenants?.filter(t => !t.is_blocked && t.subscription_status !== 'cancelled') || [];
