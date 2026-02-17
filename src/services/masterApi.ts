@@ -271,6 +271,13 @@ export const aiAdvancedApi = {
 // ============================================
 // RAG Metrics API
 // ============================================
+export interface RAGPromptVariantStat {
+  prompt_variant: string;
+  total: number;
+  avg_cqs: number;
+  avg_confidence: number;
+}
+
 export interface RAGQualitySummary {
   total_queries: number;
   vector_hit_rate: number;
@@ -291,11 +298,18 @@ export interface RAGQualitySummary {
   edited_count: number;
   total_feedback: number;
   health_score: number;
+  avg_latency_rag_ms: number;
+  avg_latency_llm_ms: number;
+  avg_latency_total_ms: number;
+  avg_cqs: number;
+  channel_distribution: Record<string, number>;
+  prompt_variant_stats: RAGPromptVariantStat[];
   top_knowledge_items: { knowledge_item_id: string; usage_count: number }[];
   trend: {
     vector_hit_rate_delta: number;
     avg_confidence_delta: number;
     general_fallback_rate_delta: number;
+    avg_cqs_delta: number;
   };
 }
 
@@ -308,6 +322,8 @@ export interface RAGTenantRanking {
   avg_confidence: number;
   avg_similarity: number;
   health_score: number;
+  avg_latency_ms: number;
+  avg_cqs: number;
 }
 
 export interface RAGDailyTimeline {
@@ -320,6 +336,8 @@ export interface RAGDailyTimeline {
   avg_similarity: number;
   hybrid_usage_rate: number;
   reranker_usage_rate: number;
+  avg_latency_ms: number;
+  avg_cqs: number;
 }
 
 export const ragMetricsApi = {

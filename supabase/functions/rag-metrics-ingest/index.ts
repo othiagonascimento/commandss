@@ -71,6 +71,13 @@ Deno.serve(async (req) => {
       response_confidence: e.response_confidence ?? null,
       chunked_results_count: e.chunked_results_count ?? 0,
       feedback_type: e.feedback_type ?? null,
+      latency_rag_ms: e.latency_rag_ms ?? null,
+      latency_llm_ms: e.latency_llm_ms ?? null,
+      latency_total_ms: e.latency_total_ms ?? null,
+      channel: e.channel ?? null,
+      conversation_quality_score: e.conversation_quality_score ?? null,
+      prompt_variant: e.prompt_variant ?? null,
+      auto_tags: e.auto_tags ?? {},
     }));
 
     const { error } = await supabase.from('rag_events').insert(rows);
