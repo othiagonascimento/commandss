@@ -269,6 +269,80 @@ export const aiAdvancedApi = {
 };
 
 // ============================================
+// RAG Metrics API
+// ============================================
+export interface RAGQualitySummary {
+  total_queries: number;
+  vector_hit_rate: number;
+  keyword_fallback_rate: number;
+  general_fallback_rate: number;
+  avg_similarity: number;
+  avg_confidence: number;
+  hybrid_usage_rate: number;
+  reranker_usage_rate: number;
+  uopa_usage_rate: number;
+  product_usage_rate: number;
+  reformulation_rate: number;
+  chunk_usage_rate: number;
+  positive_feedback_rate: number;
+  negative_feedback_rate: number;
+  positive_count: number;
+  negative_count: number;
+  edited_count: number;
+  total_feedback: number;
+  health_score: number;
+  top_knowledge_items: { knowledge_item_id: string; usage_count: number }[];
+  trend: {
+    vector_hit_rate_delta: number;
+    avg_confidence_delta: number;
+    general_fallback_rate_delta: number;
+  };
+}
+
+export interface RAGTenantRanking {
+  tenant_id: string;
+  tenant_name: string;
+  total_queries: number;
+  vector_hit_rate: number;
+  general_fallback_rate: number;
+  avg_confidence: number;
+  avg_similarity: number;
+  health_score: number;
+}
+
+export interface RAGDailyTimeline {
+  date: string;
+  total_queries: number;
+  vector_hit_rate: number;
+  keyword_fallback_rate: number;
+  general_fallback_rate: number;
+  avg_confidence: number;
+  avg_similarity: number;
+  hybrid_usage_rate: number;
+  reranker_usage_rate: number;
+}
+
+export const ragMetricsApi = {
+  getSummary: (tenantId?: string, days?: number) => {
+    const params = new URLSearchParams({ action: 'summary' });
+    if (tenantId) params.set('tenant_id', tenantId);
+    if (days) params.set('days', String(days));
+    return callMasterApi<RAGQualitySummary>('rag-metrics-query', 'GET', `?${params.toString()}`);
+  },
+  getByTenant: (days?: number) => {
+    const params = new URLSearchParams({ action: 'by-tenant' });
+    if (days) params.set('days', String(days));
+    return callMasterApi<RAGTenantRanking[]>('rag-metrics-query', 'GET', `?${params.toString()}`);
+  },
+  getTimeline: (tenantId?: string, days?: number) => {
+    const params = new URLSearchParams({ action: 'timeline' });
+    if (tenantId) params.set('tenant_id', tenantId);
+    if (days) params.set('days', String(days));
+    return callMasterApi<RAGDailyTimeline[]>('rag-metrics-query', 'GET', `?${params.toString()}`);
+  },
+};
+
+// ============================================
 // Types
 // ============================================
 

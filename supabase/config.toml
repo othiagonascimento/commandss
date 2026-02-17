@@ -98,3 +98,9 @@ verify_jwt = false
 
 [functions.master-ai-advanced]
 verify_jwt = false
+
+[functions.rag-metrics-ingest]
+verify_jwt = false
+
+[functions.rag-metrics-query]
+verify_jwt = false
