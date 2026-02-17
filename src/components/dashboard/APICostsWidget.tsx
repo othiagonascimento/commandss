@@ -27,8 +27,9 @@ export function APICostsWidget() {
       if (result.error) throw new Error(result.error);
       return result.data;
     },
-    refetchInterval: 60000,
-    retry: 1,
+    refetchInterval: 120000,
+    retry: false,
+    meta: { suppressError: true },
   });
 
   if (isLoading) {
