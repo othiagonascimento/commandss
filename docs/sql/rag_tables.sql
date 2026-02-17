@@ -23,7 +23,14 @@ CREATE TABLE IF NOT EXISTS public.rag_events (
   model_used TEXT,
   response_confidence FLOAT,
   chunked_results_count INT DEFAULT 0,
-  feedback_type TEXT CHECK (feedback_type IN ('positive', 'negative', 'edited') OR feedback_type IS NULL)
+  feedback_type TEXT CHECK (feedback_type IN ('positive', 'negative', 'edited') OR feedback_type IS NULL),
+  latency_rag_ms INT,
+  latency_llm_ms INT,
+  latency_total_ms INT,
+  channel TEXT CHECK (channel IN ('whatsapp', 'instagram', 'messenger', 'web', 'api') OR channel IS NULL),
+  conversation_quality_score FLOAT,
+  prompt_variant TEXT,
+  auto_tags JSONB DEFAULT '{}'::jsonb
 );
 
 CREATE INDEX IF NOT EXISTS idx_rag_events_tenant_created ON public.rag_events (tenant_id, created_at);
@@ -57,6 +64,12 @@ CREATE TABLE IF NOT EXISTS public.rag_quality_daily (
   positive_feedback_rate FLOAT DEFAULT 0,
   negative_feedback_rate FLOAT DEFAULT 0,
   total_feedback INT DEFAULT 0,
+  avg_latency_rag_ms FLOAT DEFAULT 0,
+  avg_latency_llm_ms FLOAT DEFAULT 0,
+  avg_latency_total_ms FLOAT DEFAULT 0,
+  avg_cqs FLOAT DEFAULT 0,
+  channel_distribution JSONB DEFAULT '{}'::jsonb,
+  prompt_variant_stats JSONB DEFAULT '{}'::jsonb,
   UNIQUE(tenant_id, date)
 );
 

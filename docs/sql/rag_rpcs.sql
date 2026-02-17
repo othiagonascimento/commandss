@@ -32,7 +32,11 @@ BEGIN
       COUNT(CASE WHEN feedback_type = 'positive' THEN 1 END) AS positive_count,
       COUNT(CASE WHEN feedback_type = 'negative' THEN 1 END) AS negative_count,
       COUNT(CASE WHEN feedback_type = 'edited' THEN 1 END) AS edited_count,
-      COUNT(CASE WHEN feedback_type IS NOT NULL THEN 1 END) AS total_feedback
+      COUNT(CASE WHEN feedback_type IS NOT NULL THEN 1 END) AS total_feedback,
+      COALESCE(AVG(latency_rag_ms), 0) AS avg_latency_rag_ms,
+      COALESCE(AVG(latency_llm_ms), 0) AS avg_latency_llm_ms,
+      COALESCE(AVG(latency_total_ms), 0) AS avg_latency_total_ms,
+      COALESCE(AVG(conversation_quality_score), 0) AS avg_cqs
     FROM rag_events
     WHERE created_at >= now() - (p_days || ' days')::interval
       AND (p_tenant_id IS NULL OR tenant_id = p_tenant_id)
@@ -41,7 +45,8 @@ BEGIN
     SELECT
       COALESCE(AVG(CASE WHEN vector_results_count > 0 THEN 1.0 ELSE 0.0 END), 0) AS prev_vector_hit_rate,
       COALESCE(AVG(response_confidence), 0) AS prev_avg_confidence,
-      COALESCE(AVG(CASE WHEN fallback_to_general THEN 1.0 ELSE 0.0 END), 0) AS prev_general_fallback_rate
+      COALESCE(AVG(CASE WHEN fallback_to_general THEN 1.0 ELSE 0.0 END), 0) AS prev_general_fallback_rate,
+      COALESCE(AVG(conversation_quality_score), 0) AS prev_avg_cqs
     FROM rag_events
     WHERE created_at >= now() - (p_days * 2 || ' days')::interval
       AND created_at < now() - (p_days || ' days')::interval
@@ -57,6 +62,28 @@ BEGIN
       ORDER BY usage_count DESC
       LIMIT 10
     ) t
+  ),
+  channel_dist AS (
+    SELECT json_object_agg(COALESCE(channel, 'unknown'), cnt) AS dist FROM (
+      SELECT channel, COUNT(*) AS cnt
+      FROM rag_events
+      WHERE created_at >= now() - (p_days || ' days')::interval
+        AND (p_tenant_id IS NULL OR tenant_id = p_tenant_id)
+      GROUP BY channel
+    ) ch
+  ),
+  variant_stats AS (
+    SELECT json_agg(row_to_json(v)) AS stats FROM (
+      SELECT prompt_variant, COUNT(*) AS total,
+        ROUND(AVG(conversation_quality_score)::numeric, 4) AS avg_cqs,
+        ROUND(AVG(response_confidence)::numeric, 4) AS avg_confidence
+      FROM rag_events
+      WHERE created_at >= now() - (p_days || ' days')::interval
+        AND (p_tenant_id IS NULL OR tenant_id = p_tenant_id)
+        AND prompt_variant IS NOT NULL
+      GROUP BY prompt_variant
+      ORDER BY total DESC
+    ) v
   )
   SELECT json_build_object(
     'total_queries', cp.total_queries,
@@ -77,14 +104,21 @@ BEGIN
     'total_feedback', cp.total_feedback,
     'positive_count', cp.positive_count,
     'negative_count', cp.negative_count,
+    'avg_latency_rag_ms', ROUND(cp.avg_latency_rag_ms::numeric, 0),
+    'avg_latency_llm_ms', ROUND(cp.avg_latency_llm_ms::numeric, 0),
+    'avg_latency_total_ms', ROUND(cp.avg_latency_total_ms::numeric, 0),
+    'avg_cqs', ROUND(cp.avg_cqs::numeric, 4),
+    'channel_distribution', COALESCE(cd.dist, '{}'::json),
+    'prompt_variant_stats', COALESCE(vs.stats, '[]'::json),
     'top_knowledge_items', COALESCE(ti.items, '[]'::json),
     'trend', json_build_object(
       'vector_hit_rate_delta', ROUND((cp.vector_hit_rate - pp.prev_vector_hit_rate)::numeric, 4),
       'avg_confidence_delta', ROUND((cp.avg_confidence - pp.prev_avg_confidence)::numeric, 4),
-      'general_fallback_rate_delta', ROUND((cp.general_fallback_rate - pp.prev_general_fallback_rate)::numeric, 4)
+      'general_fallback_rate_delta', ROUND((cp.general_fallback_rate - pp.prev_general_fallback_rate)::numeric, 4),
+      'avg_cqs_delta', ROUND((cp.avg_cqs - pp.prev_avg_cqs)::numeric, 4)
     )
   ) INTO result
-  FROM current_period cp, prev_period pp, top_items ti;
+  FROM current_period cp, prev_period pp, top_items ti, channel_dist cd, variant_stats vs;
 
   RETURN result;
 END;
@@ -110,7 +144,9 @@ BEGIN
       ROUND(AVG(CASE WHEN vector_results_count > 0 THEN 1.0 ELSE 0.0 END)::numeric, 4) AS vector_hit_rate,
       ROUND(AVG(CASE WHEN fallback_to_general THEN 1.0 ELSE 0.0 END)::numeric, 4) AS general_fallback_rate,
       ROUND(AVG(response_confidence)::numeric, 4) AS avg_confidence,
-      ROUND(AVG(top_similarity_score)::numeric, 4) AS avg_similarity
+      ROUND(AVG(top_similarity_score)::numeric, 4) AS avg_similarity,
+      ROUND(AVG(latency_total_ms)::numeric, 0) AS avg_latency_ms,
+      ROUND(AVG(conversation_quality_score)::numeric, 4) AS avg_cqs
     FROM rag_events re
     LEFT JOIN tenants tn ON tn.id = re.tenant_id
     WHERE re.created_at >= now() - (p_days || ' days')::interval
@@ -145,7 +181,9 @@ BEGIN
       ROUND(AVG(response_confidence)::numeric, 4) AS avg_confidence,
       ROUND(AVG(top_similarity_score)::numeric, 4) AS avg_similarity,
       ROUND(AVG(CASE WHEN hybrid_rrf_used THEN 1.0 ELSE 0.0 END)::numeric, 4) AS hybrid_usage_rate,
-      ROUND(AVG(CASE WHEN reranker_used THEN 1.0 ELSE 0.0 END)::numeric, 4) AS reranker_usage_rate
+      ROUND(AVG(CASE WHEN reranker_used THEN 1.0 ELSE 0.0 END)::numeric, 4) AS reranker_usage_rate,
+      ROUND(AVG(latency_total_ms)::numeric, 0) AS avg_latency_ms,
+      ROUND(AVG(conversation_quality_score)::numeric, 4) AS avg_cqs
     FROM rag_events
     WHERE created_at >= now() - (p_days || ' days')::interval
       AND (p_tenant_id IS NULL OR tenant_id = p_tenant_id)
@@ -165,7 +203,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO rag_quality_daily (tenant_id, date, total_queries, vector_hit_rate, keyword_fallback_rate, general_fallback_rate, avg_similarity, avg_confidence, hybrid_usage_rate, reranker_usage_rate, uopa_usage_rate, product_usage_rate, reformulation_rate, chunk_usage_rate, positive_feedback_rate, negative_feedback_rate, total_feedback)
+  INSERT INTO rag_quality_daily (tenant_id, date, total_queries, vector_hit_rate, keyword_fallback_rate, general_fallback_rate, avg_similarity, avg_confidence, hybrid_usage_rate, reranker_usage_rate, uopa_usage_rate, product_usage_rate, reformulation_rate, chunk_usage_rate, positive_feedback_rate, negative_feedback_rate, total_feedback, avg_latency_rag_ms, avg_latency_llm_ms, avg_latency_total_ms, avg_cqs, channel_distribution, prompt_variant_stats)
   SELECT
     tenant_id,
     (now() - interval '1 day')::date,
@@ -187,7 +225,13 @@ BEGIN
     CASE WHEN COUNT(CASE WHEN feedback_type IS NOT NULL THEN 1 END) > 0
       THEN COUNT(CASE WHEN feedback_type = 'negative' THEN 1 END)::float / COUNT(CASE WHEN feedback_type IS NOT NULL THEN 1 END)
       ELSE 0 END,
-    COUNT(CASE WHEN feedback_type IS NOT NULL THEN 1 END)
+    COUNT(CASE WHEN feedback_type IS NOT NULL THEN 1 END),
+    AVG(latency_rag_ms),
+    AVG(latency_llm_ms),
+    AVG(latency_total_ms),
+    AVG(conversation_quality_score),
+    (SELECT json_object_agg(COALESCE(ch, 'unknown'), cnt) FROM (SELECT channel AS ch, COUNT(*) AS cnt FROM rag_events e2 WHERE e2.tenant_id = rag_events.tenant_id AND e2.created_at::date = (now() - interval '1 day')::date GROUP BY channel) sub),
+    (SELECT json_agg(row_to_json(sub)) FROM (SELECT prompt_variant, COUNT(*) AS total, ROUND(AVG(conversation_quality_score)::numeric, 4) AS avg_cqs FROM rag_events e2 WHERE e2.tenant_id = rag_events.tenant_id AND e2.created_at::date = (now() - interval '1 day')::date AND prompt_variant IS NOT NULL GROUP BY prompt_variant) sub)
   FROM rag_events
   WHERE created_at::date = (now() - interval '1 day')::date
   GROUP BY tenant_id
@@ -206,7 +250,13 @@ BEGIN
     chunk_usage_rate = EXCLUDED.chunk_usage_rate,
     positive_feedback_rate = EXCLUDED.positive_feedback_rate,
     negative_feedback_rate = EXCLUDED.negative_feedback_rate,
-    total_feedback = EXCLUDED.total_feedback;
+    total_feedback = EXCLUDED.total_feedback,
+    avg_latency_rag_ms = EXCLUDED.avg_latency_rag_ms,
+    avg_latency_llm_ms = EXCLUDED.avg_latency_llm_ms,
+    avg_latency_total_ms = EXCLUDED.avg_latency_total_ms,
+    avg_cqs = EXCLUDED.avg_cqs,
+    channel_distribution = EXCLUDED.channel_distribution,
+    prompt_variant_stats = EXCLUDED.prompt_variant_stats;
 
   -- Prune old events (> 90 days)
   DELETE FROM rag_events WHERE created_at < now() - interval '90 days';

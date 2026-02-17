@@ -16,6 +16,8 @@ import {
   Cell,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -33,6 +35,10 @@ import {
   ThumbsDown,
   Pencil,
   Building2,
+  Clock,
+  Star,
+  MessageSquare,
+  FlaskConical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -124,6 +130,32 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
     'General Fallback': +(t.general_fallback_rate * 100).toFixed(1),
   }));
 
+  // Channel distribution pie data
+  const channelData = summary?.channel_distribution
+    ? Object.entries(summary.channel_distribution).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value,
+      }))
+    : [];
+
+  // Latency by tenant (bar chart)
+  const latencyByTenant = (tenantRanking || [])
+    .filter(t => t.avg_latency_ms > 0)
+    .sort((a, b) => b.avg_latency_ms - a.avg_latency_ms)
+    .slice(0, 10)
+    .map(t => ({
+      name: t.tenant_name || t.tenant_id.slice(0, 8),
+      latency: Math.round(t.avg_latency_ms),
+    }));
+
+  // CQS ranking
+  const cqsRanking = (tenantRanking || [])
+    .filter(t => t.avg_cqs > 0)
+    .sort((a, b) => b.avg_cqs - a.avg_cqs);
+
+  // A/B testing data
+  const variantStats = summary?.prompt_variant_stats || [];
+
   return (
     <div className="space-y-6">
       {/* Health Score + Key Metrics */}
@@ -185,18 +217,23 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
           </CardContent>
         </Card>
 
-        {/* General Fallback Rate */}
+        {/* CQS */}
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Fallback Geral</p>
-            {loadingSummary ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <p className={cn('text-2xl font-bold', (summary?.general_fallback_rate ?? 0) > 0.2 ? 'text-destructive' : '')}>
-                {pct(summary?.general_fallback_rate ?? 0)}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">Sem resultado nenhum</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">CQS Médio</p>
+                {loadingSummary ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <p className="text-2xl font-bold">{(summary?.avg_cqs ?? 0).toFixed(2)}</p>
+                )}
+              </div>
+              <div className="p-3 rounded-lg bg-chart-3/10">
+                <Star className="h-5 w-5 text-chart-3" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Conversation Quality Score</p>
           </CardContent>
         </Card>
 
@@ -220,14 +257,32 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
         </Card>
       </div>
 
-      {/* Usage Rates Grid */}
+      {/* Latency + Usage Rates */}
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> RAG</p>
+              <p className="text-lg font-bold">{Math.round(summary.avg_latency_rag_ms)}ms</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> LLM</p>
+              <p className="text-lg font-bold">{Math.round(summary.avg_latency_llm_ms)}ms</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Total</p>
+              <p className="text-lg font-bold">{Math.round(summary.avg_latency_total_ms)}ms</p>
+            </CardContent>
+          </Card>
           {[
             { label: 'Hybrid RRF', value: summary.hybrid_usage_rate },
             { label: 'Reranker', value: summary.reranker_usage_rate },
-            { label: 'UOPA Context', value: summary.uopa_usage_rate },
-            { label: 'Product Context', value: summary.product_usage_rate },
+            { label: 'UOPA Ctx', value: summary.uopa_usage_rate },
+            { label: 'Product Ctx', value: summary.product_usage_rate },
             { label: 'Reformulação', value: summary.reformulation_rate },
             { label: 'Chunks', value: summary.chunk_usage_rate },
           ].map(item => (
@@ -241,7 +296,7 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
         </div>
       )}
 
-      {/* Charts Row */}
+      {/* Charts Row 1: Timeline + Feedback */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Timeline Chart */}
         <Card>
@@ -265,27 +320,9 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
                   <YAxis className="text-xs fill-muted-foreground" tickLine={false} unit="%" />
                   <Tooltip formatter={(v: number) => [`${v}%`]} />
                   <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="Vector Hit"
-                    stroke="hsl(var(--chart-2))"
-                    fill="hsl(var(--chart-2))"
-                    fillOpacity={0.4}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Keyword Fallback"
-                    stroke="hsl(var(--chart-4))"
-                    fill="hsl(var(--chart-4))"
-                    fillOpacity={0.3}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="General Fallback"
-                    stroke="hsl(var(--destructive))"
-                    fill="hsl(var(--destructive))"
-                    fillOpacity={0.2}
-                  />
+                  <Area type="monotone" dataKey="Vector Hit" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.4} />
+                  <Area type="monotone" dataKey="Keyword Fallback" stroke="hsl(var(--chart-4))" fill="hsl(var(--chart-4))" fillOpacity={0.3} />
+                  <Area type="monotone" dataKey="General Fallback" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.2} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -311,16 +348,7 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
                 <div className="w-[180px] h-[180px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie
-                        data={feedbackData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={45}
-                        outerRadius={75}
-                        paddingAngle={3}
-                      >
+                      <Pie data={feedbackData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3}>
                         {feedbackData.map((_, i) => (
                           <Cell key={i} fill={feedbackColors[i % feedbackColors.length]} />
                         ))}
@@ -351,6 +379,187 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
               <div className="h-[250px] flex items-center justify-center text-muted-foreground">
                 <AlertCircle className="h-5 w-5 mr-2" />
                 Sem dados de feedback
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row 2: Channel Distribution + Latency by Tenant */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Channel Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Distribuição de Canais
+            </CardTitle>
+            <CardDescription>Queries por canal de atendimento</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingSummary ? (
+              <Skeleton className="h-[250px] w-full" />
+            ) : channelData.length > 0 ? (
+              <div className="flex items-center gap-6">
+                <div className="w-[180px] h-[180px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={channelData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3}>
+                        {channelData.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex-1 space-y-2">
+                  {channelData.map((ch, i) => (
+                    <div key={ch.name} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                      <span className="text-sm">{ch.name}</span>
+                      <span className="ml-auto font-bold text-sm">{ch.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                Sem dados de canais
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Latency by Tenant */}
+        {!tenantId && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Latência Média por Tenant
+              </CardTitle>
+              <CardDescription>Top 10 tenants por latência total (ms)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingTenants ? (
+                <Skeleton className="h-[250px] w-full" />
+              ) : latencyByTenant.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={latencyByTenant} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis type="number" unit="ms" className="text-xs fill-muted-foreground" />
+                    <YAxis dataKey="name" type="category" width={80} className="text-xs fill-muted-foreground" tickLine={false} />
+                    <Tooltip formatter={(v: number) => [`${v}ms`, 'Latência']} />
+                    <Bar dataKey="latency" fill="hsl(var(--chart-4))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                  <AlertCircle className="h-5 w-5 mr-2" />
+                  Sem dados de latência
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Charts Row 3: CQS Ranking + A/B Testing */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* CQS Ranking by Tenant */}
+        {!tenantId && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Star className="h-4 w-4" />
+                CQS por Tenant
+              </CardTitle>
+              <CardDescription>Ranking de Conversation Quality Score</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingTenants ? (
+                <div className="space-y-3">
+                  {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+                </div>
+              ) : cqsRanking.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Tenant</TableHead>
+                      <TableHead className="text-right">CQS</TableHead>
+                      <TableHead className="text-right">Queries</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {cqsRanking.slice(0, 10).map((t, idx) => (
+                      <TableRow key={t.tenant_id}>
+                        <TableCell className="font-bold text-muted-foreground">{idx + 1}</TableCell>
+                        <TableCell className="font-medium">{t.tenant_name || t.tenant_id.slice(0, 8)}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={t.avg_cqs >= 0.8 ? 'default' : t.avg_cqs >= 0.5 ? 'secondary' : 'destructive'}>
+                            {t.avg_cqs.toFixed(2)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">{t.total_queries}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">Sem dados de CQS</div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* A/B Testing Results */}
+        <Card className={tenantId ? 'lg:col-span-2' : ''}>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FlaskConical className="h-4 w-4" />
+              A/B Testing de Prompts
+            </CardTitle>
+            <CardDescription>CQS e confiança por variante de prompt</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingSummary ? (
+              <Skeleton className="h-[200px] w-full" />
+            ) : variantStats.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Variante</TableHead>
+                    <TableHead className="text-right">Queries</TableHead>
+                    <TableHead className="text-right">CQS Médio</TableHead>
+                    <TableHead className="text-right">Confiança</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {variantStats.map((v) => (
+                    <TableRow key={v.prompt_variant}>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {v.prompt_variant}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-bold">{v.total}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={v.avg_cqs >= 0.8 ? 'default' : v.avg_cqs >= 0.5 ? 'secondary' : 'destructive'}>
+                          {v.avg_cqs.toFixed(3)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{pct(v.avg_confidence)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="py-8 text-center text-muted-foreground">
+                <FlaskConical className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                Nenhum teste A/B ativo
               </div>
             )}
           </CardContent>
