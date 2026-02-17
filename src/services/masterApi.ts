@@ -256,8 +256,79 @@ export const usageApi = {
 };
 
 // ============================================
+// AI Advanced API (CRM ai_advanced endpoint)
+// ============================================
+export const aiAdvancedApi = {
+  get: (days?: number, tenantId?: string) => {
+    const params = new URLSearchParams();
+    if (days) params.set('days', String(days));
+    if (tenantId) params.set('tenant_id', tenantId);
+    const query = params.toString();
+    return callMasterApi<AIAdvancedData>('master-ai-advanced', 'GET', query ? `?${query}` : undefined);
+  },
+};
+
+// ============================================
 // Types
 // ============================================
+
+// AI Advanced Types (from CRM ai_advanced endpoint)
+export interface AIAdvancedLayerItem {
+  layer: string;
+  model: string;
+  count: number;
+}
+
+export interface AIAdvancedModelItem {
+  model: string;
+  count: number;
+  avg_latency: number;
+  credits: number;
+  pct: number;
+}
+
+export interface AIAdvancedProviderItem {
+  provider: string;
+  count: number;
+  credits: number;
+}
+
+export interface AIAdvancedTenantItem {
+  tenant_id: string;
+  tenant_name: string;
+  credits: number;
+  messages: number;
+  escalations: number;
+}
+
+export interface AIAdvancedTimelineItem {
+  date: string;
+  messages: number;
+  credits: number;
+  escalations: number;
+  blocks: number;
+}
+
+export interface AIAdvancedSummary {
+  total_messages: number;
+  total_credits: number;
+  total_tokens: number;
+  avg_latency_ms: number;
+  fallbacks: number;
+  blocks: number;
+  feedback_positive: number;
+  feedback_negative: number;
+  feedback_edited: number;
+}
+
+export interface AIAdvancedData {
+  layers: AIAdvancedLayerItem[];
+  models: AIAdvancedModelItem[];
+  providers: AIAdvancedProviderItem[];
+  tenants: AIAdvancedTenantItem[];
+  timeline: AIAdvancedTimelineItem[];
+  summary: AIAdvancedSummary;
+}
 
 // Existing types
 export interface AnalyticsOverview {

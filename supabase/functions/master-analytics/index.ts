@@ -237,8 +237,41 @@ async function getRevenueData() {
   };
 }
 
-// Generate time series data from real database
+// Generate time series data from real database with real MRR
 async function getTimeSeriesData(months: number = 12) {
+  // Pre-fetch all tenants with pricing for MRR calculation
+  const { data: allTenants } = await supabase
+    .from('tenants')
+    .select('id, plan_type, plan_id, subscription_status, is_blocked, price_per_user, contracted_users, channel_price, extra_channels, discount_type, discount_value, has_monthly_fee, created_at');
+
+  const { data: plans } = await supabase
+    .from('plans')
+    .select('id, slug');
+  
+  const planSlugById = new Map((plans || []).map((p: { id: string; slug: string }) => [p.id, p.slug]));
+
+  // Helper: calculate MRR for a set of tenants
+  function calcMrr(tenants: typeof allTenants) {
+    let mrr = 0;
+    for (const t of tenants || []) {
+      const planSlug = t.plan_id ? planSlugById.get(t.plan_id) : t.plan_type;
+      const skip = t.is_blocked || t.subscription_status === 'trialing' || t.subscription_status === 'pending' ||
+        t.subscription_status === 'lifetime' || t.subscription_status === 'canceled' ||
+        planSlug === 'free' || t.has_monthly_fee === false;
+      if (skip) continue;
+
+      let rev = (t.price_per_user || 0) * (t.contracted_users || 1) +
+                (t.channel_price || 0) * (t.extra_channels || 0);
+      if (t.discount_type === 'percent' && t.discount_value) {
+        rev *= (1 - t.discount_value / 100);
+      } else if (t.discount_type === 'fixed' && t.discount_value) {
+        rev = Math.max(0, rev - t.discount_value);
+      }
+      mrr += rev;
+    }
+    return mrr;
+  }
+
   const data = [];
   const now = new Date();
   
@@ -248,11 +281,8 @@ async function getTimeSeriesData(months: number = 12) {
     
     const monthName = startDate.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
     
-    // Get tenants created up to this month
-    const { count: tenantsCount } = await supabase
-      .from('tenants')
-      .select('*', { count: 'exact', head: true })
-      .lte('created_at', endDate.toISOString());
+    // Filter tenants that existed by end of this month
+    const tenantsUpToMonth = (allTenants || []).filter(t => new Date(t.created_at) <= endDate);
 
     // Get profiles (users) created up to this month
     const { count: usersCount } = await supabase
@@ -270,17 +300,17 @@ async function getTimeSeriesData(months: number = 12) {
     const leads = usageData?.reduce((sum, u) => sum + (u.leads_count || 0), 0) || 0;
     const messages = usageData?.reduce((sum, u) => sum + (u.messages_sent || 0), 0) || 0;
 
-    // Estimate MRR based on tenant count and average plan price
-    const estimatedMrr = (tenantsCount || 0) * 200; // Average price estimate
+    // Real MRR calculation
+    const realMrr = calcMrr(tenantsUpToMonth);
 
     data.push({
       month: monthName,
       date: startDate.toISOString(),
-      mrr: estimatedMrr,
-      tenants: tenantsCount || 0,
-      leads: leads || Math.round((tenantsCount || 0) * 15),
+      mrr: Math.round(realMrr),
+      tenants: tenantsUpToMonth.length,
+      leads: leads,
       users: usersCount || 0,
-      messages: messages || Math.round((tenantsCount || 0) * 100),
+      messages: messages,
     });
   }
   
