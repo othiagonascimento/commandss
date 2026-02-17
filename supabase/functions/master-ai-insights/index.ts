@@ -446,7 +446,7 @@ async function gatherMetrics(supabase: any): Promise<MetricsData> {
   if (remoteUrl && remoteAnonKey) {
     try {
       const crmResponse = await fetch(
-        `${remoteUrl}/functions/v1/master-core?action=ai_advanced&days=30`,
+        `${remoteUrl}/functions/v1/master-core/analytics?action=ai_advanced&days=30`,
         {
           method: 'GET',
           headers: {
