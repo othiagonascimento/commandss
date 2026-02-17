@@ -59,7 +59,7 @@ serve(async (req) => {
     const crmParams = new URLSearchParams({ action: 'ai_advanced', days });
     if (tenantId) crmParams.set('tenant_id', tenantId);
 
-    const crmUrl = `${remoteUrl}/functions/v1/master-core?${crmParams.toString()}`;
+    const crmUrl = `${remoteUrl}/functions/v1/master-core/analytics?${crmParams.toString()}`;
     console.log(`[master-ai-advanced] Fetching from CRM: ${crmUrl}`);
 
     const crmResponse = await fetch(crmUrl, {
