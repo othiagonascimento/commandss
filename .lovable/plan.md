@@ -1,57 +1,90 @@
 
 
-## Plano: Email de Boas-Vindas Elite — Nivel Will Bank
+## Plano: Integrar API `ai_advanced` do CRM e Corrigir Sincronizacao de Dados
 
-O email atual e funcional, mas e generico e corporativo. As inspiracoes mostram um padrao claro: **storytelling emocional, tipografia bold, tom humano de conversa, e blocos visuais que guiam o olhar**. Vamos reconstruir o template do zero.
+### Diagnostico
 
-### O que muda
+Investiguei profundamente e confirmei **6 problemas criticos**:
 
-**Arquivo**: `supabase/functions/master-users/index.ts` (funcao `sendWelcomeEmailDirect`)
+1. **APICostsWidget** (dashboard) chama `supabase.rpc('get_global_credits_summary')` e `supabase.rpc('get_top_credit_consumers')` diretamente no cliente Supabase do Lovable Cloud — essas RPCs existem apenas no Supabase externo, resultando em erro permanente no widget.
 
-### Novo Storytelling (fluxo do email)
+2. **useGlobalCredits** tenta a mesma RPC `get_global_credits_summary` no cliente local antes de fazer fallback para edge function — mas o fallback depende de `master-usage/global-summary` que tambem pode nao retornar dados corretos de IA.
 
-O email deixa de ser um "aviso de conta criada" e passa a ser uma **celebracao de chegada**:
+3. **AIDiagnostics** faz 3 chamadas separadas (`master-ai-diagnostics`, `master-ai-diagnostics/by-tenant`, `master-ai-diagnostics/live-feed`) que processam `orchestrator_logs` manualmente no servidor, com mapeamento de colunas por tentativa-e-erro. A nova API `ai_advanced` do CRM ja faz isso de forma otimizada.
 
-1. **Logo** — Centralizada, limpa, sobre fundo branco
-2. **Headline emocional** — Tipografia grande e bold: **"Que bom ter voce aqui, {nome}!"** (estilo Will Bank)
-3. **Paragrafo humano** — Tom de conversa, como se fosse uma pessoa falando: *"A gente preparou tudo pra voce. Seu espaco no Uopa CRM ja esta pronto — e a gente ta muito feliz com isso."*
-4. **Bloco visual de destaque** — Fundo com cor da marca (gradiente suave roxo) com texto branco: *"Pra comecar, separamos seus dados de acesso"* (inspirado no bloco amarelo do Will Bank)
-5. **Credenciais** — Caixa limpa, moderna, com icones visuais (emoji de cadeado e envelope) sobre fundo branco
-6. **Dica de seguranca** — Tom amigavel, nao tecnico: *"Dica: troque sua senha no primeiro acesso. Seguranca nunca e demais."*
-7. **Botao CTA** — Grande, arredondado, cor solida: **"Acessar minha conta"**
-8. **Fechamento emocional** — *"Estamos juntos nessa jornada. Conte com a gente!"* + assinatura *"Com carinho, Equipe Uopa CRM"*
-9. **Footer** — Minimalista, copyright, link de suporte
+4. **master-ai-diagnostics** classifica layers com arrays hardcoded (`gemini-2.0-flash` = L1, `claude-3-5-sonnet` = L3) que podem nao refletir a configuracao real do Motor de IA.
 
-### Solucao da Logo
+5. **master-analytics** estima MRR no time series como `tenants * 200` (linha 274) ao inves de calcular com a logica real que ja existe em `getRevenueData()`.
 
-Usar **base64 inline** para garantir que a logo apareca em todos os provedores (Gmail, Outlook, etc.) sem depender de dominio externo. A imagem `public/images/uopa-logo-email.png` sera convertida para base64 e embutida diretamente no HTML.
+6. **master-ai-insights** busca custos de API apenas de `api_usage_logs` local — nao acessa dados reais de orquestracao do CRM.
 
-### Diferenciais vs. template atual
+---
 
-| Aspecto | Atual | Novo |
-|---------|-------|------|
-| Tom | Corporativo, frio | Humano, caloroso, celebratorio |
-| Headline | "Bem-vindo ao Uopa!" | "Que bom ter voce aqui, {nome}!" |
-| Storytelling | Inexistente | 3 blocos narrativos com progressao emocional |
-| Bloco destaque | Nenhum | Faixa colorida estilo Will Bank |
-| Credenciais | Caixa roxa generica | Caixa limpa com icones e hierarquia clara |
-| Fechamento | Copyright generico | Mensagem pessoal + assinatura da equipe |
-| Logo | URL externa (nao carrega) | Base64 inline (sempre aparece) |
-| Emojis | Excessivos no subject | Uso estrategico apenas no corpo |
+### Solucao em 6 passos
 
-### Subject do email
+#### Passo 1: Nova Edge Function `master-ai-advanced`
 
-De: `Bem-vindo ao Uopa CRM, {nome}! ` 
+**Novo arquivo**: `supabase/functions/master-ai-advanced/index.ts`
 
-Para: `{nome}, sua conta no Uopa CRM esta pronta!`
+Proxy autenticado que faz fetch para o CRM:
+```text
+GET {REMOTE_SUPABASE_URL}/functions/v1/master-core?action=ai_advanced&days={days}&tenant_id={tenant_id}
+```
 
-Mais direto, sem emoji no subject (melhora deliverability), informativo.
+Retorna dados completos: layers, modelos, providers, tenants, timeline, summary (fallbacks, blocks, feedback).
 
-### Detalhes tecnicos
+#### Passo 2: Adicionar tipos e API no `masterApi.ts`
 
-- A logo sera lida do filesystem da Edge Function ou hardcoded como string base64 no codigo
-- Todo o HTML sera inline-styled (padrao para emails)
-- Compatibilidade testada: Gmail, Outlook, Apple Mail, Yahoo
-- Nenhuma dependencia externa para imagens
-- Mantida toda a logica existente (envio, temp_password, resend_id)
+- Novo tipo `AIAdvancedData` com as interfaces para layers, models, providers, tenants, timeline, summary
+- Novo `aiAdvancedApi` service:
+  - `get(days?, tenantId?)` -> chama `master-ai-advanced`
+
+#### Passo 3: Refatorar `APICostsWidget.tsx`
+
+**Problema atual**: Chama RPCs que nao existem no Supabase local.
+
+**Solucao**: Substituir as 2 chamadas RPC por uma unica chamada a `aiAdvancedApi.get()` ou ao `usageApi.getGlobalSummary()` via edge function. Os dados de top consumers virao do breakdown por tenant do `ai_advanced`.
+
+#### Passo 4: Refatorar `AIDiagnostics.tsx`
+
+**Problema atual**: 3 chamadas separadas com processamento manual.
+
+**Solucao**: Uma unica chamada ao `master-ai-advanced` que retorna:
+- `summary` -> totals, last24h, escalation rates
+- `layers` -> breakdown L1/L2/L3 com modelos reais
+- `models` -> distribuicao com latencia e creditos
+- `providers` -> breakdown Google/OpenAI/Anthropic
+- `tenants` -> top consumidores
+- `timeline` -> tendencia diaria (substitui `escalationTrend` vazio)
+
+#### Passo 5: Corrigir `master-analytics` time series
+
+**Problema atual (linha 274)**: `estimatedMrr = (tenantsCount || 0) * 200`
+
+**Solucao**: Reutilizar a logica de `getRevenueData()` para calcular MRR real por periodo, usando `price_per_user * contracted_users + channel_price * extra_channels - descontos`.
+
+#### Passo 6: Enriquecer `master-ai-insights`
+
+**Problema atual**: `gatherMetrics()` busca custos de API apenas de `api_usage_logs` local.
+
+**Solucao**: Adicionar fetch interno para `{REMOTE_SUPABASE_URL}/functions/v1/master-core?action=ai_advanced&days=30` dentro de `gatherMetrics()`. Incluir dados reais de layers, escalacao, fallbacks e feedback nos prompts enviados para a IA gerar insights.
+
+---
+
+### Arquivos alterados
+
+| Arquivo | Acao | Descricao |
+|---------|------|-----------|
+| `supabase/functions/master-ai-advanced/index.ts` | NOVO | Proxy para `ai_advanced` do CRM |
+| `supabase/config.toml` | EDITAR | Adicionar `[functions.master-ai-advanced]` |
+| `src/services/masterApi.ts` | EDITAR | Adicionar `AIAdvancedData` types + `aiAdvancedApi` |
+| `src/components/dashboard/APICostsWidget.tsx` | EDITAR | Trocar RPCs quebradas por edge function |
+| `src/pages/AIDiagnostics.tsx` | EDITAR | Consumir `ai_advanced` como fonte unica |
+| `supabase/functions/master-analytics/index.ts` | EDITAR | Corrigir MRR estimado no time series |
+| `supabase/functions/master-ai-insights/index.ts` | EDITAR | Enriquecer com dados reais de IA do CRM |
+
+### Pre-requisitos
+
+- A Edge Function `master-core` do CRM precisa estar deployada com `action=ai_advanced` funcional
+- Os secrets `REMOTE_SUPABASE_URL` e `REMOTE_SUPABASE_ANON_KEY` ja estao configurados (confirmado pela arquitetura existente em `master-ai-diagnostics`)
 
