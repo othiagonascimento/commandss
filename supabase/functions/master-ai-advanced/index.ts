@@ -65,7 +65,7 @@ serve(async (req) => {
     const crmResponse = await fetch(crmUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${remoteAnonKey}`,
+        'Authorization': authHeader!,
         'apikey': remoteAnonKey,
         'Content-Type': 'application/json',
       },
