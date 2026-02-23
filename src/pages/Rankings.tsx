@@ -23,6 +23,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TenantSelector } from '@/components/ui/tenant-selector';
 
 interface UserRanking {
   id: string;
@@ -141,12 +142,12 @@ function RankingCard({
 
 export default function Rankings() {
   const [activeTab, setActiveTab] = useState('users');
-
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   // Fetch user usage data
   const { data: userUsage, isLoading: usersLoading } = useQuery({
-    queryKey: ['user-usage-rankings'],
+    queryKey: ['user-usage-rankings', selectedTenantId],
     queryFn: async () => {
-      const { data: usage, error: usageError } = await supabase
+      let query = supabase
         .from('user_usage')
         .select(`
           id,
@@ -162,17 +163,22 @@ export default function Rankings() {
         .order('ai_tokens_month', { ascending: false })
         .limit(50);
       
+      if (selectedTenantId) {
+        query = query.eq('tenant_id', selectedTenantId);
+      }
+
+      const { data: usage, error: usageError } = await query;
       if (usageError) throw usageError;
       
       // Get profiles for names
-      const userIds = usage?.map(u => u.user_id) || [];
+      const userIds = (usage?.map(u => u.user_id) || []) as string[];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, tenant_id')
         .in('id', userIds);
       
       // Get tenants for names
-      const tenantIds = [...new Set(usage?.map(u => u.tenant_id) || [])];
+      const tenantIds = [...new Set((usage?.map(u => u.tenant_id) || []) as string[])];
       const { data: tenants } = await supabase
         .from('tenants')
         .select('id, name')
@@ -192,9 +198,9 @@ export default function Rankings() {
 
   // Fetch tenant usage data
   const { data: tenantUsage, isLoading: tenantsLoading } = useQuery({
-    queryKey: ['tenant-usage-rankings'],
+    queryKey: ['tenant-usage-rankings', selectedTenantId],
     queryFn: async () => {
-      const { data: usage, error } = await supabase
+      let query = supabase
         .from('tenant_usage')
         .select(`
           id,
@@ -208,6 +214,11 @@ export default function Rankings() {
         .order('ai_tokens_used', { ascending: false })
         .limit(50);
       
+      if (selectedTenantId) {
+        query = query.eq('tenant_id', selectedTenantId);
+      }
+
+      const { data: usage, error } = await query;
       if (error) throw error;
       
       // Get tenant names
@@ -249,6 +260,13 @@ export default function Rankings() {
         title="Rankings & Engajamento"
         description="Acompanhe os usuários e tenants mais ativos para ações promocionais"
         icon={Trophy}
+        actions={
+          <TenantSelector
+            value={selectedTenantId}
+            onChange={setSelectedTenantId}
+            placeholder="Todas as Lojas"
+          />
+        }
       />
 
       {isLoading ? (

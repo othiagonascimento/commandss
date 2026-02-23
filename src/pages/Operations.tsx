@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { TenantSelector } from '@/components/ui/tenant-selector';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -134,6 +135,7 @@ export default function Operations() {
   const [alertToResolve, setAlertToResolve] = useState<AlertRecord | null>(null);
   const [resolveNotes, setResolveNotes] = useState('');
   const [resolveReason, setResolveReason] = useState('');
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const { snapshot, alerts, alertCount, history, isLoading, refetch } = useOpsHealth();
   const { resolve, isResolving } = useAlerts();
 
@@ -141,6 +143,12 @@ export default function Operations() {
   const [historyPage, setHistoryPage] = useState(0);
   const [historyTypeFilter, setHistoryTypeFilter] = useState('all');
   const resolvedAlerts = useResolvedAlerts(20, historyPage * 20, undefined, historyTypeFilter === 'all' ? undefined : historyTypeFilter);
+
+  // Filter alerts by selected tenant
+  const filteredAlerts = selectedTenantId
+    ? alerts.filter(a => a.tenant_id === selectedTenantId || (a.metadata as Record<string, unknown>)?.tenant_id === selectedTenantId)
+    : alerts;
+  const filteredAlertCount = filteredAlerts.length;
 
   const snap = (snapshot as Record<string, unknown>)?.snapshot_data as Record<string, unknown> | undefined;
   const snapAt = (snapshot as Record<string, unknown>)?.created_at as string | undefined;
@@ -168,7 +176,7 @@ export default function Operations() {
   const queueStatus: 'ok' | 'warn' | 'error' = eqPending > 200 || mqPending > 50 ? 'error' : eqPending > 50 ? 'warn' : 'ok';
   const channelStatus: 'ok' | 'warn' | 'error' | 'off' = noData ? 'off' : connectedWA === whatsappChannels.length && whatsappChannels.length > 0 ? 'ok' : connectedWA > 0 ? 'warn' : whatsappChannels.length > 0 ? 'error' : 'off';
   const cronStatus: 'ok' | 'warn' | 'error' | 'off' = noData ? 'off' : failedCrons > 0 ? 'error' : 'ok';
-  const alertStatus: 'ok' | 'warn' | 'error' = alertCount === 0 ? 'ok' : alerts.some(a => a.severity === 'critical') ? 'error' : 'warn';
+  const alertStatus: 'ok' | 'warn' | 'error' = filteredAlertCount === 0 ? 'ok' : filteredAlerts.some(a => a.severity === 'critical') ? 'error' : 'warn';
 
   const handleResolve = () => {
     if (!alertToResolve || !resolveNotes.trim() || !resolveReason) return;
@@ -188,15 +196,22 @@ export default function Operations() {
         }
         icon={Radio}
         actions={
-          <Button variant="outline" size="sm" onClick={refetch} disabled={isLoading}>
-            <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} /> Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <TenantSelector
+              value={selectedTenantId}
+              onChange={setSelectedTenantId}
+              placeholder="Todas as Lojas"
+            />
+            <Button variant="outline" size="sm" onClick={refetch} disabled={isLoading}>
+              <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} /> Atualizar
+            </Button>
+          </div>
         }
       />
 
       {/* ─── Status Strip ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatusCard label="Alertas" value={alertCount === 0 ? 'OK' : `${alertCount}`} status={alertStatus} detail={alertCount > 0 ? `${alerts.filter(a => a.severity === 'critical').length} crítico` : 'Tudo limpo'} />
+        <StatusCard label="Alertas" value={filteredAlertCount === 0 ? 'OK' : `${filteredAlertCount}`} status={alertStatus} detail={filteredAlertCount > 0 ? `${filteredAlerts.filter(a => a.severity === 'critical').length} crítico` : 'Tudo limpo'} />
         <StatusCard label="Filas" value={noData ? '—' : `${eqPending + mqPending}`} status={noData ? 'off' as any : queueStatus} detail={noData ? '' : `${eqFailed} falhados`} />
         <StatusCard label="Canais" value={noData ? '—' : `${connectedWA + activeMeta}/${whatsappChannels.length + metaChannels.length}`} status={channelStatus} detail={noData ? '' : `${whatsappChannels.length - connectedWA} offline`} />
         <StatusCard label="Cron Jobs" value={noData ? '—' : `${activeCrons}/${cronJobs.length}`} status={cronStatus} detail={noData ? '' : failedCrons > 0 ? `${failedCrons} falhando` : 'Todos OK'} />
@@ -214,13 +229,13 @@ export default function Operations() {
         <TabsContent value="painel" className="space-y-6">
 
           {/* Alertas Ativos */}
-          {alerts.length > 0 && (
+          {filteredAlerts.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4 text-destructive" />
-                {alerts.length} Alerta{alerts.length > 1 ? 's' : ''} Ativo{alerts.length > 1 ? 's' : ''}
+                {filteredAlerts.length} Alerta{filteredAlerts.length > 1 ? 's' : ''} Ativo{filteredAlerts.length > 1 ? 's' : ''}
               </h3>
-              {alerts.map(alert => {
+              {filteredAlerts.map(alert => {
                 const cfg = severityConfig[alert.severity] || severityConfig.info;
                 const Icon = cfg.icon;
                 const meta = alert.metadata || {};
@@ -276,7 +291,7 @@ export default function Operations() {
             </div>
           )}
 
-          {alerts.length === 0 && (
+          {filteredAlerts.length === 0 && (
             <Card>
               <CardContent className="flex items-center justify-center gap-3 py-8">
                 <CheckCircle2 className="h-6 w-6 text-emerald-500" />

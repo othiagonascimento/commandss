@@ -39,6 +39,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { HelpTooltip } from '@/components/ui/help-tooltip';
+import { TenantSelector } from '@/components/ui/tenant-selector';
 import {
   AreaChart,
   Area,
@@ -229,17 +230,18 @@ function ChurnRiskCard({ tenant }: { tenant: ChurnRiskTenant }) {
 
 export default function Analytics() {
   const [period, setPeriod] = useState('6m');
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
 
   const { data: analyticsData, isLoading, refetch } = useQuery({
-    queryKey: ['billing-analytics', period],
+    queryKey: ['billing-analytics', period, selectedTenantId],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('master-analytics', {
-        body: { endpoint: 'billing-intelligence', period }
+        body: { endpoint: 'billing-intelligence', period, tenant_id: selectedTenantId || undefined }
       });
       if (error) throw error;
       return data;
     },
-    staleTime: 300000, // 5 minutes
+    staleTime: 300000,
   });
 
   const cohortData = analyticsData?.cohort || [];
@@ -262,6 +264,11 @@ export default function Analytics() {
         icon={BarChart3}
         actions={
           <div className="flex gap-2">
+            <TenantSelector
+              value={selectedTenantId}
+              onChange={setSelectedTenantId}
+              placeholder="Todas as Lojas"
+            />
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue />
