@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { safeArray } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -215,9 +216,7 @@ export default function TenantHealth() {
         body: { endpoint: 'tenant-health' }
       });
       if (error) throw error;
-      // API may return object with nested array or direct array
-      const result = Array.isArray(data) ? data : (data?.tenants || data?.data || []);
-      return result as TenantHealthData[];
+      return safeArray<TenantHealthData>(data);
     },
     staleTime: 60000,
   });

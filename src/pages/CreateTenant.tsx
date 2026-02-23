@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { safeArray } from '@/lib/utils';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -99,7 +100,7 @@ export default function CreateTenant() {
       });
       
       if (error) throw error;
-      return data?.data as Plan[];
+      return safeArray<Plan>(data?.data ?? data);
     },
   });
 
@@ -112,7 +113,7 @@ export default function CreateTenant() {
       });
       
       if (error) throw error;
-      return data?.data as NicheTemplate[];
+      return safeArray<NicheTemplate>(data?.data ?? data);
     },
   });
 

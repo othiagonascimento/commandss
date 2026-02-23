@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { safeArray } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -78,7 +79,7 @@ export default function InviteLinks() {
         method: 'GET',
       });
       if (error) throw error;
-      return data.links as InviteLink[];
+      return safeArray<InviteLink>(data?.links ?? data);
     },
   });
 
