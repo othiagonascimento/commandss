@@ -6,7 +6,7 @@ export interface AIModelCatalog {
   id: string;
   model_id: string;
   display_name: string;
-  provider: 'google' | 'openai' | 'anthropic';
+  provider: string;
   layer_category: 'router' | 'standard' | 'elite';
   is_active: boolean;
   cost_per_1k_tokens: number | null;
@@ -16,6 +16,24 @@ export interface AIModelCatalog {
 
 export type CreateAIModelInput = Omit<AIModelCatalog, 'id' | 'created_at' | 'is_active'>;
 export type UpdateAIModelInput = Partial<CreateAIModelInput> & { id: string };
+
+// Auto-sync cost config after model create/update
+async function syncCostConfig(model: { provider: string; model_id: string; display_name: string; cost_per_1k_tokens: number | null }) {
+  try {
+    await supabase.from('api_cost_config').upsert({
+      provider: model.provider,
+      model: model.model_id,
+      operation: 'chat',
+      display_name: model.display_name,
+      input_cost_per_1m_usd: model.cost_per_1k_tokens
+        ? model.cost_per_1k_tokens * 1000
+        : null,
+      is_active: true,
+    }, { onConflict: 'provider,model' });
+  } catch (err) {
+    console.warn('Aviso: não foi possível sincronizar api_cost_config:', err);
+  }
+}
 
 // List ALL models (active and inactive)
 export function useAIModelsCatalog() {
@@ -49,6 +67,10 @@ export function useCreateAIModel() {
         .select()
         .single();
       if (error) throw error;
+
+      // Auto-sync to api_cost_config
+      await syncCostConfig(model);
+
       return data;
     },
     onSuccess: () => {
@@ -79,6 +101,17 @@ export function useUpdateAIModel() {
         .select()
         .single();
       if (error) throw error;
+
+      // Auto-sync to api_cost_config
+      if (data) {
+        await syncCostConfig({
+          provider: data.provider,
+          model_id: data.model_id,
+          display_name: data.display_name,
+          cost_per_1k_tokens: data.cost_per_1k_tokens,
+        });
+      }
+
       return data;
     },
     onSuccess: () => {

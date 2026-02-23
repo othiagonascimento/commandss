@@ -39,13 +39,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, Pencil, Trash2, Loader2, Database } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Plus, Search, Pencil, Trash2, Loader2, Database, AlertTriangle } from 'lucide-react';
 
 const PROVIDER_COLORS: Record<string, string> = {
   google: 'bg-blue-500/10 text-blue-600 border-blue-500/30',
   openai: 'bg-green-500/10 text-green-600 border-green-500/30',
   anthropic: 'bg-purple-500/10 text-purple-600 border-purple-500/30',
+  deepseek: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/30',
+  mistral: 'bg-orange-500/10 text-orange-600 border-orange-500/30',
+  cohere: 'bg-rose-500/10 text-rose-600 border-rose-500/30',
+  meta: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/30',
 };
+
+const PROVIDER_FALLBACK_COLOR = 'bg-gray-500/10 text-gray-600 border-gray-500/30';
 
 const CATEGORY_COLORS: Record<string, string> = {
   router: 'bg-sky-500/10 text-sky-600 border-sky-500/30',
@@ -72,6 +84,13 @@ export function ModelCatalogManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<AIModelCatalog | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Dynamic provider list from actual data
+  const uniqueProviders = useMemo(() => {
+    if (!models) return [];
+    const providers = [...new Set(models.map(m => m.provider))].sort();
+    return providers;
+  }, [models]);
 
   const filteredModels = useMemo(() => {
     if (!models) return [];
@@ -172,9 +191,11 @@ export function ModelCatalogManager() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos Provedores</SelectItem>
-                <SelectItem value="google">Google</SelectItem>
-                <SelectItem value="openai">OpenAI</SelectItem>
-                <SelectItem value="anthropic">Anthropic</SelectItem>
+                {uniqueProviders.map(p => (
+                  <SelectItem key={p} value={p}>
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -230,7 +251,7 @@ export function ModelCatalogManager() {
                         {model.model_id}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={PROVIDER_COLORS[model.provider]}>
+                        <Badge variant="outline" className={PROVIDER_COLORS[model.provider] || PROVIDER_FALLBACK_COLOR}>
                           {model.provider.charAt(0).toUpperCase() + model.provider.slice(1)}
                         </Badge>
                       </TableCell>
@@ -241,8 +262,24 @@ export function ModelCatalogManager() {
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">
                         {model.cost_per_1k_tokens !== null 
-                          ? `$${model.cost_per_1k_tokens.toFixed(4)}` 
-                          : '-'}
+                          ? `$${model.cost_per_1k_tokens.toFixed(4)}`
+                          : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30 text-xs">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    Sem custo
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs text-xs">
+                                    Este modelo não tem custo configurado. O tracking de API Costs não funcionará corretamente para chamadas usando este modelo.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -275,6 +312,8 @@ export function ModelCatalogManager() {
               <span>{models.length} modelos cadastrados</span>
               <span>•</span>
               <span>{models.filter(m => m.is_active).length} ativos</span>
+              <span>•</span>
+              <span>{models.filter(m => m.cost_per_1k_tokens === null).length} sem custo</span>
             </div>
           )}
         </CardContent>

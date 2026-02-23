@@ -60,5 +60,6 @@ export function useGroupedModels() {
   return {
     ...query,
     grouped,
+    allActive: query.data || [],
   };
 }

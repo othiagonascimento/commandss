@@ -66,7 +66,7 @@ export function UopaAICoreEditor() {
   const confidentialTopics = uopaCore?.confidential_topics || [];
 
   // Load available AI models dynamically
-  const { grouped: availableModels, isLoading: modelsLoading } = useGroupedModels();
+  const { allActive: allModels, isLoading: modelsLoading } = useGroupedModels();
 
   const currentTabData = TABS.find(t => t.value === activeTab);
 
@@ -319,9 +319,9 @@ export function UopaAICoreEditor() {
                           Herdar do Global
                         </span>
                       </SelectItem>
-                      {availableModels.router.map((model) => (
+                      {allModels.map((model) => (
                         <SelectItem key={model.id} value={model.model_id}>
-                          {model.display_name}
+                          {model.display_name} <span className="text-xs text-muted-foreground">({model.provider})</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -351,9 +351,9 @@ export function UopaAICoreEditor() {
                           Herdar do Global
                         </span>
                       </SelectItem>
-                      {availableModels.standard.map((model) => (
+                      {allModels.map((model) => (
                         <SelectItem key={model.id} value={model.model_id}>
-                          {model.display_name}
+                          {model.display_name} <span className="text-xs text-muted-foreground">({model.provider})</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -383,9 +383,9 @@ export function UopaAICoreEditor() {
                           Herdar do Global
                         </span>
                       </SelectItem>
-                      {availableModels.elite.map((model) => (
+                      {allModels.map((model) => (
                         <SelectItem key={model.id} value={model.model_id}>
-                          {model.display_name}
+                          {model.display_name} <span className="text-xs text-muted-foreground">({model.provider})</span>
                         </SelectItem>
                       ))}
                     </SelectContent>

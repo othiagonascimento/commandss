@@ -45,7 +45,7 @@ import { toast } from 'sonner';
 
 export default function Settings() {
   const queryClient = useQueryClient();
-  const { grouped: modelsByCategory, isLoading: isLoadingModels } = useGroupedModels();
+  const { allActive: allModels, isLoading: isLoadingModels } = useGroupedModels();
   
   // General settings
   const [systemName, setSystemName] = useState('UOPA Master');
@@ -520,21 +520,22 @@ export default function Settings() {
                             value={aiLayer1Model}
                             onValueChange={setAiLayer1Model}
                           >
-                            <SelectTrigger id="layer1Model" className={aiLayer1Model && !modelsByCategory.router.some(m => m.model_id === aiLayer1Model) ? 'border-destructive' : ''}>
+                            <SelectTrigger id="layer1Model" className={aiLayer1Model && !allModels.some(m => m.model_id === aiLayer1Model) ? 'border-destructive' : ''}>
                               <SelectValue placeholder="Selecione um modelo" />
                             </SelectTrigger>
                             <SelectContent>
-                              {modelsByCategory.router.map((model) => (
+                              {allModels.map((model) => (
                                 <SelectItem key={model.id} value={model.model_id}>
                                   <div className="flex items-center gap-2">
                                     <span>{model.display_name}</span>
                                     <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                    <span className="text-[10px] px-1 rounded bg-muted">{model.layer_category}</span>
                                   </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                          {aiLayer1Model && !modelsByCategory.router.some(m => m.model_id === aiLayer1Model) && (
+                          {aiLayer1Model && !allModels.some(m => m.model_id === aiLayer1Model) && (
                             <p className="text-xs text-destructive">
                               ⚠️ Modelo "{aiLayer1Model}" foi desativado ou removido. Selecione outro.
                             </p>
@@ -579,21 +580,22 @@ export default function Settings() {
                             value={aiLayer2Model}
                             onValueChange={setAiLayer2Model}
                           >
-                            <SelectTrigger id="layer2Model" className={aiLayer2Model && !modelsByCategory.standard.some(m => m.model_id === aiLayer2Model) ? 'border-destructive' : ''}>
+                            <SelectTrigger id="layer2Model" className={aiLayer2Model && !allModels.some(m => m.model_id === aiLayer2Model) ? 'border-destructive' : ''}>
                               <SelectValue placeholder="Selecione um modelo" />
                             </SelectTrigger>
                             <SelectContent>
-                              {modelsByCategory.standard.map((model) => (
+                              {allModels.map((model) => (
                                 <SelectItem key={model.id} value={model.model_id}>
                                   <div className="flex items-center gap-2">
                                     <span>{model.display_name}</span>
                                     <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                    <span className="text-[10px] px-1 rounded bg-muted">{model.layer_category}</span>
                                   </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                          {aiLayer2Model && !modelsByCategory.standard.some(m => m.model_id === aiLayer2Model) && (
+                          {aiLayer2Model && !allModels.some(m => m.model_id === aiLayer2Model) && (
                             <p className="text-xs text-destructive">
                               ⚠️ Modelo "{aiLayer2Model}" foi desativado ou removido. Selecione outro.
                             </p>
@@ -638,21 +640,22 @@ export default function Settings() {
                             value={aiLayer3Model}
                             onValueChange={setAiLayer3Model}
                           >
-                            <SelectTrigger id="layer3Model" className={aiLayer3Model && !modelsByCategory.elite.some(m => m.model_id === aiLayer3Model) ? 'border-destructive' : ''}>
+                            <SelectTrigger id="layer3Model" className={aiLayer3Model && !allModels.some(m => m.model_id === aiLayer3Model) ? 'border-destructive' : ''}>
                               <SelectValue placeholder="Selecione um modelo" />
                             </SelectTrigger>
                             <SelectContent>
-                              {modelsByCategory.elite.map((model) => (
+                              {allModels.map((model) => (
                                 <SelectItem key={model.id} value={model.model_id}>
                                   <div className="flex items-center gap-2">
                                     <span>{model.display_name}</span>
                                     <span className="text-xs text-muted-foreground">({model.provider})</span>
+                                    <span className="text-[10px] px-1 rounded bg-muted">{model.layer_category}</span>
                                   </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                          {aiLayer3Model && !modelsByCategory.elite.some(m => m.model_id === aiLayer3Model) && (
+                          {aiLayer3Model && !allModels.some(m => m.model_id === aiLayer3Model) && (
                             <p className="text-xs text-destructive">
                               ⚠️ Modelo "{aiLayer3Model}" foi desativado ou removido. Selecione outro.
                             </p>
