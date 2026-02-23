@@ -27,6 +27,7 @@ export function useOpsHealth(tenantId?: string) {
         description: string;
         metadata: Record<string, unknown>;
         tenant_id: string | null;
+        user_id: string | null;
         created_at: string;
       }>;
     },
