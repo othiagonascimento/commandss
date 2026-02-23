@@ -67,7 +67,7 @@ const LAYER_CONFIG = [
 
 export function TenantAIEngineEditor({ tenantId, config, isLoading }: TenantAIEngineEditorProps) {
   const queryClient = useQueryClient();
-  const { grouped: modelsByCategory, isLoading: isLoadingModels } = useGroupedModels();
+  const { allActive: allModels, grouped: modelsByCategory, isLoading: isLoadingModels } = useGroupedModels();
   
   const [localConfig, setLocalConfig] = useState<AIEngineConfig>({
     ai_use_global_config: config?.ai_use_global_config ?? true,
@@ -248,8 +248,6 @@ export function TenantAIEngineEditor({ tenantId, config, isLoading }: TenantAIEn
           const instructionsKey = `ai_${layer.key}_instructions` as keyof AIEngineConfig;
           const currentModel = (localConfig[modelKey] as string) || '';
           const currentInstructions = (localConfig[instructionsKey] as string) || '';
-          const models = modelsByCategory[layer.category];
-
           return (
             <Card key={layer.key}>
               <CardHeader className="pb-3">
@@ -277,11 +275,12 @@ export function TenantAIEngineEditor({ tenantId, config, isLoading }: TenantAIEn
                       <SelectValue placeholder="Selecione um modelo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {models.map((model) => (
+                      {allModels.map((model) => (
                         <SelectItem key={model.id} value={model.model_id}>
                           <div className="flex items-center gap-2">
                             <span>{model.display_name}</span>
                             <span className="text-xs text-muted-foreground">({model.provider})</span>
+                            <span className="text-[10px] px-1 rounded bg-muted">{model.layer_category}</span>
                           </div>
                         </SelectItem>
                       ))}

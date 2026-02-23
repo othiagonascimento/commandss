@@ -32,6 +32,11 @@ const PROVIDERS = [
   { value: 'google', label: 'Google' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'anthropic', label: 'Anthropic' },
+  { value: 'deepseek', label: 'DeepSeek' },
+  { value: 'mistral', label: 'Mistral' },
+  { value: 'cohere', label: 'Cohere' },
+  { value: 'meta', label: 'Meta (Llama)' },
+  { value: 'other', label: 'Outro...' },
 ];
 
 const CATEGORIES = [
@@ -55,11 +60,14 @@ export function ModelFormDialog({
     cost_per_1k_tokens: null,
     max_context_tokens: null,
   });
+  const [customProvider, setCustomProvider] = useState('');
+  const [selectedProviderKey, setSelectedProviderKey] = useState('google');
 
   const isEditing = !!model;
 
   useEffect(() => {
     if (model) {
+      const knownProvider = PROVIDERS.find(p => p.value === model.provider && p.value !== 'other');
       setFormData({
         model_id: model.model_id,
         display_name: model.display_name,
@@ -68,6 +76,13 @@ export function ModelFormDialog({
         cost_per_1k_tokens: model.cost_per_1k_tokens,
         max_context_tokens: model.max_context_tokens,
       });
+      if (knownProvider) {
+        setSelectedProviderKey(model.provider);
+        setCustomProvider('');
+      } else {
+        setSelectedProviderKey('other');
+        setCustomProvider(model.provider);
+      }
     } else {
       setFormData({
         model_id: '',
@@ -77,8 +92,23 @@ export function ModelFormDialog({
         cost_per_1k_tokens: null,
         max_context_tokens: null,
       });
+      setSelectedProviderKey('google');
+      setCustomProvider('');
     }
   }, [model, open]);
+
+  const handleProviderChange = (value: string) => {
+    setSelectedProviderKey(value);
+    if (value !== 'other') {
+      setFormData(prev => ({ ...prev, provider: value }));
+      setCustomProvider('');
+    }
+  };
+
+  const handleCustomProviderChange = (value: string) => {
+    setCustomProvider(value);
+    setFormData(prev => ({ ...prev, provider: value.toLowerCase().replace(/\s+/g, '-') }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +140,7 @@ export function ModelFormDialog({
                   ...prev, 
                   model_id: e.target.value.toLowerCase().replace(/\s+/g, '-') 
                 }))}
-                placeholder="gpt-4o, gemini-2.0-flash, etc."
+                placeholder="gpt-4o, gemini-2.0-flash, deepseek-chat, etc."
                 disabled={isEditing}
                 required
               />
@@ -125,7 +155,7 @@ export function ModelFormDialog({
                 id="display_name"
                 value={formData.display_name}
                 onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
-                placeholder="GPT-4o, Gemini 2.0 Flash, etc."
+                placeholder="GPT-4o, Gemini 2.0 Flash, DeepSeek Chat, etc."
                 required
               />
             </div>
@@ -134,10 +164,8 @@ export function ModelFormDialog({
               <div className="grid gap-2">
                 <Label htmlFor="provider">Provedor *</Label>
                 <Select
-                  value={formData.provider}
-                  onValueChange={(value: 'google' | 'openai' | 'anthropic') => 
-                    setFormData(prev => ({ ...prev, provider: value }))
-                  }
+                  value={selectedProviderKey}
+                  onValueChange={handleProviderChange}
                 >
                   <SelectTrigger id="provider">
                     <SelectValue />
@@ -150,6 +178,14 @@ export function ModelFormDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {selectedProviderKey === 'other' && (
+                  <Input
+                    value={customProvider}
+                    onChange={(e) => handleCustomProviderChange(e.target.value)}
+                    placeholder="Nome do provedor"
+                    required
+                  />
+                )}
               </div>
 
               <div className="grid gap-2">
@@ -212,7 +248,7 @@ export function ModelFormDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading || !formData.model_id || !formData.display_name}>
+            <Button type="submit" disabled={isLoading || !formData.model_id || !formData.display_name || (selectedProviderKey === 'other' && !customProvider)}>
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isEditing ? 'Salvar' : 'Criar Modelo'}
             </Button>
