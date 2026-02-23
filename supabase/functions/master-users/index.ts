@@ -539,7 +539,9 @@ serve(async (req) => {
         );
       }
 
-      // Create auth user with tenant_id and role in metadata (required by handle_new_user trigger)
+      // Create auth user WITHOUT tenant_id/role in metadata to avoid handle_new_user trigger failures.
+      // The trigger may try to provision into tables with constraints that fail.
+      // We provision manually below and then update metadata.
       const appRole = mapToValidRole(body.role);
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: body.email,
@@ -548,8 +550,6 @@ serve(async (req) => {
         user_metadata: {
           full_name: fullName,
           name: fullName,
-          tenant_id: tenantId,
-          role: appRole,
         },
       });
 
@@ -574,9 +574,9 @@ serve(async (req) => {
         );
       }
       const authUser = authData.user;
-      logStep('Auth user created', { authUserId: authUser.id });
+      logStep('Auth user created (without tenant metadata)', { authUserId: authUser.id });
 
-      // Upsert profile (trigger may have already created it)
+      // Manually provision profile
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .upsert({
@@ -584,17 +584,18 @@ serve(async (req) => {
           tenant_id: tenantId,
           full_name: fullName,
           name: fullName,
+          email: body.email,
           is_active: true,
+          status: 'online',
         }, { onConflict: 'id' });
 
       if (profileError) {
         logStep('Profile upsert failed', { error: profileError.message });
-        // Don't fail - trigger may have created it successfully
       } else {
         logStep('Profile upserted');
       }
 
-      // Assign user role with fallback strategy (appRole already computed above)
+      // Assign user role with fallback strategy
       try {
         const { error: roleError } = await supabaseAdmin
           .from('user_roles')
@@ -607,7 +608,6 @@ serve(async (req) => {
         logStep('User role upserted', { role: appRole });
       } catch (roleErr) {
         logStep('Upsert failed, trying delete+insert fallback', { error: roleErr instanceof Error ? roleErr.message : roleErr });
-        // Fallback: delete existing + insert new
         await supabaseAdmin.from('user_roles')
           .delete().eq('user_id', authUser.id).eq('tenant_id', tenantId);
         const { error: insertRoleError } = await supabaseAdmin.from('user_roles')
@@ -619,12 +619,52 @@ serve(async (req) => {
         }
       }
 
+      // Provision user_usage and user_limits (trigger would normally do this)
+      const { error: usageError } = await supabaseAdmin
+        .from('user_usage')
+        .upsert({
+          user_id: authUser.id,
+          tenant_id: tenantId,
+        }, { onConflict: 'user_id,tenant_id' });
+      if (usageError) {
+        logStep('user_usage upsert failed (non-blocking)', { error: usageError.message });
+      } else {
+        logStep('user_usage provisioned');
+      }
+
+      const { error: limitsError } = await supabaseAdmin
+        .from('user_limits')
+        .upsert({
+          user_id: authUser.id,
+          tenant_id: tenantId,
+        }, { onConflict: 'user_id,tenant_id' });
+      if (limitsError) {
+        logStep('user_limits upsert failed (non-blocking)', { error: limitsError.message });
+      } else {
+        logStep('user_limits provisioned');
+      }
+
+      // Now update user metadata with tenant_id and role (for JWT claims and other systems)
+      const { error: metaUpdateError } = await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+        user_metadata: {
+          full_name: fullName,
+          name: fullName,
+          tenant_id: tenantId,
+          role: appRole,
+        },
+      });
+      if (metaUpdateError) {
+        logStep('Metadata update failed (non-blocking)', { error: metaUpdateError.message });
+      } else {
+        logStep('User metadata updated with tenant_id and role');
+      }
+
       // ===== DUAL-WRITE: Create user in CRM =====
       if (crmSupabase) {
         try {
           logStep('Creating user in CRM (dual-write)', { email: body.email, tenantId });
 
-          // Create auth user in CRM with same metadata
+          // Create auth user in CRM WITHOUT tenant metadata (same strategy)
           const { data: crmAuthData, error: crmAuthError } = await crmSupabase.auth.admin.createUser({
             email: body.email,
             password: body.password,
@@ -632,8 +672,6 @@ serve(async (req) => {
             user_metadata: {
               full_name: fullName,
               name: fullName,
-              tenant_id: tenantId,
-              role: appRole,
             },
           });
 
@@ -642,8 +680,8 @@ serve(async (req) => {
           } else {
             logStep('CRM user created successfully', { crmUserId: crmAuthData.user?.id });
 
-            // Upsert profile in CRM (trigger may handle it, but ensure consistency)
             if (crmAuthData.user) {
+              // Provision profile in CRM
               await crmSupabase.from('profiles').upsert({
                 id: crmAuthData.user.id,
                 tenant_id: tenantId,
@@ -651,16 +689,38 @@ serve(async (req) => {
                 name: fullName,
                 email: body.email,
                 is_active: true,
+                status: 'online',
               }, { onConflict: 'id' });
 
-              // Upsert role in CRM
+              // Provision role in CRM
               await crmSupabase.from('user_roles').upsert({
                 user_id: crmAuthData.user.id,
                 tenant_id: tenantId,
                 role: appRole,
               }, { onConflict: 'user_id,tenant_id' });
 
-              logStep('CRM profile and role synced');
+              // Provision usage and limits in CRM
+              await crmSupabase.from('user_usage').upsert({
+                user_id: crmAuthData.user.id,
+                tenant_id: tenantId,
+              }, { onConflict: 'user_id,tenant_id' });
+
+              await crmSupabase.from('user_limits').upsert({
+                user_id: crmAuthData.user.id,
+                tenant_id: tenantId,
+              }, { onConflict: 'user_id,tenant_id' });
+
+              // Update CRM user metadata
+              await crmSupabase.auth.admin.updateUserById(crmAuthData.user.id, {
+                user_metadata: {
+                  full_name: fullName,
+                  name: fullName,
+                  tenant_id: tenantId,
+                  role: appRole,
+                },
+              });
+
+              logStep('CRM profile, role, usage, limits synced');
             }
           }
         } catch (crmErr) {
