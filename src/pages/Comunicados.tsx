@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { safeArray } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -89,7 +90,7 @@ export default function Comunicados() {
         method: 'GET',
       });
       if (error) throw error;
-      return data.broadcasts as Broadcast[];
+      return safeArray<Broadcast>(data?.broadcasts ?? data);
     },
   });
 

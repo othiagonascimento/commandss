@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { safeArray } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -139,7 +140,7 @@ export default function AdminCadastros() {
       });
 
       if (response.error) throw response.error;
-      return response.data?.data as OnboardingSubmission[];
+      return safeArray<OnboardingSubmission>(response.data?.data ?? response.data);
     },
   });
 

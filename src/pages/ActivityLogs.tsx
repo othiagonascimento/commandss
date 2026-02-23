@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { safeArray } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -117,7 +118,7 @@ export default function ActivityLogs() {
         }
       });
       if (error) throw error;
-      return data as AuditLog[];
+      return safeArray<AuditLog>(data);
     },
     staleTime: 60000,
   });

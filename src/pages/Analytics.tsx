@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { safeArray } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -239,7 +240,17 @@ export default function Analytics() {
         body: { endpoint: 'billing-intelligence', period, tenant_id: selectedTenantId || undefined }
       });
       if (error) throw error;
-      return data;
+      const raw = data || {};
+      return {
+        cohort: safeArray<CohortData>(raw.cohort),
+        churn_risk: safeArray<ChurnRiskTenant>(raw.churn_risk),
+        revenue_breakdown: {
+          by_plan: safeArray(raw.revenue_breakdown?.by_plan),
+          by_period: safeArray(raw.revenue_breakdown?.by_period),
+          by_sales_rep: safeArray(raw.revenue_breakdown?.by_sales_rep),
+        },
+        metrics: raw.metrics || { ltv: 0, cac: 0, ltv_cac_ratio: 0, churn_rate: 0, expansion_revenue: 0, net_revenue_retention: 0 },
+      };
     },
     staleTime: 300000,
   });
