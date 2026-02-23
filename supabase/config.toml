@@ -104,3 +104,9 @@ verify_jwt = false
 
 [functions.rag-metrics-query]
 verify_jwt = false
+
+[functions.ops-health-receiver]
+verify_jwt = false
+
+[functions.ops-health-query]
+verify_jwt = false

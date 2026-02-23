@@ -15,6 +15,8 @@ import { UsageAlertsWidget } from '@/components/dashboard/UsageAlertsWidget';
 import { AIInsightsWidget } from '@/components/dashboard/AIInsightsWidget';
 import { APICostsWidget } from '@/components/dashboard/APICostsWidget';
 import { CreditZonesWidget } from '@/components/dashboard/CreditZonesWidget';
+import { OpsStatusBar } from '@/components/dashboard/OpsStatusBar';
+import { OpsAlertsWidget } from '@/components/dashboard/OpsAlertsWidget';
 import { 
   Building2, 
   Users, 
@@ -182,7 +184,10 @@ export default function Index() {
             Atualizar
           </Button>
         }
-      />
+        />
+
+        {/* Ops Status Bar */}
+        <OpsStatusBar />
 
         {/* Error State */}
         {error && (
@@ -434,6 +439,9 @@ export default function Index() {
 
         {/* Usage Alerts, Credit Zones, API Costs & Plans Distribution */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+          {/* Ops Alerts Widget */}
+          <OpsAlertsWidget />
+
           {/* Usage Alerts Widget */}
           <UsageAlertsWidget />
 

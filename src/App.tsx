@@ -38,6 +38,7 @@ const APICosts = lazy(() => import("./pages/APICosts"));
 const AIDiagnostics = lazy(() => import("./pages/AIDiagnostics"));
 const CadastroLoja = lazy(() => import("./pages/CadastroLoja"));
 const AdminCadastros = lazy(() => import("./pages/AdminCadastros"));
+const Operations = lazy(() => import("./pages/Operations"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -113,6 +114,7 @@ const App = () => (
                 <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
                 <Route path="/api-costs" element={<ProtectedRoute><APICosts /></ProtectedRoute>} />
                 <Route path="/ai-diagnostics" element={<ProtectedRoute><AIDiagnostics /></ProtectedRoute>} />
+                <Route path="/operations" element={<ProtectedRoute><Operations /></ProtectedRoute>} />
                 <Route path="/admin/cadastros" element={<ProtectedRoute><AdminCadastros /></ProtectedRoute>} />
                 {/* Public onboarding route - URL curta e amigável */}
                 <Route path="/cadastro" element={<CadastroLoja />} />

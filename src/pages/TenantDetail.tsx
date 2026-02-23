@@ -13,8 +13,10 @@ import {
   TenantUser,
   TenantFeatures,
   TenantUsageDetail,
+  opsHealthApi,
 } from '@/services/masterApi';
 import { useTenantCredits } from '@/hooks/useTenantCredits';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,8 +64,9 @@ import {
   Brain,
   Briefcase,
   Coins,
+  Radio,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { ImpersonateButton } from '@/components/tenant/ImpersonateButton';
@@ -82,6 +85,7 @@ import { TenantTemplateManager } from '@/components/tenant/TenantTemplateManager
 import { TenantUserCreditsTable } from '@/components/tenant/TenantUserCreditsTable';
 const TENANT_TABS: TabItem[] = [
   { value: 'overview', label: 'Visão Geral', shortLabel: 'Geral', icon: Building2 },
+  { value: 'operations', label: 'Operações', shortLabel: 'Ops', icon: Radio },
   { value: 'template', label: 'Template', shortLabel: 'Template', icon: ClipboardList },
   { value: 'commercial', label: 'Comercial', shortLabel: 'Comercial', icon: Briefcase },
   { value: 'resources', label: 'Recursos', shortLabel: 'Recursos', icon: Settings2 },
@@ -107,6 +111,93 @@ const isValidUUID = (str: string | undefined): boolean => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(str);
 };
+
+// Tenant Operations Tab (inline component)
+function TenantOperationsTab({ tenantId }: { tenantId: string }) {
+  const { data: tenantOps, isLoading } = useQuery({
+    queryKey: ['tenant-ops', tenantId],
+    queryFn: async () => {
+      const res = await opsHealthApi.getTenantOps(tenantId);
+      if (res.error) throw new Error(res.error);
+      return res.data;
+    },
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  const snapshot = (tenantOps?.snapshot as Record<string, unknown>)?.snapshot_data as Record<string, unknown> | undefined;
+  const alerts = (tenantOps?.alerts ?? []) as Array<{ id: string; title: string; severity: string; alert_type: string; created_at: string }>;
+  const noData = !snapshot;
+
+  const eq = snapshot?.event_queue as Record<string, number> | undefined;
+  const mq = snapshot?.message_queue as Record<string, number> | undefined;
+  const ai = snapshot?.ai_performance as Record<string, number> | undefined;
+  const channels = snapshot?.channels as Record<string, unknown[]> | undefined;
+  const conversations = snapshot?.conversations as Record<string, number> | undefined;
+
+  return (
+    <div className="space-y-6">
+      {noData && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="py-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Sem dados operacionais para este tenant. O CRM precisa enviar o ops_health_sync com tenant_id.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2"><CardDescription>Event Queue</CardDescription></CardHeader>
+          <CardContent><p className="text-2xl font-bold">{eq?.pending ?? '-'}</p><p className="text-xs text-muted-foreground">pending</p></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardDescription>Msg Queue</CardDescription></CardHeader>
+          <CardContent><p className="text-2xl font-bold">{mq?.pending ?? '-'}</p><p className="text-xs text-muted-foreground">pending</p></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardDescription>Latência IA</CardDescription></CardHeader>
+          <CardContent><p className="text-2xl font-bold">{ai?.latency_avg ? `${ai.latency_avg.toFixed(0)}ms` : '-'}</p></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2"><CardDescription>Conversas Ativas</CardDescription></CardHeader>
+          <CardContent><p className="text-2xl font-bold">{conversations?.active ?? '-'}</p></CardContent>
+        </Card>
+      </div>
+
+      {alerts.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Alertas deste Tenant</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {alerts.map((a) => (
+                <div key={a.id} className="flex items-center gap-3 p-2 rounded border border-border">
+                  <Badge variant={a.severity === 'critical' ? 'destructive' : 'secondary'} className="text-xs">
+                    {a.severity}
+                  </Badge>
+                  <span className="text-sm flex-1">{a.title}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(a.created_at), { addSuffix: true, locale: ptBR })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
 
 export default function TenantDetail() {
   const { id } = useParams<{ id: string }>();
@@ -582,6 +673,11 @@ export default function TenantDetail() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Operations Tab */}
+          <TabsContent value="operations" className="space-y-6">
+            <TenantOperationsTab tenantId={id!} />
           </TabsContent>
 
           {/* Commercial Tab */}
