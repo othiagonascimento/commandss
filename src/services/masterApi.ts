@@ -927,6 +927,43 @@ export interface GlobalCreditsSummaryResponse {
 }
 
 // ============================================
+// Ops Health API
+// ============================================
+export const opsHealthApi = {
+  getLatest: (tenantId?: string) => {
+    const params = new URLSearchParams({ action: 'latest' });
+    if (tenantId) params.set('tenant_id', tenantId);
+    return callMasterApi<unknown>('ops-health-query', 'GET', `?${params.toString()}`);
+  },
+  getHistory: (tenantId?: string, hours?: number) => {
+    const params = new URLSearchParams({ action: 'history' });
+    if (tenantId) params.set('tenant_id', tenantId);
+    if (hours) params.set('hours', String(hours));
+    return callMasterApi<unknown[]>('ops-health-query', 'GET', `?${params.toString()}`);
+  },
+  getTenantOps: (tenantId: string) =>
+    callMasterApi<{ snapshot: unknown; alerts: unknown[] }>('ops-health-query', 'GET', `?action=tenant-ops&tenant_id=${tenantId}`),
+  getUserOps: (tenantId: string, userId: string) =>
+    callMasterApi<{ usage: unknown; limits: unknown; alerts: unknown[] }>('ops-health-query', 'GET', `?action=user-ops&tenant_id=${tenantId}&user_id=${userId}`),
+};
+
+// ============================================
+// Alerts API
+// ============================================
+export const alertsApi = {
+  getActive: (tenantId?: string, severity?: string) => {
+    const params = new URLSearchParams({ action: 'alerts' });
+    if (tenantId) params.set('tenant_id', tenantId);
+    if (severity) params.set('severity', severity);
+    return callMasterApi<unknown[]>('ops-health-query', 'GET', `?${params.toString()}`);
+  },
+  getStats: () =>
+    callMasterApi<unknown>('ops-health-query', 'GET', '?action=alert-stats'),
+  resolve: (alertId: string) =>
+    callMasterApi<{ success: boolean }>('ops-health-query', 'POST', '?action=resolve', { alert_id: alertId }),
+};
+
+// ============================================
 // Settings API - for global settings sync
 // ============================================
 export const settingsApi = {

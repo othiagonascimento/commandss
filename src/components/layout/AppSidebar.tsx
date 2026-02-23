@@ -25,6 +25,7 @@ import {
   Trophy,
   Bell,
   ClipboardList,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -108,6 +109,14 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           path: '/simulator',
           description: 'Projeções e cenários',
           badge: 'IA',
+          permissionCheck: permissions.canViewDashboard,
+        },
+        {
+          icon: Radio,
+          label: 'Centro de Operações',
+          path: '/operations',
+          description: 'Telemetria e alertas em tempo real',
+          badge: 'Novo',
           permissionCheck: permissions.canViewDashboard,
         },
       ],
