@@ -64,6 +64,23 @@ async function getOverviewData() {
     .from('profiles')
     .select('*', { count: 'exact', head: true });
 
+  // Get real new_leads_7d from ops_health_snapshots (latest CRM telemetry)
+  let newLeads7d = 0;
+  const { data: latestSnapshot } = await supabase
+    .from('ops_health_snapshots')
+    .select('snapshot_data')
+    .eq('snapshot_type', 'global')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (latestSnapshot?.snapshot_data?.conversations?.new_leads_7d != null) {
+    newLeads7d = latestSnapshot.snapshot_data.conversations.new_leads_7d;
+  } else if (latestSnapshot?.snapshot_data?.leads?.new_7d != null) {
+    newLeads7d = latestSnapshot.snapshot_data.leads.new_7d;
+  }
+  // Fallback: se nao ha snapshot, indicar como 0 (sem dados do CRM) em vez de fabricar
+
   return {
     tenants: { total, active, basic, pro, enterprise },
     subscriptions: { active: activeSubs, trial: trialSubs, cancelled: cancelledSubs },
@@ -74,7 +91,8 @@ async function getOverviewData() {
     },
     recent_activity: { 
       new_tenants_7d: newTenants7d, 
-      new_leads_7d: Math.round(totalLeads * 0.12) // Estimate based on total
+      new_leads_7d: newLeads7d,
+      data_source: latestSnapshot ? 'crm_telemetry' : 'no_data'
     }
   };
 }
@@ -417,15 +435,54 @@ async function getTenantHealthData() {
       .eq('tenant_id', tenant.id)
       .single();
 
-    // Calculate health score based on activity
+    // Calculate health score based on real operational data
     const hasRecentActivity = usage?.messages_sent > 0 || usage?.leads_count > 0;
     const hasUsers = (userCount || 0) > 0;
     const isActive = !tenant.is_blocked && tenant.status !== 'inactive';
+
+    // Try to get real ops data from latest snapshot for this tenant
+    const { data: tenantSnapshot } = await supabase
+      .from('ops_health_snapshots')
+      .select('snapshot_data')
+      .eq('tenant_id', tenant.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    const snap = tenantSnapshot?.snapshot_data;
+    const hasSnapshot = !!snap;
     
-    let healthScore = 50;
-    if (isActive) healthScore += 20;
-    if (hasUsers) healthScore += 15;
-    if (hasRecentActivity) healthScore += 15;
+    // Real health score: weighted 100-point scale
+    let healthScore = 0;
+    if (hasSnapshot) {
+      // 25pts: channels connected
+      const channels = snap?.channels;
+      const whatsappOk = channels?.whatsapp?.some((w: any) => w.status === 'connected') ?? false;
+      const metaOk = channels?.meta?.some((m: any) => m.status === 'active') ?? false;
+      healthScore += (whatsappOk || metaOk) ? 25 : 0;
+      // 25pts: recent activity (messages or leads in last 24h)
+      healthScore += hasRecentActivity ? 25 : 0;
+      // 20pts: queues healthy (pending < 50, failed = 0)
+      const eq = snap?.event_queue;
+      const queuesOk = eq ? (eq.pending < 50 && eq.failed === 0) : true;
+      healthScore += queuesOk ? 20 : (eq?.failed > 0 ? 0 : 10);
+      // 15pts: SLA respected
+      const avgResponse = snap?.conversations?.avg_response_time;
+      healthScore += (avgResponse != null && avgResponse < 300) ? 15 : (avgResponse == null ? 7 : 0);
+      // 15pts: usage below 80% of limits
+      const storageLimit = features?.limit_storage_mb || 1000;
+      const storageUsed = usage?.storage_used_mb || 0;
+      const tokenLimit = features?.limit_ai_tokens_monthly || 100000;
+      const tokensUsed = usage?.ai_tokens_used || 0;
+      const usageOk = (storageUsed / storageLimit < 0.8) && (tokensUsed / tokenLimit < 0.8);
+      healthScore += usageOk ? 15 : 0;
+    } else {
+      // Fallback: simplified local formula (marked as estimated)
+      healthScore = 30;
+      if (isActive) healthScore += 25;
+      if (hasUsers) healthScore += 20;
+      if (hasRecentActivity) healthScore += 25;
+    }
 
     const status = healthScore >= 80 ? 'healthy' 
       : healthScore >= 50 ? 'warning' 
@@ -538,14 +595,31 @@ async function getBillingIntelligence() {
         }
       }
 
+      // Calculate real days since last activity from usage updated_at
+      const usageRecord = inactiveUsage?.find(u => u.tenant_id === t.id);
+      const lastActivityDate = usageRecord?.updated_at ? new Date(usageRecord.updated_at) : thirtyDaysAgo;
+      const daysSinceLogin = Math.floor((Date.now() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Real risk score: based on inactivity days + blocked status + messages trend
+      const msgCount = usageRecord?.messages_sent || 0;
+      let riskScore = Math.min(100, 50 + daysSinceLogin); // base: 50 + 1pt per inactive day
+      if (t.is_blocked) riskScore = 95;
+      if (msgCount === 0) riskScore = Math.min(100, riskScore + 10);
+
+      const riskFactors: string[] = [];
+      if (daysSinceLogin > 14) riskFactors.push(`${daysSinceLogin} dias sem atividade`);
+      if (msgCount === 0) riskFactors.push('Zero mensagens no período');
+      if (t.is_blocked) riskFactors.push('Tenant bloqueado');
+      if (riskFactors.length === 0) riskFactors.push('Baixa atividade');
+
       return {
         id: t.id,
         name: t.name,
-        risk_score: Math.floor(Math.random() * 30) + 60,
-        risk_factors: ['Baixa atividade', 'Sem novos leads'],
-        last_activity: thirtyDaysAgo.toISOString(),
+        risk_score: riskScore,
+        risk_factors: riskFactors,
+        last_activity: lastActivityDate.toISOString(),
         mrr: Math.round(tenantMrr),
-        days_since_login: Math.floor(Math.random() * 20) + 7,
+        days_since_login: daysSinceLogin,
       };
     });
 
@@ -585,23 +659,42 @@ async function getBillingIntelligence() {
     count: data.count,
   }));
 
-  // Cohort analysis
+  // Cohort analysis - real retention based on tenant activity
   const cohortMonths = [];
   for (let i = 5; i >= 0; i--) {
     const date = new Date();
     date.setMonth(date.getMonth() - i);
+    
+    // Tenants created in this cohort month
+    const cohortTenants = (tenants || []).filter(t => {
+      const created = new Date(t.created_at);
+      return created.getMonth() === date.getMonth() && created.getFullYear() === date.getFullYear();
+    });
+    const cohortTotal = cohortTenants.length;
+    
+    // Calculate real retention: how many are still active (not blocked, not canceled) at each month mark
+    const retentionByMonth: Record<string, number> = {};
+    for (let m = 1; m <= 6; m++) {
+      if (i + m > 5) break; // can't measure future months
+      const checkDate = new Date(date.getFullYear(), date.getMonth() + m, 1);
+      const retained = cohortTenants.filter(t => {
+        const isStillActive = !t.is_blocked && t.subscription_status !== 'canceled';
+        // If canceled, check if cancellation happened before checkDate
+        // Since we don't have cancel_date, use is_blocked + status as proxy
+        return isStillActive;
+      }).length;
+      retentionByMonth[`month_${m}`] = cohortTotal > 0 ? Math.round((retained / cohortTotal) * 100) : 0;
+    }
+
     cohortMonths.push({
       cohort: date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
-      total: (tenants || []).filter(t => {
-        const created = new Date(t.created_at);
-        return created.getMonth() === date.getMonth() && created.getFullYear() === date.getFullYear();
-      }).length,
-      month_1: 100,
-      month_2: 95 - Math.random() * 10,
-      month_3: 90 - Math.random() * 15,
-      month_4: 85 - Math.random() * 20,
-      month_5: 80 - Math.random() * 25,
-      month_6: 75 - Math.random() * 30,
+      total: cohortTotal,
+      month_1: retentionByMonth.month_1 ?? 100,
+      month_2: retentionByMonth.month_2 ?? null,
+      month_3: retentionByMonth.month_3 ?? null,
+      month_4: retentionByMonth.month_4 ?? null,
+      month_5: retentionByMonth.month_5 ?? null,
+      month_6: retentionByMonth.month_6 ?? null,
     });
   }
 
@@ -618,7 +711,25 @@ async function getBillingIntelligence() {
   // Calculate total MRR for LTV
   const totalMrr = revenueByPlan.reduce((sum, p) => sum + p.revenue, 0);
   const avgMrr = payingTenants > 0 ? totalMrr / payingTenants : 0;
-  const estimatedLtv = avgMrr * 24; // Assuming 24 month average lifetime
+  // Calculate real average lifetime from billing_subscriptions
+  const { data: subsForLtv } = await supabase
+    .from('billing_subscriptions')
+    .select('created_at, status, current_period_end');
+  
+  let avgLifetimeMonths = 24; // default fallback
+  if (subsForLtv && subsForLtv.length > 0) {
+    const lifetimes = subsForLtv.map(s => {
+      const start = new Date(s.created_at);
+      const end = s.status === 'canceled' && s.current_period_end 
+        ? new Date(s.current_period_end) 
+        : new Date();
+      return (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 30);
+    });
+    avgLifetimeMonths = lifetimes.reduce((a, b) => a + b, 0) / lifetimes.length;
+  }
+  
+  const estimatedLtv = avgMrr * avgLifetimeMonths;
+  const cacEstimated = 350; // Marked as estimated - requires marketing data
 
   return {
     cohort: cohortMonths,
@@ -630,8 +741,9 @@ async function getBillingIntelligence() {
     },
     metrics: {
       ltv: Math.round(estimatedLtv),
-      cac: 350, // Would need marketing data
-      ltv_cac_ratio: estimatedLtv > 0 ? Math.round((estimatedLtv / 350) * 10) / 10 : 0,
+      cac: cacEstimated,
+      cac_source: 'estimated',
+      ltv_cac_ratio: estimatedLtv > 0 ? Math.round((estimatedLtv / cacEstimated) * 10) / 10 : 0,
       churn_rate: Math.round(churnRate * 10) / 10,
       expansion_revenue: 0,
       net_revenue_retention: Math.round((100 - churnRate) * 10) / 10,
