@@ -18,28 +18,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { 
-  Loader2, 
-  Plus, 
-  Pencil, 
-  Users, 
-  Database, 
-  MessageSquare, 
-  Cpu, 
-  HardDrive,
-  Zap,
-  Infinity,
-  Check,
-} from 'lucide-react';
+import { Loader2, Plus, Pencil, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { moduleConfig, categoryColors, groupModulesByCategory } from '@/lib/modules';
 
 interface Plan {
   id: string;
@@ -72,36 +53,9 @@ const defaultPlan: Partial<Plan> = {
   is_default: false,
   price_monthly: 0,
   price_yearly: 0,
-  max_users: 1,
-  max_leads: null,
-  max_products: null,
-  max_channels: 1,
-  max_storage_gb: 5,
-  max_ai_tokens: 100000,
-  max_messages_month: null,
-  max_automations: null,
   features_enabled: [],
   display_order: 0,
 };
-
-const availableFeatures = [
-  { slug: 'crm', label: 'CRM', description: 'Gestão de leads e contatos' },
-  { slug: 'leads', label: 'Leads', description: 'Captura e qualificação' },
-  { slug: 'catalog', label: 'Catálogo', description: 'Produtos e serviços' },
-  { slug: 'automations', label: 'Automações', description: 'Fluxos automáticos' },
-  { slug: 'whatsapp', label: 'WhatsApp', description: 'Integração oficial' },
-  { slug: 'ai_assistant', label: 'IA Assistente', description: 'Uôpa AI' },
-  { slug: 'branding', label: 'Branding', description: 'Personalização visual' },
-  { slug: 'api_access', label: 'API', description: 'Acesso à API' },
-  { slug: 'custom_domain', label: 'Domínio Próprio', description: 'Site público' },
-  { slug: 'priority_support', label: 'Suporte Prioritário', description: 'Atendimento VIP' },
-  { slug: 'dedicated_success', label: 'CS Dedicado', description: 'Customer Success' },
-];
-
-function formatLimit(value: number | null): string {
-  if (value === null || value === -1) return '∞';
-  return value.toLocaleString('pt-BR');
-}
 
 function slugify(text: string): string {
   return text
@@ -184,6 +138,8 @@ export default function Plans() {
     setEditingPlan({ ...editingPlan, features_enabled: updated });
   };
 
+  const groupedModules = groupModulesByCategory();
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -199,7 +155,7 @@ export default function Plans() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Planos</h1>
-          <p className="text-muted-foreground">Gerencie os planos e limites da plataforma</p>
+          <p className="text-muted-foreground">Defina quais módulos cada plano inclui</p>
         </div>
         <Button onClick={handleCreate}>
           <Plus className="w-4 h-4 mr-2" />
@@ -209,124 +165,83 @@ export default function Plans() {
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {plans?.map((plan) => (
-          <Card key={plan.id} className={!plan.is_active ? 'opacity-60' : ''}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    {plan.name}
-                    {plan.is_default && (
-                      <Badge variant="secondary" className="text-xs">Padrão</Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
+        {plans?.map((plan) => {
+          const enabledModules = safeArray<string>(plan.features_enabled);
+          return (
+            <Card key={plan.id} className={!plan.is_active ? 'opacity-60' : ''}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      {plan.name}
+                      {plan.is_default && (
+                        <Badge variant="secondary" className="text-xs">Padrão</Badge>
+                      )}
+                    </CardTitle>
+                    <CardDescription>{plan.description}</CardDescription>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => handleEdit(plan)}>
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleEdit(plan)}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="mt-2">
-                <span className="text-3xl font-bold">
-                  R$ {plan.price_monthly.toFixed(2).replace('.', ',')}
-                </span>
-                <span className="text-muted-foreground">/mês</span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Limits */}
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span>{formatLimit(plan.max_users)} usuários</span>
+                <div className="mt-2">
+                  <span className="text-3xl font-bold">
+                    R$ {plan.price_monthly.toFixed(2).replace('.', ',')}
+                  </span>
+                  <span className="text-muted-foreground">/mês</span>
+                  {plan.price_yearly > 0 && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      ou R$ {plan.price_yearly.toFixed(2).replace('.', ',')}/ano
+                    </p>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-muted-foreground" />
-                  <span>{formatLimit(plan.max_leads)} leads</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                  <span>{plan.max_channels} canais</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-muted-foreground" />
-                  <span>{formatLimit(plan.max_ai_tokens)} créditos</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <HardDrive className="w-4 h-4 text-muted-foreground" />
-                  <span>{plan.max_storage_gb} GB</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-muted-foreground" />
-                  <span>{formatLimit(plan.max_automations)} fluxos</span>
-                </div>
-              </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Modules by category */}
+                {Object.entries(groupedModules).map(([category, catModules]) => {
+                  const included = catModules.filter(m => enabledModules.includes(m.key));
+                  if (included.length === 0) return null;
+                  return (
+                    <div key={category}>
+                      <p className="text-xs font-medium text-muted-foreground mb-1.5">{category}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {included.map((m) => {
+                          const Icon = m.icon;
+                          return (
+                            <Badge
+                              key={m.key}
+                              variant="outline"
+                              className={`text-xs gap-1 ${categoryColors[category]}`}
+                            >
+                              <Icon className="w-3 h-3" />
+                              {m.label}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
 
-              {/* Features */}
-              <div className="pt-3 border-t">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Features:</p>
-                <div className="flex flex-wrap gap-1">
-                  {safeArray<string>(plan.features_enabled).map((feature) => (
-                    <Badge key={feature} variant="outline" className="text-xs">
-                      {availableFeatures.find(f => f.slug === feature)?.label || feature}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+                {enabledModules.length === 0 && (
+                  <p className="text-sm text-muted-foreground italic">Nenhum módulo habilitado</p>
+                )}
 
-              {!plan.is_active && (
-                <Badge variant="secondary">Inativo</Badge>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                {!plan.is_active && (
+                  <Badge variant="secondary">Inativo</Badge>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
-
-      {/* Detailed Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Comparativo de Limites</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Plano</TableHead>
-                <TableHead className="text-center">Usuários</TableHead>
-                <TableHead className="text-center">Leads</TableHead>
-                <TableHead className="text-center">Produtos</TableHead>
-                <TableHead className="text-center">Canais</TableHead>
-                <TableHead className="text-center">Storage</TableHead>
-                <TableHead className="text-center">Tokens IA</TableHead>
-                <TableHead className="text-center">Mensagens/mês</TableHead>
-                <TableHead className="text-center">Automações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {plans?.map((plan) => (
-                <TableRow key={plan.id}>
-                  <TableCell className="font-medium">{plan.name}</TableCell>
-                  <TableCell className="text-center">{formatLimit(plan.max_users)}</TableCell>
-                  <TableCell className="text-center">{formatLimit(plan.max_leads)}</TableCell>
-                  <TableCell className="text-center">{formatLimit(plan.max_products)}</TableCell>
-                  <TableCell className="text-center">{plan.max_channels}</TableCell>
-                  <TableCell className="text-center">{plan.max_storage_gb} GB</TableCell>
-                  <TableCell className="text-center">{formatLimit(plan.max_ai_tokens)}</TableCell>
-                  <TableCell className="text-center">{formatLimit(plan.max_messages_month)}</TableCell>
-                  <TableCell className="text-center">{formatLimit(plan.max_automations)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
 
       {/* Edit/Create Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingPlan?.id ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
-            <DialogDescription>Configure os detalhes e limites do plano</DialogDescription>
+            <DialogDescription>O plano define quais módulos estão incluídos. Limites numéricos são configurados por tenant.</DialogDescription>
           </DialogHeader>
 
           {editingPlan && (
@@ -388,108 +303,47 @@ export default function Plans() {
                 </div>
               </div>
 
-              {/* Limits */}
+              {/* Modules by category */}
               <div>
-                <h4 className="font-medium mb-3">Limites</h4>
-                <p className="text-xs text-muted-foreground mb-3">Use -1 ou deixe vazio para ilimitado</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label>Usuários</Label>
-                    <Input
-                      type="number"
-                      value={editingPlan.max_users ?? ''}
-                      onChange={(e) => setEditingPlan({ ...editingPlan, max_users: parseInt(e.target.value) || 1 })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Leads</Label>
-                    <Input
-                      type="number"
-                      value={editingPlan.max_leads ?? ''}
-                      onChange={(e) => setEditingPlan({ ...editingPlan, max_leads: e.target.value ? parseInt(e.target.value) : null })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Produtos</Label>
-                    <Input
-                      type="number"
-                      value={editingPlan.max_products ?? ''}
-                      onChange={(e) => setEditingPlan({ ...editingPlan, max_products: e.target.value ? parseInt(e.target.value) : null })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Canais</Label>
-                    <Input
-                      type="number"
-                      value={editingPlan.max_channels}
-                      onChange={(e) => setEditingPlan({ ...editingPlan, max_channels: parseInt(e.target.value) || 1 })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Storage (GB)</Label>
-                    <Input
-                      type="number"
-                      value={editingPlan.max_storage_gb}
-                      onChange={(e) => setEditingPlan({ ...editingPlan, max_storage_gb: parseInt(e.target.value) || 5 })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tokens IA</Label>
-                    <Input
-                      type="number"
-                      value={editingPlan.max_ai_tokens}
-                      onChange={(e) => setEditingPlan({ ...editingPlan, max_ai_tokens: parseInt(e.target.value) || 100000 })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Msgs/mês</Label>
-                    <Input
-                      type="number"
-                      value={editingPlan.max_messages_month ?? ''}
-                      onChange={(e) => setEditingPlan({ ...editingPlan, max_messages_month: e.target.value ? parseInt(e.target.value) : null })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Automações</Label>
-                    <Input
-                      type="number"
-                      value={editingPlan.max_automations ?? ''}
-                      onChange={(e) => setEditingPlan({ ...editingPlan, max_automations: e.target.value ? parseInt(e.target.value) : null })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Features */}
-              <div>
-                <h4 className="font-medium mb-3">Features Habilitadas</h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {availableFeatures.map((feature) => {
-                    const isEnabled = safeArray<string>(editingPlan.features_enabled).includes(feature.slug);
-                    return (
-                      <div
-                        key={feature.slug}
-                        onClick={() => toggleFeature(feature.slug)}
-                        className={`
-                          p-3 rounded-lg border cursor-pointer transition-all
-                          ${isEnabled ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'}
-                        `}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`
-                            w-5 h-5 rounded flex items-center justify-center
-                            ${isEnabled ? 'bg-primary text-primary-foreground' : 'bg-muted'}
-                          `}>
-                            {isEnabled && <Check className="w-3 h-3" />}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">{feature.label}</p>
-                            <p className="text-xs text-muted-foreground">{feature.description}</p>
-                          </div>
-                        </div>
+                <h4 className="font-medium mb-3">Módulos Incluídos no Plano</h4>
+                <div className="space-y-4">
+                  {Object.entries(groupedModules).map(([category, catModules]) => (
+                    <div key={category} className="space-y-2">
+                      <Badge variant="outline" className={categoryColors[category]}>
+                        {category}
+                      </Badge>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {catModules.map((module) => {
+                          const isEnabled = safeArray<string>(editingPlan.features_enabled).includes(module.key);
+                          const Icon = module.icon;
+                          return (
+                            <div
+                              key={module.key}
+                              onClick={() => toggleFeature(module.key)}
+                              className={`
+                                p-3 rounded-lg border cursor-pointer transition-all
+                                ${isEnabled ? 'border-primary bg-primary/5' : 'border-border hover:border-muted-foreground'}
+                              `}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className={`
+                                  w-5 h-5 rounded flex items-center justify-center
+                                  ${isEnabled ? 'bg-primary text-primary-foreground' : 'bg-muted'}
+                                `}>
+                                  {isEnabled && <Check className="w-3 h-3" />}
+                                </div>
+                                <Icon className={`w-4 h-4 ${isEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+                                <div>
+                                  <p className="text-sm font-medium">{module.label}</p>
+                                  <p className="text-xs text-muted-foreground">{module.description}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </div>
 
