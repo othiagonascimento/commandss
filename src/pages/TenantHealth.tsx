@@ -215,7 +215,9 @@ export default function TenantHealth() {
         body: { endpoint: 'tenant-health' }
       });
       if (error) throw error;
-      return data as TenantHealthData[];
+      // API may return object with nested array or direct array
+      const result = Array.isArray(data) ? data : (data?.tenants || data?.data || []);
+      return result as TenantHealthData[];
     },
     staleTime: 60000,
   });
