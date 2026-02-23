@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { safeArray } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
@@ -176,7 +177,7 @@ export default function Plans() {
 
   const toggleFeature = (feature: string) => {
     if (!editingPlan) return;
-    const current = editingPlan.features_enabled || [];
+    const current = safeArray<string>(editingPlan.features_enabled);
     const updated = current.includes(feature)
       ? current.filter(f => f !== feature)
       : [...current, feature];
@@ -265,7 +266,7 @@ export default function Plans() {
               <div className="pt-3 border-t">
                 <p className="text-xs font-medium text-muted-foreground mb-2">Features:</p>
                 <div className="flex flex-wrap gap-1">
-                  {(plan.features_enabled as string[])?.map((feature) => (
+                  {safeArray<string>(plan.features_enabled).map((feature) => (
                     <Badge key={feature} variant="outline" className="text-xs">
                       {availableFeatures.find(f => f.slug === feature)?.label || feature}
                     </Badge>
@@ -464,7 +465,7 @@ export default function Plans() {
                 <h4 className="font-medium mb-3">Features Habilitadas</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {availableFeatures.map((feature) => {
-                    const isEnabled = editingPlan.features_enabled?.includes(feature.slug);
+                    const isEnabled = safeArray<string>(editingPlan.features_enabled).includes(feature.slug);
                     return (
                       <div
                         key={feature.slug}
