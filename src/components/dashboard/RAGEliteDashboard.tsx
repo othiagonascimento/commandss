@@ -41,6 +41,7 @@ import {
   FlaskConical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { HelpTooltip } from '@/components/ui/help-tooltip';
 import {
   ragMetricsApi,
   type RAGQualitySummary,
@@ -165,7 +166,7 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">RAG Health Score</p>
+                <p className="text-sm text-muted-foreground flex items-center">RAG Health Score <HelpTooltip description="Nota geral da qualidade das respostas da IA. Combina taxa de acerto vetorial (40%), confiança média (30%) e taxa de fallback (30%). Acima de 80 é ótimo." /></p>
                 {loadingSummary ? (
                   <Skeleton className="h-10 w-16" />
                 ) : (
@@ -194,26 +195,26 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
         {/* Vector Hit Rate */}
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Vector Hit Rate</p>
+            <p className="text-sm text-muted-foreground flex items-center">Vector Hit Rate <HelpTooltip description="Percentual de perguntas em que a IA encontrou informações relevantes na base de conhecimento. Quanto maior, melhor — significa que a base está bem alimentada." example="90% = a cada 10 perguntas, 9 foram respondidas com dados reais." /></p>
             {loadingSummary ? (
               <Skeleton className="h-8 w-20" />
             ) : (
               <p className="text-2xl font-bold">{pct(summary?.vector_hit_rate ?? 0)}</p>
             )}
-            <p className="text-xs text-muted-foreground mt-1">Queries com resultados vetoriais</p>
+            <p className="text-xs text-muted-foreground mt-1">Buscas com resultado na base</p>
           </CardContent>
         </Card>
 
         {/* Avg Confidence */}
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Confiança Média</p>
+            <p className="text-sm text-muted-foreground flex items-center">Confiança Média <HelpTooltip description="Nível de certeza que a IA tem ao responder. Quanto maior, mais segura ela está de que a resposta é correta. Abaixo de 60% indica que a base de conhecimento precisa de melhorias." /></p>
             {loadingSummary ? (
               <Skeleton className="h-8 w-20" />
             ) : (
               <p className="text-2xl font-bold">{pct(summary?.avg_confidence ?? 0)}</p>
             )}
-            <p className="text-xs text-muted-foreground mt-1">Score médio de confiança</p>
+            <p className="text-xs text-muted-foreground mt-1">Certeza média das respostas</p>
           </CardContent>
         </Card>
 
@@ -222,7 +223,7 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">CQS Médio</p>
+                <p className="text-sm text-muted-foreground flex items-center">CQS Médio <HelpTooltip description="Conversation Quality Score — nota de qualidade da conversa inteira. Combina relevância, clareza e satisfação do cliente. De 0 a 1, sendo 0.8+ excelente." /></p>
                 {loadingSummary ? (
                   <Skeleton className="h-8 w-20" />
                 ) : (
@@ -233,7 +234,7 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
                 <Star className="h-5 w-5 text-chart-3" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Conversation Quality Score</p>
+            <p className="text-xs text-muted-foreground mt-1">Nota geral de qualidade da conversa</p>
           </CardContent>
         </Card>
 
@@ -242,7 +243,7 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Queries RAG</p>
+                <p className="text-sm text-muted-foreground flex items-center">Queries RAG <HelpTooltip description="Total de perguntas que passaram pelo sistema de busca inteligente (RAG) no período. Cada pergunta de cliente gera uma query." /></p>
                 {loadingSummary ? (
                   <Skeleton className="h-8 w-20" />
                 ) : (
@@ -262,33 +263,33 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-3">
           <Card>
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> RAG</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> RAG <HelpTooltip description="Tempo que o sistema leva para buscar informações na base de conhecimento." /></p>
               <p className="text-lg font-bold">{Math.round(summary.avg_latency_rag_ms)}ms</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> LLM</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> LLM <HelpTooltip description="Tempo que o modelo de IA leva para gerar a resposta após receber as informações." /></p>
               <p className="text-lg font-bold">{Math.round(summary.avg_latency_llm_ms)}ms</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Total</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Total <HelpTooltip description="Tempo total de resposta = busca (RAG) + geração (LLM). É o que o cliente percebe." /></p>
               <p className="text-lg font-bold">{Math.round(summary.avg_latency_total_ms)}ms</p>
             </CardContent>
           </Card>
           {[
-            { label: 'Hybrid RRF', value: summary.hybrid_usage_rate },
-            { label: 'Reranker', value: summary.reranker_usage_rate },
-            { label: 'UOPA Ctx', value: summary.uopa_usage_rate },
-            { label: 'Product Ctx', value: summary.product_usage_rate },
-            { label: 'Reformulação', value: summary.reformulation_rate },
-            { label: 'Chunks', value: summary.chunk_usage_rate },
+            { label: 'Hybrid RRF', value: summary.hybrid_usage_rate, tip: 'Busca híbrida que combina vetorial + palavras-chave para resultados mais precisos.' },
+            { label: 'Reranker', value: summary.reranker_usage_rate, tip: 'Reordena os resultados por relevância antes de enviar para a IA. Melhora a qualidade.' },
+            { label: 'UOPA Ctx', value: summary.uopa_usage_rate, tip: 'Uso do contexto da loja (identidade, regras) nas respostas. Quanto maior, mais personalizado.' },
+            { label: 'Product Ctx', value: summary.product_usage_rate, tip: 'Inclusão de dados de produtos nas respostas. Importante para perguntas sobre catálogo.' },
+            { label: 'Reformulação', value: summary.reformulation_rate, tip: 'Vezes em que a IA reformulou a pergunta do cliente para buscar melhor. Indica perguntas ambíguas.' },
+            { label: 'Chunks', value: summary.chunk_usage_rate, tip: 'Uso de trechos específicos da base de conhecimento. Quanto maior, mais precisa a resposta.' },
           ].map(item => (
             <Card key={item.label}>
               <CardContent className="pt-4 pb-4">
-                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="text-xs text-muted-foreground flex items-center">{item.label} <HelpTooltip description={item.tip} /></p>
                 <p className="text-lg font-bold">{pct(item.value)}</p>
               </CardContent>
             </Card>
@@ -301,7 +302,7 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
         {/* Timeline Chart */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Vector Hit vs Fallback</CardTitle>
+            <CardTitle className="text-lg flex items-center">Vector Hit vs Fallback <HelpTooltip description="Mostra a evolução diária entre respostas com dados reais (Vector Hit) e respostas genéricas (Fallback). O ideal é Vector Hit alto e Fallback baixo." /></CardTitle>
             <CardDescription>Taxas diárias nos últimos {days} dias</CardDescription>
           </CardHeader>
           <CardContent>
@@ -337,8 +338,8 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
         {/* Feedback Pie */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Feedback Loop</CardTitle>
-            <CardDescription>Distribuição de feedback do usuário</CardDescription>
+            <CardTitle className="text-lg flex items-center">Feedback Loop <HelpTooltip description="Avaliações dos clientes sobre as respostas da IA. Positivo = resposta útil. Negativo = resposta insatisfatória. Editado = operador corrigiu a resposta." /></CardTitle>
+            <CardDescription>Como os clientes avaliam as respostas</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingSummary ? (
@@ -393,8 +394,9 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
             <CardTitle className="text-lg flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               Distribuição de Canais
+              <HelpTooltip description="De onde vêm as perguntas dos clientes — WhatsApp, Instagram, Messenger, etc. Ajuda a priorizar melhorias por canal." />
             </CardTitle>
-            <CardDescription>Queries por canal de atendimento</CardDescription>
+            <CardDescription>Perguntas por canal de atendimento</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingSummary ? (
@@ -438,9 +440,10 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Latência Média por Tenant
+                Latência Média por Loja
+                <HelpTooltip description="Tempo médio de resposta por loja. Lojas com latência alta podem ter bases de conhecimento muito grandes ou problemas de configuração." />
               </CardTitle>
-              <CardDescription>Top 10 tenants por latência total (ms)</CardDescription>
+              <CardDescription>Top 10 lojas por tempo de resposta (ms)</CardDescription>
             </CardHeader>
             <CardContent>
               {loadingTenants ? (
@@ -474,9 +477,10 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Star className="h-4 w-4" />
-                CQS por Tenant
+                CQS por Loja
+                <HelpTooltip description="Ranking de qualidade das conversas por loja. Lojas com CQS baixo podem precisar de ajustes no prompt ou na base de conhecimento." />
               </CardTitle>
-              <CardDescription>Ranking de Conversation Quality Score</CardDescription>
+              <CardDescription>Ranking de qualidade das conversas</CardDescription>
             </CardHeader>
             <CardContent>
               {loadingTenants ? (
@@ -521,8 +525,9 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
             <CardTitle className="text-lg flex items-center gap-2">
               <FlaskConical className="h-4 w-4" />
               A/B Testing de Prompts
+              <HelpTooltip description="Comparação entre diferentes versões de prompt para ver qual gera respostas melhores. A variante com maior CQS e confiança é a mais eficaz." />
             </CardTitle>
-            <CardDescription>CQS e confiança por variante de prompt</CardDescription>
+            <CardDescription>Qual versão de prompt funciona melhor</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingSummary ? (
@@ -574,9 +579,10 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
-                Qualidade RAG por Tenant
+                Qualidade RAG por Loja
+                <HelpTooltip description="Visão geral de saúde do RAG por loja. Verde (80+) = excelente, Amarelo (50-79) = precisa atenção, Vermelho (&lt;50) = crítico." />
               </CardTitle>
-              <CardDescription>Health score por tenant</CardDescription>
+              <CardDescription>Nota de saúde por loja</CardDescription>
             </CardHeader>
             <CardContent>
               {loadingTenants ? (
@@ -613,8 +619,8 @@ export default function RAGEliteDashboard({ days, tenantId }: Props) {
         {/* Top Knowledge Items */}
         <Card className={tenantId ? 'lg:col-span-2' : ''}>
           <CardHeader>
-            <CardTitle className="text-lg">Top 10 Knowledge Items</CardTitle>
-            <CardDescription>Itens de conhecimento mais utilizados</CardDescription>
+            <CardTitle className="text-lg flex items-center">Top 10 Knowledge Items <HelpTooltip description="Os 10 trechos da base de conhecimento mais usados pela IA para responder perguntas. Útil para entender quais informações são mais procuradas pelos clientes." /></CardTitle>
+            <CardDescription>Conteúdos mais usados nas respostas</CardDescription>
           </CardHeader>
           <CardContent>
             {loadingSummary ? (
