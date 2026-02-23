@@ -1,142 +1,100 @@
 
-
-# Centro de Operacoes - Nivel CEO BigTech
+# Auditoria de Segurança de Dados: Proteção contra `.filter is not a function`
 
 ## Problema Atual
 
-O alerta mostra "Inconsistencia de usuarios detectada" com `users_without_usage: 6`, mas:
-- Nao diz **quais** sao os 6 usuarios
-- Nao diz de **qual tenant** sao
-- Nao explica **o que fazer** para resolver
-- Nao ha **historico** de alertas ja resolvidos
-- O botao "Resolver" nao pede **notas** sobre o que foi feito
+O erro `(healthData || []).filter is not a function` persiste na pagina **Tenant Health** porque a API `master-analytics` retorna um **objeto** em vez de um **array**. A correção anterior (linha 219) tenta extrair o array, mas se nenhuma das chaves (`tenants`, `data`) existir com um array, o resultado ainda sera um objeto, e o `|| []` nao protege porque o objeto e "truthy".
 
-## Solucao Proposta
-
-### 1. Alertas com Contexto Acionavel
-
-Cada tipo de alerta tera um painel expandivel com informacoes especificas:
-
-| Tipo de Alerta | Informacoes Mostradas |
-|---|---|
-| `user_inconsistency` | Lista dos usuarios sem role/usage, com links para o tenant |
-| `queue_overload` | Quais tipos de evento estao acumulando, grafico de tendencia |
-| `channel_down` | Qual instancia, de qual tenant, ha quanto tempo offline |
-| `trial_expiring` | Nome do tenant, dias restantes, link para detalhe |
-| `limit_reached` | Tenant, tipo de limite, percentual, link para ajustar |
-| `cron_failure` | Nome do job, ultimo sucesso, quantas falhas consecutivas |
-| `ai_leak` | Contexto do vazamento, tenant afetado |
-| `security_alert` | Descricao detalhada, severidade, tenant |
-
-Cada card de alerta tera um botao "Ver Detalhes" que expande um painel inline mostrando os dados relevantes extraidos do `metadata` do alerta.
-
-### 2. Resolucao com Notas Obrigatorias
-
-O dialog de resolucao passara a incluir:
-- Campo de texto **obrigatorio** para descrever a acao tomada (ex: "Atribuido role 'agent' aos 6 usuarios via Supabase")
-- Opcao de selecionar um motivo padrao (Corrigido manualmente, Falso positivo, Resolvido automaticamente, Escalado)
-- Nome do operador (usuario logado) registrado automaticamente
-
-### 3. Historico de Alertas Resolvidos
-
-Nova aba **"Historico"** dentro da pagina Operations com:
-- Tabela paginada de alertas resolvidos
-- Colunas: Tipo, Titulo, Tenant, Severidade, Criado em, Resolvido em, Resolvido por, Notas
-- Filtros por periodo, tipo, severidade e tenant
-- Tempo medio de resolucao (MTTR) exibido como metrica
-
-### 4. Acoes Rapidas por Tipo de Alerta
-
-Botoes de acao contextual por tipo:
-- `user_inconsistency` → "Ir para Usuarios do Tenant"
-- `channel_down` → "Ir para Detalhe do Tenant"  
-- `trial_expiring` → "Ir para Subscricoes"
-- `limit_reached` → "Ir para Limites do Tenant"
-- Genericos → "Copiar ID" para investigacao
-
-### 5. Severidade Visual Aprimorada
-
-- Alertas **criticos** com borda vermelha pulsante e icone animado
-- Alertas **warning** com borda amarela
-- Alertas **info** com estilo sutil
-- Som/vibracao opcional para criticos (futuro)
+O mesmo padrao vulneravel existe em **pelo menos 7 outras paginas**.
 
 ---
 
-## Detalhes Tecnicos
+## Paginas Vulneraveis Identificadas
 
-### Alteracoes no Backend (SQL a executar)
+| Pagina | Arquivo | Risco |
+|--------|---------|-------|
+| **Tenant Health** | `TenantHealth.tsx:219-256` | ATIVO - erro em producao agora |
+| **Activity Logs** | `ActivityLogs.tsx:120` | `return data as AuditLog[]` - sem validacao |
+| **Analytics** | `Analytics.tsx:242` | `return data` - sem validacao, confia que sub-chaves serao arrays |
+| **Feature Flags** | `FeatureFlags.tsx:63` | `return data.flags as FeatureFlag[]` - crash se `data.flags` nao existir |
+| **Invite Links** | `InviteLinks.tsx:81` | `return data.links as InviteLink[]` - crash se `data.links` nao existir |
+| **Comunicados** | `Comunicados.tsx:92` | `return data.broadcasts as Broadcast[]` - crash se `data.broadcasts` nao existir |
+| **Admin Cadastros** | `AdminCadastros.tsx:142` | `return response.data?.data as OnboardingSubmission[]` - menos risco, tem `?.` |
+| **Create Tenant** | `CreateTenant.tsx:102,115` | `return data?.data as Plan[]` - menos risco, tem `?.` |
 
-Adicionar colunas `resolved_by`, `resolved_notes` e `resolution_reason` na tabela `master_alerts`:
+---
 
-```sql
-ALTER TABLE master_alerts 
-ADD COLUMN IF NOT EXISTS resolved_by UUID,
-ADD COLUMN IF NOT EXISTS resolved_notes TEXT,
-ADD COLUMN IF NOT EXISTS resolution_reason TEXT 
-  CHECK (resolution_reason IN ('manual_fix', 'false_positive', 'auto_resolved', 'escalated'));
+## Solucao
+
+Criar uma funcao utilitaria `safeArray<T>()` e aplica-la em todos os pontos vulneraveis.
+
+### 1. Criar helper `safeArray` em `src/lib/utils.ts`
+
+```typescript
+export function safeArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') {
+    // Tenta extrair de chaves comuns retornadas pelas Edge Functions
+    const obj = value as Record<string, unknown>;
+    for (const key of ['data', 'tenants', 'logs', 'flags', 'links', 'broadcasts', 'items', 'results']) {
+      if (Array.isArray(obj[key])) return obj[key] as T[];
+    }
+  }
+  return [];
+}
 ```
 
-Criar RPC para historico de alertas resolvidos:
+### 2. Corrigir cada pagina
 
-```sql
-CREATE OR REPLACE FUNCTION get_resolved_alerts(
-  p_limit INT DEFAULT 50,
-  p_offset INT DEFAULT 0,
-  p_tenant_id UUID DEFAULT NULL,
-  p_alert_type TEXT DEFAULT NULL
-)
-RETURNS TABLE(...) ...
-```
+**TenantHealth.tsx** (linhas 219 e 225, 252-256):
+- Usar `safeArray<TenantHealthData>(data)` no queryFn
+- A linha 225 ja funciona com `(healthData || [])` desde que o queryFn retorne array
 
-Atualizar a funcao `resolve_master_alert` para aceitar notas e motivo.
+**ActivityLogs.tsx** (linha 120):
+- `return safeArray<AuditLog>(data);`
 
-### Alteracoes no Frontend
+**Analytics.tsx** (linha 242):
+- Validar que `data` e um objeto e que suas sub-chaves sao arrays:
+  ```typescript
+  const raw = data || {};
+  return {
+    cohort: safeArray(raw.cohort),
+    churn_risk: safeArray(raw.churn_risk),
+    revenue_breakdown: {
+      by_plan: safeArray(raw.revenue_breakdown?.by_plan),
+      by_period: safeArray(raw.revenue_breakdown?.by_period),
+      by_sales_rep: safeArray(raw.revenue_breakdown?.by_sales_rep),
+    },
+    metrics: raw.metrics || { ltv:0, cac:0, ltv_cac_ratio:0, churn_rate:0, expansion_revenue:0, net_revenue_retention:0 },
+  };
+  ```
 
-**Arquivos modificados:**
+**FeatureFlags.tsx** (linha 63):
+- `return safeArray<FeatureFlag>(data?.flags ?? data);`
 
-1. **`src/pages/Operations.tsx`** - Reestruturacao completa:
-   - Nova aba "Historico" com tabela paginada
-   - Cards de alerta expandiveis com contexto acionavel
-   - Botoes de acao rapida por tipo
-   - Severidade visual aprimorada (borda pulsante para criticos)
-   - Dialog de resolucao com campo de notas e motivo
+**InviteLinks.tsx** (linha 81):
+- `return safeArray<InviteLink>(data?.links ?? data);`
 
-2. **`src/components/dashboard/OpsAlertsWidget.tsx`** - Ajustes para consistencia visual
+**Comunicados.tsx** (linha 92):
+- `return safeArray<Broadcast>(data?.broadcasts ?? data);`
 
-3. **`src/hooks/useAlerts.ts`** - Adicionar:
-   - Query para historico de resolvidos
-   - Mutation de resolve atualizada com `notes` e `reason`
+**AdminCadastros.tsx** (linha 142):
+- `return safeArray<OnboardingSubmission>(response.data?.data ?? response.data);`
 
-4. **`src/services/masterApi.ts`** - Adicionar:
-   - `alertsApi.getResolved(limit, offset, tenantId, alertType)`
-   - `alertsApi.resolve(alertId, notes, reason)` com parametros extras
+**CreateTenant.tsx** (linhas 102, 115):
+- `return safeArray<Plan>(data?.data ?? data);`
+- `return safeArray<NicheTemplate>(data?.data ?? data);`
 
-5. **`supabase/functions/ops-health-query/index.ts`** - Adicionar:
-   - Handler `resolved-alerts` para consulta paginada
-   - Atualizar handler `resolve` para salvar notas/motivo/usuario
+### 3. Resumo de arquivos alterados
 
-### Fluxo de Resolucao Atualizado
+- `src/lib/utils.ts` — adicionar `safeArray`
+- `src/pages/TenantHealth.tsx` — corrigir queryFn
+- `src/pages/ActivityLogs.tsx` — corrigir queryFn
+- `src/pages/Analytics.tsx` — corrigir queryFn com validacao profunda
+- `src/pages/FeatureFlags.tsx` — corrigir queryFn
+- `src/pages/InviteLinks.tsx` — corrigir queryFn
+- `src/pages/Comunicados.tsx` — corrigir queryFn
+- `src/pages/AdminCadastros.tsx` — corrigir queryFn
+- `src/pages/CreateTenant.tsx` — corrigir queryFn (2 queries)
 
-```text
-Usuario clica "Resolver"
-        |
-        v
-Dialog abre com resumo do alerta
-        |
-        v
-Usuario seleciona motivo (dropdown)
-        |
-        v
-Usuario escreve notas sobre a acao tomada
-        |
-        v
-Clica "Confirmar Resolucao"
-        |
-        v
-API grava resolved_at, resolved_by, resolved_notes, resolution_reason
-        |
-        v
-Alerta sai da lista ativa e aparece no Historico
-```
-
+Total: **9 arquivos**, todos com alteracoes pequenas e cirurgicas.
