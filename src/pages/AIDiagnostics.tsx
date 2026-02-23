@@ -32,6 +32,7 @@ import {
   Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { HelpTooltip } from '@/components/ui/help-tooltip';
 import {
   PieChart,
   Pie,
@@ -189,7 +190,7 @@ export default function AIDiagnostics() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Mensagens</p>
+                    <p className="text-sm text-muted-foreground flex items-center">Mensagens <HelpTooltip description="Total de mensagens processadas pela IA no período selecionado. Inclui perguntas de clientes e respostas automáticas." /></p>
                     {isLoading ? (
                       <Skeleton className="h-8 w-20" />
                     ) : (
@@ -207,7 +208,7 @@ export default function AIDiagnostics() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Créditos</p>
+                    <p className="text-sm text-muted-foreground flex items-center">Créditos <HelpTooltip description="Créditos de IA consumidos no período. Cada chamada ao modelo gasta créditos proporcionais à complexidade da resposta." example="Uma resposta simples gasta ~1 crédito; respostas longas gastam mais." /></p>
                     {isLoading ? (
                       <Skeleton className="h-8 w-20" />
                     ) : (
@@ -225,7 +226,7 @@ export default function AIDiagnostics() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Tokens</p>
+                    <p className="text-sm text-muted-foreground flex items-center">Tokens <HelpTooltip description="Unidade de texto processada pela IA. Quanto mais tokens, mais texto foi lido e gerado. É o que define o custo real de cada chamada." example="1 token ≈ 4 caracteres em português." /></p>
                     {isLoading ? (
                       <Skeleton className="h-8 w-20" />
                     ) : (
@@ -243,7 +244,7 @@ export default function AIDiagnostics() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Latência Média</p>
+                    <p className="text-sm text-muted-foreground flex items-center">Latência Média <HelpTooltip description="Tempo médio que a IA leva para gerar uma resposta, em milissegundos. Valores abaixo de 2000ms são considerados bons." example="800ms = resposta quase instantânea." /></p>
                     {isLoading ? (
                       <Skeleton className="h-8 w-20" />
                     ) : (
@@ -261,7 +262,7 @@ export default function AIDiagnostics() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Fallbacks</p>
+                    <p className="text-sm text-muted-foreground flex items-center">Fallbacks <HelpTooltip description="Vezes em que a IA não conseguiu responder com confiança e precisou usar uma resposta genérica ou escalar para um atendente humano. Quanto menor, melhor." /></p>
                     {isLoading ? (
                       <Skeleton className="h-8 w-20" />
                     ) : (
@@ -316,7 +317,7 @@ export default function AIDiagnostics() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Distribuição por Modelo</CardTitle>
+                <CardTitle className="text-lg flex items-center">Distribuição por Modelo <HelpTooltip description="Mostra quais modelos de IA (ex: GPT-4, Claude) estão sendo usados e em que proporção. Útil para entender custos e otimizar a escolha de modelos." /></CardTitle>
                 <CardDescription>Uso de cada modelo de IA</CardDescription>
               </CardHeader>
               <CardContent>
@@ -383,7 +384,7 @@ export default function AIDiagnostics() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Timeline Diária</CardTitle>
+                <CardTitle className="text-lg flex items-center">Timeline Diária <HelpTooltip description="Evolução do uso da IA ao longo dos dias. Permite identificar picos de demanda e tendências de consumo." /></CardTitle>
                 <CardDescription>Mensagens, créditos e escalações por dia</CardDescription>
               </CardHeader>
               <CardContent>
@@ -445,7 +446,7 @@ export default function AIDiagnostics() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Distribuição por Layer</CardTitle>
+                <CardTitle className="text-lg flex items-center">Distribuição por Camada <HelpTooltip description="A IA trabalha em 3 camadas: L1 (Router) filtra e direciona; L2 (Standard) responde perguntas comuns; L3 (Elite) lida com casos complexos. O ideal é que a maioria fique em L1 e L2." /></CardTitle>
                 <CardDescription>Router (L1) → Standard (L2) → Elite (L3)</CardDescription>
               </CardHeader>
               <CardContent>
@@ -496,7 +497,7 @@ export default function AIDiagnostics() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Breakdown por Provider</CardTitle>
+                <CardTitle className="text-lg flex items-center">Consumo por Provedor <HelpTooltip description="Compara o uso entre os diferentes provedores de IA (Google, OpenAI, Anthropic). Cada provedor tem custos e velocidades diferentes." /></CardTitle>
                 <CardDescription>Google, OpenAI, Anthropic</CardDescription>
               </CardHeader>
               <CardContent>
@@ -530,8 +531,9 @@ export default function AIDiagnostics() {
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Building2 className="h-4 w-4" />
                   Top Consumidores
+                  <HelpTooltip description="Ranking das lojas que mais consomem IA. Ajuda a identificar quem gera mais custo e quem pode precisar de ajustes no plano ou limites." />
                 </CardTitle>
-                <CardDescription>Tenants com maior consumo de IA</CardDescription>
+                <CardDescription>Lojas com maior consumo de IA</CardDescription>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
@@ -580,6 +582,7 @@ export default function AIDiagnostics() {
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Brain className="h-4 w-4" />
                   Detalhamento por Modelo
+                  <HelpTooltip description="Tabela com a performance de cada modelo: quantas vezes foi chamado, quanto tempo levou (latência), quantos créditos gastou e sua proporção no uso total." />
                 </CardTitle>
                 <CardDescription>Performance individual de cada modelo</CardDescription>
               </CardHeader>
