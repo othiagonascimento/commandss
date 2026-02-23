@@ -1,100 +1,77 @@
 
-# Auditoria de Segurança de Dados: Proteção contra `.filter is not a function`
+# Planos como BigTech: Separacao Clara de Responsabilidades
 
-## Problema Atual
+## Filosofia BigTech
 
-O erro `(healthData || []).filter is not a function` persiste na pagina **Tenant Health** porque a API `master-analytics` retorna um **objeto** em vez de um **array**. A correção anterior (linha 219) tenta extrair o array, mas se nenhuma das chaves (`tenants`, `data`) existir com um array, o resultado ainda sera um objeto, e o `|| []` nao protege porque o objeto e "truthy".
+Empresas como Stripe, AWS e Notion seguem um principio claro: **o Plano define O QUE voce pode usar; os Recursos do Tenant definem QUANTO voce pode usar.**
 
-O mesmo padrao vulneravel existe em **pelo menos 7 outras paginas**.
+- **Stripe**: Plans/Products definem features (invoicing, tax, etc). Usage limits sao configurados por conta.
+- **AWS**: Service plans habilitam servicos. Quotas/limits sao configurados separadamente por conta.
+- **Notion**: Plano (Free/Plus/Business) habilita modulos. Limites de storage, guests, etc sao gerenciados por workspace.
 
----
-
-## Paginas Vulneraveis Identificadas
-
-| Pagina | Arquivo | Risco |
-|--------|---------|-------|
-| **Tenant Health** | `TenantHealth.tsx:219-256` | ATIVO - erro em producao agora |
-| **Activity Logs** | `ActivityLogs.tsx:120` | `return data as AuditLog[]` - sem validacao |
-| **Analytics** | `Analytics.tsx:242` | `return data` - sem validacao, confia que sub-chaves serao arrays |
-| **Feature Flags** | `FeatureFlags.tsx:63` | `return data.flags as FeatureFlag[]` - crash se `data.flags` nao existir |
-| **Invite Links** | `InviteLinks.tsx:81` | `return data.links as InviteLink[]` - crash se `data.links` nao existir |
-| **Comunicados** | `Comunicados.tsx:92` | `return data.broadcasts as Broadcast[]` - crash se `data.broadcasts` nao existir |
-| **Admin Cadastros** | `AdminCadastros.tsx:142` | `return response.data?.data as OnboardingSubmission[]` - menos risco, tem `?.` |
-| **Create Tenant** | `CreateTenant.tsx:102,115` | `return data?.data as Plan[]` - menos risco, tem `?.` |
+Atualmente, a pagina de Planos tem 8 campos de limites numericos que competem diretamente com o `TenantLimitsEditor`. Isso gera confusao sobre onde configurar e qual valor prevalece.
 
 ---
 
-## Solucao
+## O Que Muda
 
-Criar uma funcao utilitaria `safeArray<T>()` e aplica-la em todos os pontos vulneraveis.
+### Pagina de Planos (simplificada)
 
-### 1. Criar helper `safeArray` em `src/lib/utils.ts`
+O plano passa a ter apenas:
 
-```typescript
-export function safeArray<T>(value: unknown): T[] {
-  if (Array.isArray(value)) return value;
-  if (value && typeof value === 'object') {
-    // Tenta extrair de chaves comuns retornadas pelas Edge Functions
-    const obj = value as Record<string, unknown>;
-    for (const key of ['data', 'tenants', 'logs', 'flags', 'links', 'broadcasts', 'items', 'results']) {
-      if (Array.isArray(obj[key])) return obj[key] as T[];
-    }
-  }
-  return [];
-}
-```
+| Campo | Proposito |
+|-------|-----------|
+| Nome, Slug, Descricao | Identidade do plano |
+| Preco mensal / anual | Comercial |
+| Modulos incluidos | Quais funcionalidades estao habilitadas |
+| Ativo, Padrao, Ordem | Controle administrativo |
 
-### 2. Corrigir cada pagina
+Os **8 campos de limites numericos** (max_users, max_leads, max_products, max_channels, max_storage_gb, max_ai_tokens, max_messages_month, max_automations) sao **removidos da UI** de Planos. Continuam no banco para retrocompatibilidade, mas nao aparecem mais para edicao.
 
-**TenantHealth.tsx** (linhas 219 e 225, 252-256):
-- Usar `safeArray<TenantHealthData>(data)` no queryFn
-- A linha 225 ja funciona com `(healthData || [])` desde que o queryFn retorne array
+A secao "Features Habilitadas" com slugs genericos (crm, leads, catalog...) e substituida pelos **mesmos 9 modulos** do `TenantModulesEditor` (module_ai_agent, module_campaigns, etc.), com os mesmos icones e categorias (IA, Comunicacao, Vendas, Integracoes, Premium).
 
-**ActivityLogs.tsx** (linha 120):
-- `return safeArray<AuditLog>(data);`
+### Cards de Plano (visual)
 
-**Analytics.tsx** (linha 242):
-- Validar que `data` e um objeto e que suas sub-chaves sao arrays:
-  ```typescript
-  const raw = data || {};
-  return {
-    cohort: safeArray(raw.cohort),
-    churn_risk: safeArray(raw.churn_risk),
-    revenue_breakdown: {
-      by_plan: safeArray(raw.revenue_breakdown?.by_plan),
-      by_period: safeArray(raw.revenue_breakdown?.by_period),
-      by_sales_rep: safeArray(raw.revenue_breakdown?.by_sales_rep),
-    },
-    metrics: raw.metrics || { ltv:0, cac:0, ltv_cac_ratio:0, churn_rate:0, expansion_revenue:0, net_revenue_retention:0 },
-  };
-  ```
+**Antes**: Grid com 6 metricas numericas (usuarios, leads, canais, creditos, storage, fluxos) + badges de features.
 
-**FeatureFlags.tsx** (linha 63):
-- `return safeArray<FeatureFlag>(data?.flags ?? data);`
+**Depois**: Preco em destaque + badges dos modulos incluidos agrupados por categoria. Visual limpo, tipo pricing page do Stripe.
 
-**InviteLinks.tsx** (linha 81):
-- `return safeArray<InviteLink>(data?.links ?? data);`
+### Tabela Comparativa
 
-**Comunicados.tsx** (linha 92):
-- `return safeArray<Broadcast>(data?.broadcasts ?? data);`
+A tabela "Comparativo de Limites" e removida (ja que limites nao pertencem mais ao plano).
 
-**AdminCadastros.tsx** (linha 142):
-- `return safeArray<OnboardingSubmission>(response.data?.data ?? response.data);`
+---
 
-**CreateTenant.tsx** (linhas 102, 115):
-- `return safeArray<Plan>(data?.data ?? data);`
-- `return safeArray<NicheTemplate>(data?.data ?? data);`
+## Alteracoes Tecnicas
 
-### 3. Resumo de arquivos alterados
+### 1. Criar `src/lib/modules.ts` (novo arquivo)
 
-- `src/lib/utils.ts` — adicionar `safeArray`
-- `src/pages/TenantHealth.tsx` — corrigir queryFn
-- `src/pages/ActivityLogs.tsx` — corrigir queryFn
-- `src/pages/Analytics.tsx` — corrigir queryFn com validacao profunda
-- `src/pages/FeatureFlags.tsx` — corrigir queryFn
-- `src/pages/InviteLinks.tsx` — corrigir queryFn
-- `src/pages/Comunicados.tsx` — corrigir queryFn
-- `src/pages/AdminCadastros.tsx` — corrigir queryFn
-- `src/pages/CreateTenant.tsx` — corrigir queryFn (2 queries)
+Constante compartilhada com a configuracao dos 9 modulos (key, label, description, icon, category). Fonte unica de verdade usada tanto por `Plans.tsx` quanto por `TenantModulesEditor.tsx`.
 
-Total: **9 arquivos**, todos com alteracoes pequenas e cirurgicas.
+### 2. Refatorar `src/pages/Plans.tsx`
+
+- Remover imports de icones de limites (Users, Database, MessageSquare, Cpu, HardDrive)
+- Remover `availableFeatures` (slugs antigos)
+- Importar `moduleConfig` de `src/lib/modules.ts`
+- Remover do formulario de edicao: toda a secao "Limites" (linhas 391-461)
+- Substituir a secao "Features Habilitadas" por modulos com icones e categorias, usando os mesmos slugs do `TenantModulesEditor`
+- Remover do card de listagem: o grid de 6 metricas numericas (linhas 238-262)
+- Substituir por badges de modulos agrupados por categoria
+- Remover a tabela "Comparativo de Limites" (linhas 286-322)
+- Remover do `defaultPlan`: campos de limites numericos
+- Remover da interface `Plan`: campos de limites (mantendo no tipo do banco mas nao na UI)
+
+### 3. Atualizar `src/components/tenant/TenantModulesEditor.tsx`
+
+- Importar `moduleConfig` e `categoryColors` de `src/lib/modules.ts` em vez de definir inline
+- Remover as definicoes locais de `moduleConfig` e `categoryColors`
+
+### Resumo de arquivos
+
+| Arquivo | Acao |
+|---------|------|
+| `src/lib/modules.ts` | Criar - constante compartilhada de modulos |
+| `src/pages/Plans.tsx` | Refatorar - remover limites, alinhar features com modulos |
+| `src/components/tenant/TenantModulesEditor.tsx` | Simplificar - importar de modules.ts |
+
+Nenhuma alteracao no banco de dados. Os campos de limites continuam existindo na tabela `plans`, mas a fonte de verdade para limites passa a ser exclusivamente o `TenantLimitsEditor` na configuracao individual de cada tenant.
