@@ -138,29 +138,217 @@ function StatCard({ title, value, subtitle, icon: Icon, status }: {
   );
 }
 
+// Human-readable metadata labels per alert type
+const metadataLabels: Record<string, Record<string, string>> = {
+  user_inconsistency: {
+    users_without_usage: 'Usuários sem registro de uso',
+    profiles_without_role: 'Perfis sem role atribuída',
+    orphan_profiles: 'Perfis órfãos (sem auth)',
+    affected_users: 'Usuários afetados',
+    tenant_name: 'Tenant',
+    tenant_id: 'ID do Tenant',
+  },
+  queue_overload: {
+    pending: 'Eventos pendentes',
+    failed: 'Eventos falhados',
+    processing: 'Em processamento',
+    queue_type: 'Tipo de fila',
+    by_type: 'Distribuição por tipo',
+  },
+  channel_down: {
+    instance_id: 'ID da Instância',
+    channel_id: 'ID do Canal',
+    last_heartbeat: 'Último heartbeat',
+    tenant_name: 'Tenant',
+    status: 'Status',
+    downtime_minutes: 'Tempo offline (min)',
+  },
+  trial_expiring: {
+    days_remaining: 'Dias restantes',
+    trial_end: 'Fim do trial',
+    tenant_name: 'Tenant',
+    plan_type: 'Plano atual',
+  },
+  limit_reached: {
+    limit_type: 'Tipo de limite',
+    current_value: 'Valor atual',
+    max_value: 'Limite máximo',
+    usage_percent: 'Uso (%)',
+    tenant_name: 'Tenant',
+  },
+  cron_failure: {
+    job_name: 'Nome do Job',
+    schedule: 'Agendamento',
+    consecutive_failures: 'Falhas consecutivas',
+    last_success: 'Último sucesso',
+    lag_seconds: 'Atraso (seg)',
+  },
+  ai_leak: {
+    leak_type: 'Tipo de vazamento',
+    context: 'Contexto',
+    tenant_name: 'Tenant',
+    message_id: 'ID da Mensagem',
+  },
+  security_alert: {
+    alert_source: 'Fonte',
+    severity_detail: 'Detalhamento',
+    tenant_name: 'Tenant',
+    ip_address: 'IP',
+  },
+};
+
+// Resolution instructions per alert type
+const resolutionGuide: Record<string, { what: string; howToFix: string[]; where: string }> = {
+  user_inconsistency: {
+    what: 'Existem perfis de usuário no banco que não possuem role atribuída ou não possuem registros na tabela user_usage. Isso pode causar erros de permissão e inconsistências nos relatórios.',
+    howToFix: [
+      'Acesse o tenant afetado e verifique os usuários na aba "Equipe"',
+      'Para perfis sem role: atribua a role correta (admin, manager ou seller)',
+      'Para perfis sem usage: execute a recalculação de uso do tenant',
+      'Se são usuários de teste/inativos, considere desativá-los',
+    ],
+    where: 'Tenants → Detalhe do Tenant → Equipe',
+  },
+  queue_overload: {
+    what: 'A fila de eventos está acumulando mais itens do que o normal, indicando possível lentidão ou falha no processamento.',
+    howToFix: [
+      'Verifique o status do cron job "process-event-queue"',
+      'Analise se há eventos falhados que estão travando a fila',
+      'Considere reiniciar o worker de processamento',
+    ],
+    where: 'Centro de Operações → Filas',
+  },
+  channel_down: {
+    what: 'Um canal de comunicação (WhatsApp/Meta) está desconectado há mais de 2 horas. Mensagens não estão sendo enviadas nem recebidas.',
+    howToFix: [
+      'Verifique a conexão do WhatsApp no tenant afetado',
+      'Solicite que o tenant faça login novamente no WhatsApp Web',
+      'Verifique se o token Meta não expirou',
+    ],
+    where: 'Tenants → Detalhe do Tenant → Canais',
+  },
+  trial_expiring: {
+    what: 'O período de trial de um tenant está prestes a expirar. Após o vencimento, o acesso será limitado.',
+    howToFix: [
+      'Entre em contato com o tenant sobre a conversão para plano pago',
+      'Verifique se há interesse em extensão do trial',
+      'Acesse Assinaturas para ativar o plano correto',
+    ],
+    where: 'Assinaturas',
+  },
+  limit_reached: {
+    what: 'Um tenant está próximo ou atingiu o limite de uso do plano (leads, mensagens, storage, etc).',
+    howToFix: [
+      'Verifique qual limite foi atingido no detalhe do tenant',
+      'Considere upgrade de plano ou ajuste de limites customizados',
+      'Notifique o tenant sobre a situação',
+    ],
+    where: 'Tenants → Detalhe do Tenant → Limites',
+  },
+  cron_failure: {
+    what: 'Um job agendado falhou em 2+ execuções consecutivas. Funcionalidades dependentes podem estar comprometidas.',
+    howToFix: [
+      'Verifique os logs do cron job no painel do Supabase',
+      'Analise se há erro de timeout ou de conexão',
+      'Considere reiniciar o job manualmente',
+    ],
+    where: 'Centro de Operações → Cron Jobs',
+  },
+  ai_leak: {
+    what: 'A IA enviou informações sensíveis ou fora do escopo permitido (dados de outros tenants, informações pessoais, etc).',
+    howToFix: [
+      'Analise o contexto e a mensagem que gerou o leak',
+      'Ajuste as system prompts e guardrails da IA',
+      'Revise as regras de bloqueio no template do tenant',
+    ],
+    where: 'Templates → Editor de IA',
+  },
+  security_alert: {
+    what: 'Foi detectada uma atividade suspeita: login incomum, tentativa de acesso não autorizado, ou vulnerabilidade.',
+    howToFix: [
+      'Revise os logs de acesso do usuário/IP suspeito',
+      'Considere bloquear ou redefinir a senha do usuário',
+      'Verifique se há dados comprometidos',
+    ],
+    where: 'Centro de Operações → Segurança',
+  },
+};
+
+function getHumanLabel(alertType: string, key: string): string {
+  return metadataLabels[alertType]?.[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatMetaValue(value: unknown): string {
+  if (value === null || value === undefined) return '—';
+  if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'string') {
+    // Try to format as date
+    if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+      try { return new Date(value).toLocaleString('pt-BR'); } catch { return value; }
+    }
+    return value;
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '(nenhum)';
+    return value.map(v => typeof v === 'object' ? JSON.stringify(v) : String(v)).join(', ');
+  }
+  return JSON.stringify(value);
+}
+
 // Contextual metadata renderer per alert type
 function AlertMetadataPanel({ alert }: { alert: AlertRecord }) {
   const meta = alert.metadata || {};
-  const entries = Object.entries(meta).filter(([k]) => !['tenant_name', 'tenant_id'].includes(k));
-  if (entries.length === 0) return null;
+  const entries = Object.entries(meta).filter(([k]) => k !== 'tenant_name' && k !== 'tenant_id');
+  const guide = resolutionGuide[alert.alert_type];
 
   return (
-    <div className="mt-2 p-3 rounded-lg bg-muted/50 text-xs space-y-1.5 border border-border/50">
-      <p className="font-semibold text-foreground text-[11px] uppercase tracking-wider mb-1">Detalhes Técnicos</p>
-      {entries.map(([key, value]) => (
-        <div key={key} className="flex gap-2">
-          <span className="font-medium text-foreground min-w-[120px] shrink-0">{key.replace(/_/g, ' ')}:</span>
-          <span className="text-muted-foreground break-all">
-            {Array.isArray(value)
-              ? value.length > 0
-                ? value.map((v, i) => <span key={i} className="inline-block bg-background rounded px-1.5 py-0.5 mr-1 mb-0.5 border">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>)
-                : '(vazio)'
-              : typeof value === 'object' && value !== null
-                ? JSON.stringify(value, null, 2)
-                : String(value)}
-          </span>
+    <div className="mt-2 space-y-3">
+      {/* What is this alert */}
+      {guide && (
+        <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
+          <p className="font-semibold text-primary text-xs uppercase tracking-wider mb-1.5">📋 O que significa este alerta?</p>
+          <p className="text-foreground/80 text-[13px] leading-relaxed">{guide.what}</p>
         </div>
-      ))}
+      )}
+
+      {/* Metadata details */}
+      {entries.length > 0 && (
+        <div className="p-3 rounded-lg bg-muted/50 text-xs space-y-2 border border-border/50">
+          <p className="font-semibold text-foreground text-[11px] uppercase tracking-wider mb-1">📊 Dados do Alerta</p>
+          {entries.map(([key, value]) => (
+            <div key={key} className="flex gap-2 items-baseline">
+              <span className="font-medium text-foreground min-w-[180px] shrink-0">
+                {getHumanLabel(alert.alert_type, key)}:
+              </span>
+              <span className="text-muted-foreground break-all font-mono">
+                {Array.isArray(value) && value.length > 0
+                  ? value.map((v, i) => (
+                      <span key={i} className="inline-block bg-background rounded px-1.5 py-0.5 mr-1 mb-0.5 border text-foreground">
+                        {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                      </span>
+                    ))
+                  : formatMetaValue(value)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* How to fix */}
+      {guide && (
+        <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 text-sm">
+          <p className="font-semibold text-amber-700 dark:text-amber-400 text-xs uppercase tracking-wider mb-1.5">🔧 Como resolver?</p>
+          <ol className="list-decimal list-inside space-y-1 text-[13px] text-foreground/80">
+            {guide.howToFix.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
+          <p className="mt-2 text-xs text-muted-foreground">
+            <span className="font-medium">Onde:</span> {guide.where}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -256,6 +444,11 @@ export default function Operations() {
     const tenantName = (meta.tenant_name as string) || null;
     const quickAction = getQuickAction(alert);
     const isExpanded = expandedAlerts.has(alert.id);
+    const scopeLabel = tenantName
+      ? tenantName
+      : alert.tenant_id
+        ? `Tenant ${alert.tenant_id.slice(0, 8)}...`
+        : 'Global (todos os tenants)';
 
     return (
       <div key={alert.id} className={cn('rounded-lg border-2 transition-all', config.borderColor)}>
@@ -277,12 +470,10 @@ export default function Operations() {
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">{alert.description}</p>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
-                  {tenantName && (
-                    <span><span className="font-medium text-foreground">Tenant:</span> {tenantName}</span>
-                  )}
-                  {alert.tenant_id && !tenantName && (
-                    <span><span className="font-medium text-foreground">Tenant ID:</span> {alert.tenant_id.slice(0, 8)}...</span>
-                  )}
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    <span className="font-medium text-foreground">Escopo:</span> {scopeLabel}
+                  </span>
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true, locale: ptBR })}
@@ -801,57 +992,115 @@ export default function Operations() {
 
       {/* Resolve Dialog with Notes */}
       <Dialog open={!!alertToResolve} onOpenChange={(open) => { if (!open) setAlertToResolve(null); }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Resolver Alerta</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              Resolver Alerta
+            </DialogTitle>
             <DialogDescription>
-              Descreva a ação tomada para resolver este alerta. Isso ficará registrado no histórico.
+              Revise todos os detalhes abaixo, registre a ação tomada e confirme a resolução.
             </DialogDescription>
           </DialogHeader>
-          {alertToResolve && (
-            <div className="space-y-4">
-              {/* Alert summary */}
-              <div className="p-3 rounded-lg bg-muted space-y-1.5 text-sm">
-                <div><span className="font-medium">Tipo:</span> {alertTypeLabels[alertToResolve.alert_type] || alertToResolve.alert_type}</div>
-                <div><span className="font-medium">Título:</span> {alertToResolve.title}</div>
-                {alertToResolve.description && (
-                  <div><span className="font-medium">Descrição:</span> {alertToResolve.description}</div>
+          {alertToResolve && (() => {
+            const rConfig = severityConfig[alertToResolve.severity] || severityConfig.info;
+            const rMeta = alertToResolve.metadata || {};
+            const rTenantName = (rMeta.tenant_name as string) || null;
+            const rScopeLabel = rTenantName
+              ? rTenantName
+              : alertToResolve.tenant_id
+                ? `Tenant ${alertToResolve.tenant_id.slice(0, 8)}...`
+                : 'Global (todos os tenants)';
+            const rGuide = resolutionGuide[alertToResolve.alert_type];
+            const rMetaEntries = Object.entries(rMeta).filter(([k]) => k !== 'tenant_name' && k !== 'tenant_id');
+
+            return (
+              <div className="space-y-4">
+                {/* Alert header */}
+                <div className={cn('p-4 rounded-lg border-2 space-y-2', rConfig.borderColor)}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-[10px]">
+                      {alertTypeLabels[alertToResolve.alert_type] || alertToResolve.alert_type}
+                    </Badge>
+                    <Badge className={cn('text-[10px]', rConfig.color)}>
+                      {rConfig.label}
+                    </Badge>
+                  </div>
+                  <p className="font-semibold text-base">{alertToResolve.title}</p>
+                  <p className="text-sm text-muted-foreground">{alertToResolve.description}</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1 border-t border-border/50">
+                    <span><span className="font-medium text-foreground">Escopo:</span> {rScopeLabel}</span>
+                    <span><span className="font-medium text-foreground">Criado:</span> {new Date(alertToResolve.created_at).toLocaleString('pt-BR')}</span>
+                    <span><span className="font-medium text-foreground">Duração:</span> {formatDistanceToNow(new Date(alertToResolve.created_at), { locale: ptBR })}</span>
+                  </div>
+                </div>
+
+                {/* What this means */}
+                {rGuide && (
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm">
+                    <p className="font-semibold text-primary text-xs uppercase tracking-wider mb-1">📋 O que significa</p>
+                    <p className="text-foreground/80 text-[13px]">{rGuide.what}</p>
+                  </div>
                 )}
-                {(alertToResolve.metadata?.tenant_name as string) && (
-                  <div><span className="font-medium">Tenant:</span> {alertToResolve.metadata.tenant_name as string}</div>
+
+                {/* Metadata */}
+                {rMetaEntries.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/50 text-xs space-y-1.5 border border-border/50">
+                    <p className="font-semibold text-foreground text-[11px] uppercase tracking-wider mb-1">📊 Dados técnicos</p>
+                    {rMetaEntries.map(([key, value]) => (
+                      <div key={key} className="flex gap-2 items-baseline">
+                        <span className="font-medium text-foreground min-w-[180px] shrink-0">
+                          {getHumanLabel(alertToResolve.alert_type, key)}:
+                        </span>
+                        <span className="text-muted-foreground font-mono">{formatMetaValue(value)}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                <div className="text-xs text-muted-foreground">
-                  Criado: {new Date(alertToResolve.created_at).toLocaleString('pt-BR')}
+
+                {/* How to fix suggestion */}
+                {rGuide && (
+                  <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 text-sm">
+                    <p className="font-semibold text-amber-700 dark:text-amber-400 text-xs uppercase tracking-wider mb-1">🔧 Sugestões de resolução</p>
+                    <ol className="list-decimal list-inside space-y-1 text-[13px] text-foreground/80">
+                      {rGuide.howToFix.map((step, i) => (
+                        <li key={i}>{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                {/* Reason */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Motivo da resolução *</Label>
+                  <Select value={resolveReason} onValueChange={setResolveReason}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o motivo..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(reasonLabels).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Notes */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Descreva a ação tomada *</Label>
+                  <Textarea
+                    placeholder='Ex: "Atribuído role agent aos 6 usuários via Supabase SQL no tenant Ume Design"'
+                    value={resolveNotes}
+                    onChange={(e) => setResolveNotes(e.target.value)}
+                    rows={3}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Seja específico: o que foi feito, onde, e para quem. Isso será auditável no histórico.
+                  </p>
                 </div>
               </div>
-
-              {/* Reason */}
-              <div className="space-y-2">
-                <Label>Motivo da resolução *</Label>
-                <Select value={resolveReason} onValueChange={setResolveReason}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o motivo..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(reasonLabels).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label>O que foi feito? *</Label>
-                <Textarea
-                  placeholder='Ex: "Atribuído role agent aos 6 usuários via Supabase SQL"'
-                  value={resolveNotes}
-                  onChange={(e) => setResolveNotes(e.target.value)}
-                  rows={3}
-                />
-              </div>
-            </div>
-          )}
+            );
+          })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAlertToResolve(null)}>Cancelar</Button>
             <Button
