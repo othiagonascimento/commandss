@@ -18,7 +18,6 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const pathSuffix = req.headers.get('x-path-suffix') || '';
     const params = new URLSearchParams(pathSuffix.startsWith('?') ? pathSuffix.slice(1) : pathSuffix);
-    // Also merge URL search params
     url.searchParams.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
 
     const action = params.get('action') || 'latest';
@@ -73,9 +72,27 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase.rpc('resolve_master_alert', {
         p_alert_id: body.alert_id,
         p_user_id: body.user_id || null,
+        p_notes: body.notes || null,
+        p_reason: body.reason || null,
       });
       if (error) throw error;
       return new Response(JSON.stringify({ success: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'resolved-alerts') {
+      const limit = parseInt(params.get('limit') || '50');
+      const offset = parseInt(params.get('offset') || '0');
+      const alertType = params.get('alert_type') || null;
+      const { data, error } = await supabase.rpc('get_resolved_alerts', {
+        p_limit: limit,
+        p_offset: offset,
+        p_tenant_id: tenantId,
+        p_alert_type: alertType,
+      });
+      if (error) throw error;
+      return new Response(JSON.stringify(data || []), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -88,7 +105,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Get latest tenant snapshot + active alerts for this tenant
       const [snapshotRes, alertsRes] = await Promise.all([
         supabase.rpc('get_latest_ops_snapshot', { p_tenant_id: tenantId }),
         supabase.rpc('get_active_alerts', { p_tenant_id: tenantId, p_severity: null, p_limit: 20 }),
@@ -111,7 +127,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Query user usage and limits from existing tables
       const [usageRes, limitsRes, alertsRes] = await Promise.all([
         supabase.from('user_usage').select('*').eq('user_id', userId).eq('tenant_id', tenantId).maybeSingle(),
         supabase.from('user_limits').select('*').eq('user_id', userId).eq('tenant_id', tenantId).maybeSingle(),

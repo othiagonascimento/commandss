@@ -959,8 +959,19 @@ export const alertsApi = {
   },
   getStats: () =>
     callMasterApi<unknown>('ops-health-query', 'GET', '?action=alert-stats'),
-  resolve: (alertId: string) =>
-    callMasterApi<{ success: boolean }>('ops-health-query', 'POST', '?action=resolve', { alert_id: alertId }),
+  resolve: (alertId: string, notes?: string, reason?: string, userId?: string) =>
+    callMasterApi<{ success: boolean }>('ops-health-query', 'POST', '?action=resolve', {
+      alert_id: alertId,
+      notes,
+      reason,
+      user_id: userId,
+    }),
+  getResolved: (limit = 50, offset = 0, tenantId?: string, alertType?: string) => {
+    const params = new URLSearchParams({ action: 'resolved-alerts', limit: String(limit), offset: String(offset) });
+    if (tenantId) params.set('tenant_id', tenantId);
+    if (alertType) params.set('alert_type', alertType);
+    return callMasterApi<unknown[]>('ops-health-query', 'GET', `?${params.toString()}`);
+  },
 };
 
 // ============================================
