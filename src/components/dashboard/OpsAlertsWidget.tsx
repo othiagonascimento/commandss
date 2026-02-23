@@ -1,29 +1,30 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAlerts } from '@/hooks/useAlerts';
+import { useAlerts, type AlertRecord } from '@/hooks/useAlerts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { AlertTriangle, CheckCircle2, ShieldAlert, ArrowRight, Clock } from 'lucide-react';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { AlertTriangle, CheckCircle2, ShieldAlert, ArrowRight, Clock, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const severityConfig = {
-  critical: { color: 'bg-destructive text-destructive-foreground', icon: ShieldAlert, label: 'Crítico' },
-  warning: { color: 'bg-amber-500/10 text-amber-600', icon: AlertTriangle, label: 'Atenção' },
-  info: { color: 'bg-primary/10 text-primary', icon: AlertTriangle, label: 'Info' },
+  critical: { color: 'bg-destructive text-destructive-foreground', borderColor: 'border-destructive/50', icon: ShieldAlert, label: 'Crítico' },
+  warning: { color: 'bg-amber-500/10 text-amber-600', borderColor: 'border-amber-500/40', icon: AlertTriangle, label: 'Atenção' },
+  info: { color: 'bg-primary/10 text-primary', borderColor: 'border-border', icon: Activity, label: 'Info' },
 };
 
 const alertTypeLabels: Record<string, string> = {
@@ -37,24 +38,35 @@ const alertTypeLabels: Record<string, string> = {
   user_inconsistency: 'Inconsistência',
 };
 
-type Alert = {
-  id: string;
-  alert_type: string;
-  severity: string;
-  title: string;
-  description: string;
-  metadata: Record<string, unknown>;
-  tenant_id: string | null;
-  user_id: string | null;
-  created_at: string;
+const reasonLabels: Record<string, string> = {
+  manual_fix: 'Corrigido manualmente',
+  false_positive: 'Falso positivo',
+  auto_resolved: 'Resolvido automaticamente',
+  escalated: 'Escalado',
 };
 
 export function OpsAlertsWidget() {
   const navigate = useNavigate();
   const { alerts, isLoading, resolve, isResolving } = useAlerts();
-  const [alertToResolve, setAlertToResolve] = useState<Alert | null>(null);
+  const [alertToResolve, setAlertToResolve] = useState<AlertRecord | null>(null);
+  const [resolveNotes, setResolveNotes] = useState('');
+  const [resolveReason, setResolveReason] = useState('');
 
   const topAlerts = alerts.slice(0, 5);
+
+  const handleResolve = () => {
+    if (!alertToResolve || !resolveNotes.trim() || !resolveReason) return;
+    resolve(
+      { alertId: alertToResolve.id, notes: resolveNotes.trim(), reason: resolveReason },
+      {
+        onSuccess: () => {
+          setAlertToResolve(null);
+          setResolveNotes('');
+          setResolveReason('');
+        },
+      }
+    );
+  };
 
   return (
     <>
@@ -92,7 +104,7 @@ export function OpsAlertsWidget() {
                 return (
                   <div
                     key={alert.id}
-                    className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-accent/30 transition-colors"
+                    className={cn('flex items-start gap-3 p-3 rounded-lg border-2 hover:bg-accent/30 transition-colors', config.borderColor)}
                   >
                     <div className={cn('p-1 rounded mt-0.5', config.color)}>
                       <Icon className="h-3.5 w-3.5" />
@@ -121,7 +133,11 @@ export function OpsAlertsWidget() {
                       variant="ghost"
                       size="sm"
                       className="shrink-0 h-7 text-xs"
-                      onClick={() => setAlertToResolve(alert)}
+                      onClick={() => {
+                        setAlertToResolve(alert);
+                        setResolveNotes('');
+                        setResolveReason('');
+                      }}
                       disabled={isResolving}
                     >
                       Resolver
@@ -144,47 +160,56 @@ export function OpsAlertsWidget() {
         </CardContent>
       </Card>
 
-      {/* Resolve Confirmation Dialog */}
-      <AlertDialog open={!!alertToResolve} onOpenChange={(open) => !open && setAlertToResolve(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Resolver alerta?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <p>Confirme que deseja marcar este alerta como resolvido:</p>
-                {alertToResolve && (
-                  <div className="p-3 rounded-lg bg-muted space-y-2 text-sm">
-                    <div><span className="font-medium">Tipo:</span> {alertTypeLabels[alertToResolve.alert_type] || alertToResolve.alert_type}</div>
-                    <div><span className="font-medium">Título:</span> {alertToResolve.title}</div>
-                    {alertToResolve.description && (
-                      <div><span className="font-medium">Descrição:</span> {alertToResolve.description}</div>
-                    )}
-                    {(alertToResolve.metadata as Record<string, unknown>)?.tenant_name && (
-                      <div><span className="font-medium">Tenant:</span> {(alertToResolve.metadata as Record<string, unknown>).tenant_name as string}</div>
-                    )}
-                    {alertToResolve.tenant_id && !(alertToResolve.metadata as Record<string, unknown>)?.tenant_name && (
-                      <div><span className="font-medium">Tenant ID:</span> {alertToResolve.tenant_id}</div>
-                    )}
-                  </div>
+      {/* Resolve Dialog */}
+      <Dialog open={!!alertToResolve} onOpenChange={(open) => { if (!open) setAlertToResolve(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Resolver Alerta</DialogTitle>
+            <DialogDescription>
+              Descreva a ação tomada. Isso ficará registrado no histórico.
+            </DialogDescription>
+          </DialogHeader>
+          {alertToResolve && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted space-y-1.5 text-sm">
+                <div><span className="font-medium">Tipo:</span> {alertTypeLabels[alertToResolve.alert_type] || alertToResolve.alert_type}</div>
+                <div><span className="font-medium">Título:</span> {alertToResolve.title}</div>
+                {alertToResolve.description && (
+                  <div><span className="font-medium">Descrição:</span> {alertToResolve.description}</div>
                 )}
               </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (alertToResolve) {
-                  resolve(alertToResolve.id);
-                  setAlertToResolve(null);
-                }
-              }}
-            >
-              Confirmar Resolução
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <div className="space-y-2">
+                <Label>Motivo da resolução *</Label>
+                <Select value={resolveReason} onValueChange={setResolveReason}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o motivo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(reasonLabels).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>O que foi feito? *</Label>
+                <Textarea
+                  placeholder='Ex: "Atribuído role agent aos 6 usuários via SQL"'
+                  value={resolveNotes}
+                  onChange={(e) => setResolveNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAlertToResolve(null)}>Cancelar</Button>
+            <Button onClick={handleResolve} disabled={!resolveNotes.trim() || !resolveReason || isResolving}>
+              {isResolving ? 'Resolvendo...' : 'Confirmar Resolução'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
