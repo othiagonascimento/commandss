@@ -433,6 +433,41 @@ Deno.serve(async (req) => {
             remoteStorageMb = Math.round(totalBytes / 1048576);
           }
 
+          // Try to get real storage from storage.objects if user_usage storage is 0
+          if (remoteStorageMb === 0) {
+            try {
+              // Try media_files table first (custom tracking table)
+              const { data: mediaFiles, error: mediaError } = await remoteSupabase
+                .from('media_files')
+                .select('file_size')
+                .eq('tenant_id', tenantId);
+
+              if (!mediaError && mediaFiles && mediaFiles.length > 0) {
+                const mediaTotalBytes = mediaFiles.reduce((sum: number, f: { file_size: number | null }) => sum + (f.file_size || 0), 0);
+                remoteStorageMb = Math.round(mediaTotalBytes / 1048576);
+                console.log('[master-usage] Storage from media_files:', remoteStorageMb, 'MB');
+              } else {
+                // Fallback: try storage.objects with tenant path prefix
+                const { data: storageObjects, error: storageError } = await remoteSupabase
+                  .from('objects')
+                  .select('metadata')
+                  .like('name', `${tenantId}/%`);
+
+                if (!storageError && storageObjects && storageObjects.length > 0) {
+                  let storageTotalBytes = 0;
+                  storageObjects.forEach((obj: { metadata: { size?: number } | null }) => {
+                    storageTotalBytes += obj.metadata?.size || 0;
+                  });
+                  remoteStorageMb = Math.round(storageTotalBytes / 1048576);
+                  console.log('[master-usage] Storage from storage.objects:', remoteStorageMb, 'MB');
+                }
+              }
+            } catch (storageErr) {
+              console.log('[master-usage] Storage query failed (non-critical):', (storageErr as Error).message);
+              // Keep remoteStorageMb = 0, non-critical failure
+            }
+          }
+
           // Count messages from api_usage_logs
           const periodStart = new Date();
           periodStart.setDate(1);

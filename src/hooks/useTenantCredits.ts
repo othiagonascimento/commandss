@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { usageApi } from '@/services/masterApi';
 
 interface TenantCreditsSummary {
   total_credits_consumed: number;
@@ -15,21 +15,27 @@ export interface TenantCreditsFilter {
   periodEnd?: string;
 }
 
-export function useTenantCredits(tenantId: string | undefined, filter?: TenantCreditsFilter) {
+export function useTenantCredits(tenantId: string | undefined, _filter?: TenantCreditsFilter) {
   return useQuery({
-    queryKey: ['tenant-credits-summary', tenantId, filter?.periodStart, filter?.periodEnd],
-    queryFn: async () => {
+    queryKey: ['tenant-credits-summary', tenantId],
+    queryFn: async (): Promise<TenantCreditsSummary | null> => {
       if (!tenantId) return null;
-      // Using type cast since RPC functions are on external Supabase
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.rpc as any)('get_tenant_credits_summary', { 
-        p_tenant_id: tenantId,
-        p_start: filter?.periodStart || null,
-        p_end: filter?.periodEnd || null,
-      });
-      if (error) throw error;
-      const result = data as unknown as TenantCreditsSummary[];
-      return result?.[0] || null;
+
+      const result = await usageApi.get(tenantId);
+      if (result.error) throw new Error(result.error);
+
+      const usage = result.data?.usage;
+      if (!usage) return null;
+
+      const now = new Date();
+      return {
+        total_credits_consumed: (usage as Record<string, number>).ai_credits || 0,
+        total_cost_brl: ((usage as Record<string, number>).ai_credits || 0) * 0.02,
+        total_api_calls: (usage as Record<string, number>).messages || 0,
+        users_with_usage: (usage as Record<string, number>).active_users || 0,
+        period_start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+        period_end: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString(),
+      };
     },
     enabled: !!tenantId,
     staleTime: 30000,
