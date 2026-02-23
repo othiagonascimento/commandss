@@ -50,6 +50,7 @@ import {
 } from 'recharts';
 import { aiAdvancedApi, type AIAdvancedData } from '@/services/masterApi';
 import RAGEliteDashboard from '@/components/dashboard/RAGEliteDashboard';
+import { TenantSelector } from '@/components/ui/tenant-selector';
 
 const COLORS = [
   'hsl(var(--primary))',
@@ -88,11 +89,12 @@ export default function AIDiagnostics() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [days, setDays] = useState(30);
   const [activeTab, setActiveTab] = useState('motor-ia');
+  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
 
   const { data: aiData, isLoading, refetch } = useQuery({
-    queryKey: ['ai-advanced-diagnostics', days],
+    queryKey: ['ai-advanced-diagnostics', days, selectedTenantId],
     queryFn: async () => {
-      const result = await aiAdvancedApi.get(days);
+      const result = await aiAdvancedApi.get(days, selectedTenantId || undefined);
       if (result.error) throw new Error(result.error);
       return result.data;
     },
@@ -146,6 +148,11 @@ export default function AIDiagnostics() {
         icon={Brain}
         actions={
           <div className="flex items-center gap-2">
+            <TenantSelector
+              value={selectedTenantId}
+              onChange={setSelectedTenantId}
+              placeholder="Todas as Lojas"
+            />
             <div className="flex gap-1">
               {[7, 14, 30].map(d => (
                 <Button
@@ -625,7 +632,7 @@ export default function AIDiagnostics() {
         </TabsContent>
 
         <TabsContent value="rag-elite" className="mt-6">
-          <RAGEliteDashboard days={days} />
+          <RAGEliteDashboard days={days} tenantId={selectedTenantId || undefined} />
         </TabsContent>
       </Tabs>
     </DashboardLayout>
