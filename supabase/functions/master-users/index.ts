@@ -550,6 +550,8 @@ serve(async (req) => {
         user_metadata: {
           full_name: fullName,
           name: fullName,
+          tenant_id: tenantId,
+          role: appRole,
         },
       });
 
@@ -672,6 +674,8 @@ serve(async (req) => {
             user_metadata: {
               full_name: fullName,
               name: fullName,
+              tenant_id: tenantId,
+              role: appRole,
             },
           });
 
