@@ -9,6 +9,16 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -91,6 +101,7 @@ function StatCard({ title, value, subtitle, icon: Icon, status }: {
 
 export default function Operations() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [alertToResolve, setAlertToResolve] = useState<typeof alerts[number] | null>(null);
   const { snapshot, alerts, alertCount, history, isLoading, refetch } = useOpsHealth();
   const { resolve, isResolving } = useAlerts();
 
@@ -234,35 +245,73 @@ export default function Operations() {
                   <p>Tudo operacional</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {alerts.map((alert) => {
                     const config = severityConfig[alert.severity] || severityConfig.info;
                     const Icon = config.icon;
+                    const meta = alert.metadata || {};
+                    const tenantName = (meta.tenant_name as string) || null;
+                    const metaDetails = Object.entries(meta).filter(([k]) => !['tenant_name', 'tenant_id'].includes(k));
                     return (
-                      <div key={alert.id} className="flex items-center gap-3 p-3 rounded-lg border border-border">
-                        <div className={cn('p-1.5 rounded', config.color)}>
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium">{alert.title}</p>
-                            <Badge variant="outline" className="text-[10px]">
-                              {alertTypeLabels[alert.alert_type] || alert.alert_type}
-                            </Badge>
+                      <div key={alert.id} className="p-4 rounded-lg border border-border space-y-2">
+                        <div className="flex items-start gap-3">
+                          <div className={cn('p-1.5 rounded mt-0.5', config.color)}>
+                            <Icon className="h-4 w-4" />
                           </div>
-                          <p className="text-xs text-muted-foreground">{alert.description}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true, locale: ptBR })}
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-semibold">{alert.title}</p>
+                              <Badge variant="outline" className="text-[10px]">
+                                {alertTypeLabels[alert.alert_type] || alert.alert_type}
+                              </Badge>
+                              <Badge variant="secondary" className="text-[10px]">
+                                {config.label}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">{alert.description}</p>
+
+                            {/* Tenant & Context Info */}
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                              {tenantName && (
+                                <span className="flex items-center gap-1">
+                                  <span className="font-medium text-foreground">Tenant:</span> {tenantName}
+                                </span>
+                              )}
+                              {alert.tenant_id && !tenantName && (
+                                <span className="flex items-center gap-1">
+                                  <span className="font-medium text-foreground">Tenant ID:</span> {alert.tenant_id.slice(0, 8)}...
+                                </span>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true, locale: ptBR })}
+                              </span>
+                            </div>
+
+                            {/* Metadata Details */}
+                            {metaDetails.length > 0 && (
+                              <div className="mt-2 p-2 rounded bg-muted/50 text-xs space-y-1">
+                                {metaDetails.map(([key, value]) => (
+                                  <div key={key} className="flex gap-2">
+                                    <span className="font-medium text-foreground min-w-[100px]">{key.replace(/_/g, ' ')}:</span>
+                                    <span className="text-muted-foreground break-all">
+                                      {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="shrink-0"
+                            onClick={() => setAlertToResolve(alert)}
+                            disabled={isResolving}
+                          >
+                            Resolver
+                          </Button>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => resolve(alert.id)}
-                          disabled={isResolving}
-                        >
-                          Resolver
-                        </Button>
                       </div>
                     );
                   })}
@@ -554,6 +603,62 @@ export default function Operations() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Resolve Confirmation Dialog */}
+      <AlertDialog open={!!alertToResolve} onOpenChange={(open) => !open && setAlertToResolve(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Resolver alerta?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Confirme que deseja marcar este alerta como resolvido:</p>
+                {alertToResolve && (
+                  <div className="p-3 rounded-lg bg-muted space-y-2 text-sm">
+                    <div><span className="font-medium">Tipo:</span> {alertTypeLabels[alertToResolve.alert_type] || alertToResolve.alert_type}</div>
+                    <div><span className="font-medium">Severidade:</span> {severityConfig[alertToResolve.severity]?.label || alertToResolve.severity}</div>
+                    <div><span className="font-medium">Título:</span> {alertToResolve.title}</div>
+                    {alertToResolve.description && (
+                      <div><span className="font-medium">Descrição:</span> {alertToResolve.description}</div>
+                    )}
+                    {(alertToResolve.metadata as Record<string, unknown>)?.tenant_name && (
+                      <div><span className="font-medium">Tenant:</span> {(alertToResolve.metadata as Record<string, unknown>).tenant_name as string}</div>
+                    )}
+                    {alertToResolve.tenant_id && !(alertToResolve.metadata as Record<string, unknown>)?.tenant_name && (
+                      <div><span className="font-medium">Tenant ID:</span> {alertToResolve.tenant_id}</div>
+                    )}
+                    {Object.entries(alertToResolve.metadata || {}).filter(([k]) => !['tenant_name', 'tenant_id'].includes(k)).length > 0 && (
+                      <div className="pt-1 border-t border-border space-y-1">
+                        <span className="font-medium text-xs text-muted-foreground">Detalhes:</span>
+                        {Object.entries(alertToResolve.metadata || {}).filter(([k]) => !['tenant_name', 'tenant_id'].includes(k)).map(([k, v]) => (
+                          <div key={k} className="text-xs">
+                            <span className="font-medium">{k.replace(/_/g, ' ')}:</span> {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="text-xs text-muted-foreground">
+                      Criado: {alertToResolve.created_at ? new Date(alertToResolve.created_at).toLocaleString('pt-BR') : '-'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (alertToResolve) {
+                  resolve(alertToResolve.id);
+                  setAlertToResolve(null);
+                }
+              }}
+            >
+              Confirmar Resolução
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
