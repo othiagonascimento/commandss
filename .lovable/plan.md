@@ -1,54 +1,27 @@
 
 
-# Reverter createUser: restaurar tenant_id e role no metadata
+# Migration: Trigger `handle_new_user` resiliente
 
-## Causa raiz
+## O que sera feito
 
-A ultima correcao removeu `tenant_id` e `role` do `user_metadata` no `createUser` (linhas 550-553 e 672-675). Isso quebrou o trigger `handle_new_user` do banco de dados, que depende desses campos para provisionar perfil, roles e limites. O codigo funcionava perfeitamente antes dessa mudanca.
+Criar uma migration SQL que substitui o trigger `handle_new_user` no banco Master por uma versao que nao bloqueia a criacao de usuarios caso ocorra qualquer erro interno.
 
-## Solucao
+## Arquivo a criar
 
-Reverter as 2 chamadas `createUser` para incluir `tenant_id` e `role` no `user_metadata`, exatamente como estava antes.
+**`supabase/migrations/20260224_fix_handle_new_user_trigger.sql`**
 
-## Mudanca unica
+O SQL vai:
+1. Recriar a funcao `handle_new_user` com bloco `EXCEPTION WHEN OTHERS` envolvendo todos os INSERTs
+2. Usar `ON CONFLICT DO NOTHING` em todas as tabelas (profiles, user_roles, user_usage, user_limits)
+3. Normalizar roles legados (viewer/user -> seller, super_admin -> admin)
+4. Se `tenant_id` nao estiver no metadata, fazer skip silencioso
+5. Recriar o trigger `on_auth_user_created` apontando para a nova funcao
+6. Executar `NOTIFY pgrst, 'reload schema'` para atualizar o cache do PostgREST
 
-**Arquivo**: `supabase/functions/master-users/index.ts`
+## Impacto
 
-### Local 1 - Master createUser (linha ~550)
-
-De:
-```text
-user_metadata: {
-  full_name: fullName,
-  name: fullName,
-}
-```
-
-Para:
-```text
-user_metadata: {
-  full_name: fullName,
-  name: fullName,
-  tenant_id: tenantId,
-  role: appRole,
-}
-```
-
-### Local 2 - CRM dual-write createUser (linha ~672)
-
-Mesma mudanca: adicionar `tenant_id: tenantId` e `role: appRole` ao `user_metadata`.
-
-### O que nao muda
-
-- Os upserts manuais de profiles/roles/usage/limits que foram adicionados permanecem como safety net
-- A atualizacao posterior do metadata (linha ~640) fica redundante mas inofensiva
-- Todo o resto do arquivo permanece intacto
-
-## Resumo
-
-| Arquivo | Mudanca |
-|---------|---------|
-| `supabase/functions/master-users/index.ts` | Adicionar `tenant_id` e `role` de volta ao `user_metadata` em 2 locais |
-
-Isso restaura o comportamento identico ao que funcionava ontem e hoje a tarde.
+- **Nenhum codigo frontend ou edge function precisa mudar**
+- Se o trigger funcionar: provisiona tudo normalmente
+- Se o trigger falhar: loga warning, nao bloqueia, edge function provisiona manualmente
+- Nao afeta o projeto CRM (migration roda apenas no Master)
 
