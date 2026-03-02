@@ -32,6 +32,7 @@ interface TenantLimitsEditorProps {
     limit_storage_mb: number;
     credits_per_user?: number;
     storage_mb_per_user?: number;
+    extra_credits?: number;
   };
   onChange: (limits: TenantLimitsEditorProps['limits']) => void;
   disabled?: boolean;
@@ -110,6 +111,17 @@ const limitConfig: LimitConfig[] = [
   },
 ];
 
+const extraCreditsConfig: LimitConfig = {
+  key: 'extra_credits',
+  label: 'Créditos Extra (Recarga)',
+  description: 'Créditos bônus adicionados ao tenant, somados ao limite base do plano. Funciona como uma recarga — o valor é adicionado à cota total.',
+  icon: Cpu,
+  unit: 'créditos',
+  presets: [500, 1000, 2500, 5000, 10000],
+  formatValue: (v: number) => v.toLocaleString('pt-BR'),
+  category: 'tenant',
+};
+
 // NOTE: credits_per_user and storage_mb_per_user are independent fields
 // limit_ai_tokens_monthly is a legacy field that should NOT be synced with credits
 
@@ -118,6 +130,7 @@ export function TenantLimitsEditor({ limits, onChange, disabled, usersCount = 0 
     ...limits,
     credits_per_user: limits.credits_per_user ?? 500,
     storage_mb_per_user: limits.storage_mb_per_user ?? 100,
+    extra_credits: limits.extra_credits ?? 0,
   }));
 
   useEffect(() => {
@@ -125,6 +138,7 @@ export function TenantLimitsEditor({ limits, onChange, disabled, usersCount = 0 
       ...limits,
       credits_per_user: limits.credits_per_user ?? 500,
       storage_mb_per_user: limits.storage_mb_per_user ?? 100,
+      extra_credits: limits.extra_credits ?? 0,
     });
   }, [limits]);
 
@@ -151,7 +165,8 @@ export function TenantLimitsEditor({ limits, onChange, disabled, usersCount = 0 
 
   // Calculate totals for preview
   const effectiveUsers = Math.max(usersCount, localLimits.limit_users > 0 ? Math.min(usersCount, localLimits.limit_users) : usersCount);
-  const totalCredits = (localLimits.credits_per_user || 500) * effectiveUsers;
+  const extraCredits = localLimits.extra_credits || 0;
+  const totalCredits = (localLimits.credits_per_user || 500) * effectiveUsers + extraCredits;
   const totalStorage = (localLimits.storage_mb_per_user || 100) * effectiveUsers;
 
   const renderLimitField = (config: LimitConfig) => {
@@ -274,6 +289,25 @@ export function TenantLimitsEditor({ limits, onChange, disabled, usersCount = 0 
 
           {perUserLimits.map(renderLimitField)}
 
+          <Separator />
+
+          {/* Extra Credits (Recharge) */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              <Cpu className="w-4 h-4" />
+              RECARGA / CRÉDITOS EXTRA
+              <Badge variant="outline" className="ml-2 text-xs">Bônus do tenant</Badge>
+            </div>
+            <Alert className="bg-accent/50 border-accent">
+              <Cpu className="h-4 w-4 text-accent-foreground" />
+              <AlertDescription className="text-sm">
+                Créditos extras são somados ao limite base do plano. Use para recargas, bônus promocionais ou compensações.
+                A fórmula final é: <strong>(créditos/usuário × usuários) + créditos extra</strong>
+              </AlertDescription>
+            </Alert>
+            {renderLimitField(extraCreditsConfig)}
+          </div>
+
           {/* Preview of totals */}
           {usersCount > 0 && (
             <Alert className="bg-primary/5 border-primary/30">
@@ -284,7 +318,9 @@ export function TenantLimitsEditor({ limits, onChange, disabled, usersCount = 0 
                   <div className="space-y-1">
                     <p className="text-muted-foreground">Créditos IA:</p>
                     <p className="font-medium">
-                      {(localLimits.credits_per_user || 500).toLocaleString()} × {effectiveUsers} usuários = {' '}
+                      {(localLimits.credits_per_user || 500).toLocaleString()} × {effectiveUsers} usuários
+                      {extraCredits > 0 && <> + {extraCredits.toLocaleString()} extra</>}
+                      {' '}= {' '}
                       <span className="text-primary">{totalCredits.toLocaleString()} créditos/mês</span>
                     </p>
                   </div>

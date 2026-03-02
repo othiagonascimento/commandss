@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
       // Add limits if provided
       if (limits) {
         Object.entries(limits).forEach(([key, value]) => {
-          if (key.startsWith('limit_') || key === 'credits_per_user' || key === 'storage_mb_per_user') {
+          if (key.startsWith('limit_') || key === 'credits_per_user' || key === 'storage_mb_per_user' || key === 'extra_credits') {
             updateData[key] = value;
           }
         });
