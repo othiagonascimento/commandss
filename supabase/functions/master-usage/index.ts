@@ -82,10 +82,10 @@ Deno.serve(async (req) => {
     if ((req.method === 'GET' || req.method === 'POST') && tenantId === 'zones') {
       console.log('[master-usage] Fetching credit zones summary...');
       
-      // Get current period dates
+      // Period dates - will be refined per-tenant using billing_subscriptions below
       const now = new Date();
-      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const fallbackPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const fallbackPeriodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       
       // 1. Fetch all active tenants
       const { data: tenants, error: tenantsError } = await supabase
@@ -125,16 +125,16 @@ Deno.serve(async (req) => {
       
       console.log('[master-usage] Found usages:', usages?.length || 0);
 
-      // 3. Fetch tenant_features separately
+      // 3. Fetch tenant_features separately (including extra_credits)
       const { data: features } = await supabase
         .from('tenant_features')
-        .select('tenant_id, credits_per_user')
+        .select('tenant_id, credits_per_user, extra_credits')
         .in('tenant_id', tenantIds);
 
       const featuresMap = (features || []).reduce((acc, f) => {
         if (f.tenant_id) acc[f.tenant_id] = f;
         return acc;
-      }, {} as Record<string, { credits_per_user: number | null }>);
+      }, {} as Record<string, { credits_per_user: number | null; extra_credits: number | null }>);
       
       console.log('[master-usage] Found features:', features?.length || 0);
 
@@ -183,8 +183,9 @@ Deno.serve(async (req) => {
 
         const creditsUsed = usage?.ai_credits_used || usage?.credits_consumed || 0;
         const creditsPerUser = feature?.credits_per_user || 500;
+        const extraCredits = feature?.extra_credits || 0;
         const usersCount = usersPerTenant[tenantId] || 1;
-        const creditsLimit = creditsPerUser * Math.max(usersCount, 1);
+        const creditsLimit = creditsPerUser * Math.max(usersCount, 1) + extraCredits;
         const usagePercent = creditsLimit > 0 ? (creditsUsed / creditsLimit) * 100 : 0;
 
         if (usagePercent <= 100) {
@@ -468,10 +469,20 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Count messages from api_usage_logs
-          const periodStart = new Date();
-          periodStart.setDate(1);
-          periodStart.setHours(0, 0, 0, 0);
+          // Use billing subscription period if available, else fallback to calendar month
+          const { data: tenantBilling } = await remoteSupabase
+            .from('billing_subscriptions')
+            .select('current_period_start, current_period_end')
+            .eq('tenant_id', tenantId)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          const periodStart = new Date(tenantBilling?.current_period_start || new Date().setDate(1));
+          if (!tenantBilling?.current_period_start) {
+            periodStart.setHours(0, 0, 0, 0);
+          }
 
           const { count: messagesCount } = await remoteSupabase
             .from('api_usage_logs')
@@ -586,9 +597,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Calculate total credits limit based on credits_per_user × active users
+      // Calculate total credits limit: (credits_per_user × users) + extra_credits
       const creditsPerUser = features?.credits_per_user || 500;
-      const totalCreditsLimit = creditsPerUser * Math.max(currentUsage.users_count, 1);
+      const extraCredits = (features as Record<string, unknown>)?.extra_credits as number || 0;
+      const totalCreditsLimit = creditsPerUser * Math.max(currentUsage.users_count, 1) + extraCredits;
 
       const response = {
         usage: {
@@ -779,10 +791,23 @@ Deno.serve(async (req) => {
             storageMb = Math.round(totalBytes / 1048576);
           }
 
-          // Count messages
-          const periodStart = new Date();
-          periodStart.setDate(1);
-          periodStart.setHours(0, 0, 0, 0);
+          // Use billing subscription period
+          const { data: recalcBilling } = await remoteSupabase
+            .from('billing_subscriptions')
+            .select('current_period_start, current_period_end')
+            .eq('tenant_id', tenantId)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          const periodStart = new Date(recalcBilling?.current_period_start || new Date().setDate(1));
+          if (!recalcBilling?.current_period_start) {
+            periodStart.setHours(0, 0, 0, 0);
+          }
+          const periodEndDate = recalcBilling?.current_period_end
+            ? new Date(recalcBilling.current_period_end)
+            : new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 1);
 
           const { count: messagesCount } = await remoteSupabase
             .from('api_usage_logs')
@@ -796,7 +821,7 @@ Deno.serve(async (req) => {
             .upsert({
               tenant_id: tenantId,
               period_start: periodStart.toISOString(),
-              period_end: new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 1).toISOString(),
+              period_end: periodEndDate.toISOString(),
               users_count: usersCount || 0,
               leads_count: leadsCount || 0,
               products_count: productsCount || 0,
