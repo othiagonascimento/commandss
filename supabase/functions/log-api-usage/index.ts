@@ -209,9 +209,30 @@ serve(async (req) => {
       // Update user_usage table (incrementally)
       const totalTokens = (payload.input_tokens || 0) + (payload.output_tokens || 0);
       
-      // Get current month period
+      // Get billing period from billing_subscriptions (contract-based cycle)
       const now = new Date();
-      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      let periodStart: string;
+      let periodEnd: string;
+
+      const { data: billingSubscription } = await supabaseAdmin
+        .from('billing_subscriptions')
+        .select('current_period_start, current_period_end')
+        .eq('tenant_id', payload.tenant_id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (billingSubscription?.current_period_start && billingSubscription?.current_period_end) {
+        periodStart = billingSubscription.current_period_start;
+        periodEnd = billingSubscription.current_period_end;
+        logStep('Using billing subscription period', { periodStart, periodEnd });
+      } else {
+        // Fallback to calendar month if no subscription found
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+        logStep('No billing subscription, falling back to calendar month');
+      }
 
       // Check if user_usage record exists
       const { data: existingUsage } = await supabaseAdmin
@@ -257,48 +278,40 @@ serve(async (req) => {
         }
       }
 
-      // Update tenant_usage aggregate
-      const periodStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      const periodEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      // Derive tenant_usage from SUM of user_usage (not incremental)
+      const periodStartDate = periodStart.split('T')[0];
+      const periodEndDate = periodEnd.split('T')[0];
 
-      const { data: existingTenantUsage } = await supabaseAdmin
+      // SUM ai_tokens_month and credits_consumed_month from all users of this tenant
+      const { data: userUsageAgg } = await supabaseAdmin
+        .from('user_usage')
+        .select('ai_tokens_month, credits_consumed_month, api_calls_month')
+        .eq('tenant_id', payload.tenant_id);
+
+      const derivedAiTokens = (userUsageAgg || []).reduce((sum, u) => sum + (u.ai_tokens_month || 0), 0);
+      const derivedCreditsUsed = (userUsageAgg || []).reduce((sum, u) => sum + (u.credits_consumed_month || 0), 0);
+      const derivedApiCalls = (userUsageAgg || []).reduce((sum, u) => sum + (u.api_calls_month || 0), 0);
+
+      logStep('Derived tenant totals from user_usage SUM', { derivedAiTokens, derivedCreditsUsed, derivedApiCalls });
+
+      // Upsert tenant_usage with derived values
+      const { error: upsertTenantError } = await supabaseAdmin
         .from('tenant_usage')
-        .select('*')
-        .eq('tenant_id', payload.tenant_id)
-        .eq('period_start', periodStartDate)
-        .single();
+        .upsert({
+          tenant_id: payload.tenant_id,
+          period_start: periodStartDate,
+          period_end: periodEndDate,
+          ai_tokens_used: derivedAiTokens,
+          api_calls: derivedApiCalls,
+          estimated_cost_brl: derivedCreditsUsed * 0.02,
+          ai_credits_used: derivedCreditsUsed,
+          last_calculated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'tenant_id,period_start',
+        });
 
-      if (existingTenantUsage) {
-        const { error: updateTenantError } = await supabaseAdmin
-          .from('tenant_usage')
-          .update({
-            ai_tokens_used: (existingTenantUsage.ai_tokens_used || 0) + totalTokens,
-            api_calls: (existingTenantUsage.api_calls || 0) + 1,
-            estimated_cost_brl: (parseFloat(existingTenantUsage.estimated_cost_brl) || 0) + costBrl,
-            ai_credits_used: (existingTenantUsage.ai_credits_used || 0) + creditsConsumed,
-            last_calculated_at: new Date().toISOString(),
-          })
-          .eq('id', existingTenantUsage.id);
-
-        if (updateTenantError) {
-          logStep('Error updating tenant_usage', { error: updateTenantError.message });
-        }
-      } else {
-        const { error: insertTenantError } = await supabaseAdmin
-          .from('tenant_usage')
-          .insert({
-            tenant_id: payload.tenant_id,
-            period_start: periodStartDate,
-            period_end: periodEndDate,
-            ai_tokens_used: totalTokens,
-            api_calls: 1,
-            estimated_cost_brl: costBrl,
-            ai_credits_used: creditsConsumed,
-          });
-
-        if (insertTenantError) {
-          logStep('Error inserting tenant_usage', { error: insertTenantError.message });
-        }
+      if (upsertTenantError) {
+        logStep('Error upserting tenant_usage', { error: upsertTenantError.message });
       }
 
       logStep('Usage logged successfully', { logId: usageLog.id, creditsConsumed });

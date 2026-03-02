@@ -840,7 +840,15 @@ export default function TenantDetail() {
                           <div>
                             <span className="text-muted-foreground">Expira em:</span>
                             <p className="font-medium">
-                              {format(new Date(tenant.current_period_end), "dd/MM/yyyy", { locale: ptBR })}
+                              {(() => {
+                                const endDate = new Date(tenant.current_period_end);
+                                const twoYearsFromNow = new Date();
+                                twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2);
+                                if (endDate > twoYearsFromNow) {
+                                  return <span className="text-muted-foreground italic">Data não configurada</span>;
+                                }
+                                return format(endDate, "dd/MM/yyyy", { locale: ptBR });
+                              })()}
                             </p>
                           </div>
                         )}

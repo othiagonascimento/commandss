@@ -38,7 +38,7 @@ export function useUserCredits(tenantId: string | undefined, _filter?: UserCredi
           user_id: row.user_id || '',
           user_name: profile?.full_name || profile?.name || 'Sem nome',
           user_role: profile?.role || 'seller',
-          credits_consumed: Number(rawRow.credits_consumed || 0),
+          credits_consumed: Number(row.ai_tokens_month || rawRow.credits_consumed || 0),
           ai_tokens: Number(row.ai_tokens_month || 0),
           api_calls: Number(row.api_calls_month || 0),
           transcription_minutes: Math.round(Number(row.transcription_seconds_month || 0) / 60),
