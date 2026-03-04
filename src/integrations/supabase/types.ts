@@ -264,7 +264,10 @@ export type Database = {
           aggression_level: string | null
           ai_model_provider: string | null
           allowed_modes: string[] | null
+          arena_config: Json | null
           auto_activate: boolean | null
+          auto_reactivation_enabled: boolean | null
+          auto_reactivation_minutes: number | null
           auto_transfer_triggers: string[] | null
           autonomy_profile: string | null
           catalog_access: boolean | null
@@ -283,6 +286,7 @@ export type Database = {
           flow_notify_on_fallback: boolean | null
           followup_interval_minutes: number | null
           greeting: string | null
+          handoff_message: string | null
           human_delay_enabled: boolean | null
           id: string
           is_active: boolean | null
@@ -324,7 +328,10 @@ export type Database = {
           aggression_level?: string | null
           ai_model_provider?: string | null
           allowed_modes?: string[] | null
+          arena_config?: Json | null
           auto_activate?: boolean | null
+          auto_reactivation_enabled?: boolean | null
+          auto_reactivation_minutes?: number | null
           auto_transfer_triggers?: string[] | null
           autonomy_profile?: string | null
           catalog_access?: boolean | null
@@ -343,6 +350,7 @@ export type Database = {
           flow_notify_on_fallback?: boolean | null
           followup_interval_minutes?: number | null
           greeting?: string | null
+          handoff_message?: string | null
           human_delay_enabled?: boolean | null
           id?: string
           is_active?: boolean | null
@@ -384,7 +392,10 @@ export type Database = {
           aggression_level?: string | null
           ai_model_provider?: string | null
           allowed_modes?: string[] | null
+          arena_config?: Json | null
           auto_activate?: boolean | null
+          auto_reactivation_enabled?: boolean | null
+          auto_reactivation_minutes?: number | null
           auto_transfer_triggers?: string[] | null
           autonomy_profile?: string | null
           catalog_access?: boolean | null
@@ -403,6 +414,7 @@ export type Database = {
           flow_notify_on_fallback?: boolean | null
           followup_interval_minutes?: number | null
           greeting?: string | null
+          handoff_message?: string | null
           human_delay_enabled?: boolean | null
           id?: string
           is_active?: boolean | null
@@ -442,25 +454,100 @@ export type Database = {
           {
             foreignKeyName: "ai_config_tenant_id_fkey"
             columns: ["tenant_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "ai_config_tenant_id_fkey"
             columns: ["tenant_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "v_effective_ai_config"
             referencedColumns: ["tenant_id"]
           },
           {
             foreignKeyName: "ai_config_tenant_id_fkey"
             columns: ["tenant_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
         ]
+      }
+      ai_arena_logs: {
+        Row: {
+          arena_calls_count: number | null
+          channel: string | null
+          channel_formatted: boolean | null
+          channel_limit_used: number | null
+          conversation_id: string | null
+          created_at: string | null
+          draft_a_excerpt: string | null
+          draft_b_excerpt: string | null
+          final_score: number | null
+          id: string
+          message_id: string | null
+          polisher_json: Json | null
+          quality_validator_json: Json | null
+          rewrite_json: Json | null
+          safety_validator_json: Json | null
+          selector_json: Json | null
+          skipped_steps: string[] | null
+          strategist_json: Json | null
+          target_layer: string | null
+          temperature: string | null
+          tenant_id: string
+          total_time_ms: number | null
+        }
+        Insert: {
+          arena_calls_count?: number | null
+          channel?: string | null
+          channel_formatted?: boolean | null
+          channel_limit_used?: number | null
+          conversation_id?: string | null
+          created_at?: string | null
+          draft_a_excerpt?: string | null
+          draft_b_excerpt?: string | null
+          final_score?: number | null
+          id?: string
+          message_id?: string | null
+          polisher_json?: Json | null
+          quality_validator_json?: Json | null
+          rewrite_json?: Json | null
+          safety_validator_json?: Json | null
+          selector_json?: Json | null
+          skipped_steps?: string[] | null
+          strategist_json?: Json | null
+          target_layer?: string | null
+          temperature?: string | null
+          tenant_id: string
+          total_time_ms?: number | null
+        }
+        Update: {
+          arena_calls_count?: number | null
+          channel?: string | null
+          channel_formatted?: boolean | null
+          channel_limit_used?: number | null
+          conversation_id?: string | null
+          created_at?: string | null
+          draft_a_excerpt?: string | null
+          draft_b_excerpt?: string | null
+          final_score?: number | null
+          id?: string
+          message_id?: string | null
+          polisher_json?: Json | null
+          quality_validator_json?: Json | null
+          rewrite_json?: Json | null
+          safety_validator_json?: Json | null
+          selector_json?: Json | null
+          skipped_steps?: string[] | null
+          strategist_json?: Json | null
+          target_layer?: string | null
+          temperature?: string | null
+          tenant_id?: string
+          total_time_ms?: number | null
+        }
+        Relationships: []
       }
       ai_available_models: {
         Row: {
@@ -498,6 +585,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_corrections: {
+        Row: {
+          conversation_id: string | null
+          corrected_by: string | null
+          corrected_response: string | null
+          correction_type: string | null
+          created_at: string | null
+          id: string
+          message_id: string | null
+          original_response: string | null
+          tenant_id: string
+          used_in_prompt: boolean | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          corrected_by?: string | null
+          corrected_response?: string | null
+          correction_type?: string | null
+          created_at?: string | null
+          id?: string
+          message_id?: string | null
+          original_response?: string | null
+          tenant_id: string
+          used_in_prompt?: boolean | null
+        }
+        Update: {
+          conversation_id?: string | null
+          corrected_by?: string | null
+          corrected_response?: string | null
+          correction_type?: string | null
+          created_at?: string | null
+          id?: string
+          message_id?: string | null
+          original_response?: string | null
+          tenant_id?: string
+          used_in_prompt?: boolean | null
+        }
+        Relationships: []
+      }
       ai_events: {
         Row: {
           ai_mode: string | null
@@ -510,6 +636,7 @@ export type Database = {
           fallback_category: string | null
           fallback_reason: string | null
           id: string
+          latency_ms: number | null
           lead_id: string | null
           tenant_id: string
           was_blocked: boolean | null
@@ -526,6 +653,7 @@ export type Database = {
           fallback_category?: string | null
           fallback_reason?: string | null
           id?: string
+          latency_ms?: number | null
           lead_id?: string | null
           tenant_id: string
           was_blocked?: boolean | null
@@ -542,6 +670,7 @@ export type Database = {
           fallback_category?: string | null
           fallback_reason?: string | null
           id?: string
+          latency_ms?: number | null
           lead_id?: string | null
           tenant_id?: string
           was_blocked?: boolean | null
@@ -578,6 +707,81 @@ export type Database = {
           },
           {
             foreignKeyName: "ai_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      ai_learning_events: {
+        Row: {
+          ai_mode: string | null
+          confidence_score: number | null
+          conversation_id: string | null
+          created_at: string | null
+          event_type: string
+          feedback_data: Json | null
+          id: string
+          lead_id: string | null
+          outcome: string | null
+          tenant_id: string
+        }
+        Insert: {
+          ai_mode?: string | null
+          confidence_score?: number | null
+          conversation_id?: string | null
+          created_at?: string | null
+          event_type: string
+          feedback_data?: Json | null
+          id?: string
+          lead_id?: string | null
+          outcome?: string | null
+          tenant_id?: string
+        }
+        Update: {
+          ai_mode?: string | null
+          confidence_score?: number | null
+          conversation_id?: string | null
+          created_at?: string | null
+          event_type?: string
+          feedback_data?: Json | null
+          id?: string
+          lead_id?: string | null
+          outcome?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_learning_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_learning_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_learning_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_learning_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ai_learning_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
@@ -789,6 +993,7 @@ export type Database = {
           image_cost_per_unit_usd: number | null
           input_cost_per_1m_usd: number | null
           is_active: boolean | null
+          layer_category: string | null
           markup_percent: number | null
           model: string
           operation: string
@@ -805,6 +1010,7 @@ export type Database = {
           image_cost_per_unit_usd?: number | null
           input_cost_per_1m_usd?: number | null
           is_active?: boolean | null
+          layer_category?: string | null
           markup_percent?: number | null
           model: string
           operation?: string
@@ -821,6 +1027,7 @@ export type Database = {
           image_cost_per_unit_usd?: number | null
           input_cost_per_1m_usd?: number | null
           is_active?: boolean | null
+          layer_category?: string | null
           markup_percent?: number | null
           model?: string
           operation?: string
@@ -830,6 +1037,80 @@ export type Database = {
           usd_to_brl_rate?: number | null
         }
         Relationships: []
+      }
+      api_tokens: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          last_used_at: string | null
+          name: string
+          permissions: Json | null
+          tenant_id: string
+          token_hash: string
+          token_prefix: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          name: string
+          permissions?: Json | null
+          tenant_id: string
+          token_hash: string
+          token_prefix: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_used_at?: string | null
+          name?: string
+          permissions?: Json | null
+          tenant_id?: string
+          token_hash?: string
+          token_prefix?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_tokens_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "api_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
       api_usage_logs: {
         Row: {
@@ -925,6 +1206,7 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          actor_type: string
           created_at: string | null
           entity_id: string | null
           entity_type: string
@@ -938,6 +1220,7 @@ export type Database = {
         }
         Insert: {
           action: string
+          actor_type?: string
           created_at?: string | null
           entity_id?: string | null
           entity_type: string
@@ -951,6 +1234,7 @@ export type Database = {
         }
         Update: {
           action?: string
+          actor_type?: string
           created_at?: string | null
           entity_id?: string | null
           entity_type?: string
@@ -979,6 +1263,80 @@ export type Database = {
           },
           {
             foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      automation_executions: {
+        Row: {
+          completed_at: string | null
+          contact_id: string | null
+          current_step_id: string | null
+          error_message: string | null
+          flow_id: string
+          id: string
+          result: Json | null
+          started_at: string | null
+          status: string
+          step_history: Json | null
+          tenant_id: string
+          trigger_data: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_id?: string | null
+          current_step_id?: string | null
+          error_message?: string | null
+          flow_id: string
+          id?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          step_history?: Json | null
+          tenant_id?: string
+          trigger_data?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          contact_id?: string | null
+          current_step_id?: string | null
+          error_message?: string | null
+          flow_id?: string
+          id?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          step_history?: Json | null
+          tenant_id?: string
+          trigger_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_executions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "automation_executions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
@@ -1087,6 +1445,80 @@ export type Database = {
           },
         ]
       }
+      billing_invoices: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          due_date: string
+          external_invoice_id: string | null
+          id: string
+          invoice_pdf_url: string | null
+          line_items: Json | null
+          paid_at: string | null
+          status: string
+          subscription_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          due_date?: string
+          external_invoice_id?: string | null
+          id?: string
+          invoice_pdf_url?: string | null
+          line_items?: Json | null
+          paid_at?: string | null
+          status?: string
+          subscription_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          due_date?: string
+          external_invoice_id?: string | null
+          id?: string
+          invoice_pdf_url?: string | null
+          line_items?: Json | null
+          paid_at?: string | null
+          status?: string
+          subscription_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "billing_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "billing_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       billing_subscriptions: {
         Row: {
           cancelled_at: string | null
@@ -1149,6 +1581,75 @@ export type Database = {
             foreignKeyName: "billing_subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      birthday_flow_executions: {
+        Row: {
+          created_at: string
+          executed_at: string
+          execution_year: number
+          flow_id: string
+          id: string
+          lead_id: string
+          tenant_id: string
+          trigger_type: string
+        }
+        Insert: {
+          created_at?: string
+          executed_at?: string
+          execution_year: number
+          flow_id: string
+          id?: string
+          lead_id: string
+          tenant_id?: string
+          trigger_type: string
+        }
+        Update: {
+          created_at?: string
+          executed_at?: string
+          execution_year?: number
+          flow_id?: string
+          id?: string
+          lead_id?: string
+          tenant_id?: string
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "birthday_flow_executions_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "automation_flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_flow_executions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_flow_executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "birthday_flow_executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "birthday_flow_executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
@@ -1521,6 +2022,356 @@ export type Database = {
           },
         ]
       }
+      catalog_import_history: {
+        Row: {
+          created_at: string | null
+          duplicates: number | null
+          error_log: Json | null
+          errors: number | null
+          file_name: string
+          id: string
+          imported: number | null
+          source: string
+          status: string | null
+          tenant_id: string
+          total_records: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duplicates?: number | null
+          error_log?: Json | null
+          errors?: number | null
+          file_name: string
+          id?: string
+          imported?: number | null
+          source?: string
+          status?: string | null
+          tenant_id?: string
+          total_records?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duplicates?: number | null
+          error_log?: Json | null
+          errors?: number | null
+          file_name?: string
+          id?: string
+          imported?: number | null
+          source?: string
+          status?: string | null
+          tenant_id?: string
+          total_records?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_import_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_import_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_import_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      channels: {
+        Row: {
+          access_token: string | null
+          channel_type: string
+          config: Json | null
+          created_at: string | null
+          created_by: string | null
+          display_name: string | null
+          health_status: Json | null
+          id: string
+          is_active: boolean | null
+          last_health_check: string | null
+          legacy_instance_id: string | null
+          platform_channel_id: string
+          rate_limits: Json | null
+          refresh_token: string | null
+          status: string | null
+          tenant_id: string
+          token_expires_at: string | null
+          updated_at: string | null
+          webhook_verify_token: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          channel_type: string
+          config?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          display_name?: string | null
+          health_status?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_health_check?: string | null
+          legacy_instance_id?: string | null
+          platform_channel_id: string
+          rate_limits?: Json | null
+          refresh_token?: string | null
+          status?: string | null
+          tenant_id: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+          webhook_verify_token?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          channel_type?: string
+          config?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          display_name?: string | null
+          health_status?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_health_check?: string | null
+          legacy_instance_id?: string | null
+          platform_channel_id?: string
+          rate_limits?: Json | null
+          refresh_token?: string | null
+          status?: string | null
+          tenant_id?: string
+          token_expires_at?: string | null
+          updated_at?: string | null
+          webhook_verify_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channels_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      comment_dm_rules: {
+        Row: {
+          channel_id: string | null
+          cooldown_minutes: number | null
+          created_at: string
+          dm_template: string
+          exclude_replies: boolean
+          id: string
+          is_active: boolean | null
+          keywords: string[]
+          live_video_id: string | null
+          match_mode: string
+          name: string
+          post_scope: string
+          reply_to_comment: string | null
+          stats_triggered: number | null
+          target_post_caption: string | null
+          target_post_id: string | null
+          target_post_url: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel_id?: string | null
+          cooldown_minutes?: number | null
+          created_at?: string
+          dm_template: string
+          exclude_replies?: boolean
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[]
+          live_video_id?: string | null
+          match_mode?: string
+          name: string
+          post_scope?: string
+          reply_to_comment?: string | null
+          stats_triggered?: number | null
+          target_post_caption?: string | null
+          target_post_id?: string | null
+          target_post_url?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string | null
+          cooldown_minutes?: number | null
+          created_at?: string
+          dm_template?: string
+          exclude_replies?: boolean
+          id?: string
+          is_active?: boolean | null
+          keywords?: string[]
+          live_video_id?: string | null
+          match_mode?: string
+          name?: string
+          post_scope?: string
+          reply_to_comment?: string | null
+          stats_triggered?: number | null
+          target_post_caption?: string | null
+          target_post_id?: string | null
+          target_post_url?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_dm_rules_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_dm_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_dm_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "comment_dm_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      content_posts: {
+        Row: {
+          caption: string | null
+          channel_id: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          media_url: string | null
+          media_urls: string[] | null
+          meta_container_id: string | null
+          meta_post_id: string | null
+          publish_type: string
+          published_at: string | null
+          scheduled_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          channel_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          media_url?: string | null
+          media_urls?: string[] | null
+          meta_container_id?: string | null
+          meta_post_id?: string | null
+          publish_type: string
+          published_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          channel_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          media_url?: string | null
+          media_urls?: string[] | null
+          meta_container_id?: string | null
+          meta_post_id?: string | null
+          publish_type?: string
+          published_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_posts_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_posts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_posts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_posts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "content_posts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       conversation_conflicts: {
         Row: {
           conversation_id: string
@@ -1690,12 +2541,17 @@ export type Database = {
           ai_preferred_mode: string | null
           ai_qualification_score: number | null
           ai_status: string | null
+          ai_tags: Json | null
           assigned_to: string | null
           broadcast_campaign_id: string | null
+          channel_id: string | null
+          channel_type: string | null
           context_summary: string | null
+          conversation_plan: Json | null
           created_at: string | null
           current_flow_execution_id: string | null
           deleted_at: string | null
+          first_response_at: string | null
           group_jid: string | null
           handled_by_ai: boolean | null
           id: string
@@ -1714,6 +2570,7 @@ export type Database = {
           previous_assignees: string[] | null
           qualification_data: Json | null
           qualification_status: string | null
+          quality_score: number | null
           reassign_count: number | null
           requires_human_attention: boolean | null
           resolution_notes: string | null
@@ -1747,12 +2604,17 @@ export type Database = {
           ai_preferred_mode?: string | null
           ai_qualification_score?: number | null
           ai_status?: string | null
+          ai_tags?: Json | null
           assigned_to?: string | null
           broadcast_campaign_id?: string | null
+          channel_id?: string | null
+          channel_type?: string | null
           context_summary?: string | null
+          conversation_plan?: Json | null
           created_at?: string | null
           current_flow_execution_id?: string | null
           deleted_at?: string | null
+          first_response_at?: string | null
           group_jid?: string | null
           handled_by_ai?: boolean | null
           id?: string
@@ -1771,6 +2633,7 @@ export type Database = {
           previous_assignees?: string[] | null
           qualification_data?: Json | null
           qualification_status?: string | null
+          quality_score?: number | null
           reassign_count?: number | null
           requires_human_attention?: boolean | null
           resolution_notes?: string | null
@@ -1804,12 +2667,17 @@ export type Database = {
           ai_preferred_mode?: string | null
           ai_qualification_score?: number | null
           ai_status?: string | null
+          ai_tags?: Json | null
           assigned_to?: string | null
           broadcast_campaign_id?: string | null
+          channel_id?: string | null
+          channel_type?: string | null
           context_summary?: string | null
+          conversation_plan?: Json | null
           created_at?: string | null
           current_flow_execution_id?: string | null
           deleted_at?: string | null
+          first_response_at?: string | null
           group_jid?: string | null
           handled_by_ai?: boolean | null
           id?: string
@@ -1828,6 +2696,7 @@ export type Database = {
           previous_assignees?: string[] | null
           qualification_data?: Json | null
           qualification_status?: string | null
+          quality_score?: number | null
           reassign_count?: number | null
           requires_human_attention?: boolean | null
           resolution_notes?: string | null
@@ -1852,6 +2721,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
             referencedColumns: ["id"]
           },
           {
@@ -1884,11 +2760,162 @@ export type Database = {
           },
         ]
       }
+      credit_debit_logs: {
+        Row: {
+          created_at: string | null
+          credits_debited: number
+          id: string
+          metadata: Json | null
+          operation_type: string
+          tenant_id: string
+          units: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_debited: number
+          id?: string
+          metadata?: Json | null
+          operation_type: string
+          tenant_id: string
+          units?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_debited?: number
+          id?: string
+          metadata?: Json | null
+          operation_type?: string
+          tenant_id?: string
+          units?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_debit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_debit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "credit_debit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "credit_debit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_rates: {
+        Row: {
+          created_at: string | null
+          credits_per_unit: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          operation_type: string
+          unit_description: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_per_unit?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          operation_type: string
+          unit_description?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_per_unit?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          operation_type?: string
+          unit_description?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      credit_sync_log: {
+        Row: {
+          credits_at_sync: number
+          id: string
+          master_acknowledged: boolean | null
+          master_response: Json | null
+          sync_type: string
+          synced_at: string | null
+          tenant_id: string
+          usage_at_sync: Json | null
+        }
+        Insert: {
+          credits_at_sync: number
+          id?: string
+          master_acknowledged?: boolean | null
+          master_response?: Json | null
+          sync_type: string
+          synced_at?: string | null
+          tenant_id: string
+          usage_at_sync?: Json | null
+        }
+        Update: {
+          credits_at_sync?: number
+          id?: string
+          master_acknowledged?: boolean | null
+          master_response?: Json | null
+          sync_type?: string
+          synced_at?: string | null
+          tenant_id?: string
+          usage_at_sync?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_sync_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_sync_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "credit_sync_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       credit_transactions: {
         Row: {
           amount: number
           created_at: string | null
           id: string
+          package_name: string | null
           price_brl: number
           status: string | null
           tenant_id: string | null
@@ -1899,6 +2926,7 @@ export type Database = {
           amount: number
           created_at?: string | null
           id?: string
+          package_name?: string | null
           price_brl: number
           status?: string | null
           tenant_id?: string | null
@@ -1909,6 +2937,7 @@ export type Database = {
           amount?: number
           created_at?: string | null
           id?: string
+          package_name?: string | null
           price_brl?: number
           status?: string | null
           tenant_id?: string | null
@@ -1946,13 +2975,19 @@ export type Database = {
           benefit_installment_text: string | null
           benefit_shipping_text: string | null
           benefit_warranty_text: string | null
+          boleto_discount_percent: number | null
+          boleto_enabled: boolean | null
           business_address: string | null
           business_hours: Json | null
           button_style: string | null
           catalog_columns_desktop: number | null
           catalog_columns_mobile: number | null
           catalog_default_sort: string | null
+          catalog_display_mode: string | null
           created_at: string | null
+          debit_card_discount_percent: number | null
+          debit_card_enabled: boolean | null
+          default_faq: Json | null
           enable_catalog_filters: boolean | null
           enable_stock: boolean | null
           enable_variants: boolean | null
@@ -1981,16 +3016,26 @@ export type Database = {
           footer_social_tiktok: string | null
           footer_social_youtube: string | null
           footer_trust_badges: Json | null
+          google_analytics_id: string | null
+          google_tag_manager_id: string | null
           id: string
           installment_enabled: boolean | null
           installment_max_without_interest: number | null
           installment_min_value: number | null
+          installment_with_interest_enabled: boolean | null
+          installment_with_interest_max: number | null
+          installment_with_interest_rate: number | null
           is_enabled: boolean | null
           layout_template: string | null
           logo_size: string | null
           logo_url: string | null
           low_stock_threshold: number | null
+          meta_conversions_api_token: string | null
+          meta_pixel_id: string | null
           mobile_fixed_cta: boolean | null
+          pix_discount_percent: number | null
+          pix_enabled: boolean | null
+          pix_label: string | null
           policy_faq_content: string | null
           policy_privacy_content: string | null
           policy_returns_content: string | null
@@ -2010,7 +3055,15 @@ export type Database = {
           show_urgency_indicators: boolean | null
           store_name: string | null
           tenant_id: string
+          tiktok_pixel_id: string | null
+          tracking_pixels_enabled: boolean | null
+          trust_badge_items: Json | null
           updated_at: string | null
+          urgency_featured_text: string | null
+          urgency_low_stock_text: string | null
+          video_shopping_enabled: boolean | null
+          video_shopping_position: string | null
+          video_shopping_title: string | null
           welcome_message: string | null
           whatsapp_number: string | null
           wholesale_price_label: string | null
@@ -2021,13 +3074,19 @@ export type Database = {
           benefit_installment_text?: string | null
           benefit_shipping_text?: string | null
           benefit_warranty_text?: string | null
+          boleto_discount_percent?: number | null
+          boleto_enabled?: boolean | null
           business_address?: string | null
           business_hours?: Json | null
           button_style?: string | null
           catalog_columns_desktop?: number | null
           catalog_columns_mobile?: number | null
           catalog_default_sort?: string | null
+          catalog_display_mode?: string | null
           created_at?: string | null
+          debit_card_discount_percent?: number | null
+          debit_card_enabled?: boolean | null
+          default_faq?: Json | null
           enable_catalog_filters?: boolean | null
           enable_stock?: boolean | null
           enable_variants?: boolean | null
@@ -2056,16 +3115,26 @@ export type Database = {
           footer_social_tiktok?: string | null
           footer_social_youtube?: string | null
           footer_trust_badges?: Json | null
+          google_analytics_id?: string | null
+          google_tag_manager_id?: string | null
           id?: string
           installment_enabled?: boolean | null
           installment_max_without_interest?: number | null
           installment_min_value?: number | null
+          installment_with_interest_enabled?: boolean | null
+          installment_with_interest_max?: number | null
+          installment_with_interest_rate?: number | null
           is_enabled?: boolean | null
           layout_template?: string | null
           logo_size?: string | null
           logo_url?: string | null
           low_stock_threshold?: number | null
+          meta_conversions_api_token?: string | null
+          meta_pixel_id?: string | null
           mobile_fixed_cta?: boolean | null
+          pix_discount_percent?: number | null
+          pix_enabled?: boolean | null
+          pix_label?: string | null
           policy_faq_content?: string | null
           policy_privacy_content?: string | null
           policy_returns_content?: string | null
@@ -2085,7 +3154,15 @@ export type Database = {
           show_urgency_indicators?: boolean | null
           store_name?: string | null
           tenant_id: string
+          tiktok_pixel_id?: string | null
+          tracking_pixels_enabled?: boolean | null
+          trust_badge_items?: Json | null
           updated_at?: string | null
+          urgency_featured_text?: string | null
+          urgency_low_stock_text?: string | null
+          video_shopping_enabled?: boolean | null
+          video_shopping_position?: string | null
+          video_shopping_title?: string | null
           welcome_message?: string | null
           whatsapp_number?: string | null
           wholesale_price_label?: string | null
@@ -2096,13 +3173,19 @@ export type Database = {
           benefit_installment_text?: string | null
           benefit_shipping_text?: string | null
           benefit_warranty_text?: string | null
+          boleto_discount_percent?: number | null
+          boleto_enabled?: boolean | null
           business_address?: string | null
           business_hours?: Json | null
           button_style?: string | null
           catalog_columns_desktop?: number | null
           catalog_columns_mobile?: number | null
           catalog_default_sort?: string | null
+          catalog_display_mode?: string | null
           created_at?: string | null
+          debit_card_discount_percent?: number | null
+          debit_card_enabled?: boolean | null
+          default_faq?: Json | null
           enable_catalog_filters?: boolean | null
           enable_stock?: boolean | null
           enable_variants?: boolean | null
@@ -2131,16 +3214,26 @@ export type Database = {
           footer_social_tiktok?: string | null
           footer_social_youtube?: string | null
           footer_trust_badges?: Json | null
+          google_analytics_id?: string | null
+          google_tag_manager_id?: string | null
           id?: string
           installment_enabled?: boolean | null
           installment_max_without_interest?: number | null
           installment_min_value?: number | null
+          installment_with_interest_enabled?: boolean | null
+          installment_with_interest_max?: number | null
+          installment_with_interest_rate?: number | null
           is_enabled?: boolean | null
           layout_template?: string | null
           logo_size?: string | null
           logo_url?: string | null
           low_stock_threshold?: number | null
+          meta_conversions_api_token?: string | null
+          meta_pixel_id?: string | null
           mobile_fixed_cta?: boolean | null
+          pix_discount_percent?: number | null
+          pix_enabled?: boolean | null
+          pix_label?: string | null
           policy_faq_content?: string | null
           policy_privacy_content?: string | null
           policy_returns_content?: string | null
@@ -2160,7 +3253,15 @@ export type Database = {
           show_urgency_indicators?: boolean | null
           store_name?: string | null
           tenant_id?: string
+          tiktok_pixel_id?: string | null
+          tracking_pixels_enabled?: boolean | null
+          trust_badge_items?: Json | null
           updated_at?: string | null
+          urgency_featured_text?: string | null
+          urgency_low_stock_text?: string | null
+          video_shopping_enabled?: boolean | null
+          video_shopping_position?: string | null
+          video_shopping_title?: string | null
           welcome_message?: string | null
           whatsapp_number?: string | null
           wholesale_price_label?: string | null
@@ -2472,7 +3573,9 @@ export type Database = {
       flow_executions: {
         Row: {
           completed_at: string | null
+          context: Json | null
           conversation_id: string | null
+          created_at: string | null
           current_step_index: number | null
           error_count: number | null
           error_message: string | null
@@ -2487,7 +3590,9 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
+          context?: Json | null
           conversation_id?: string | null
+          created_at?: string | null
           current_step_index?: number | null
           error_count?: number | null
           error_message?: string | null
@@ -2502,7 +3607,9 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
+          context?: Json | null
           conversation_id?: string | null
+          created_at?: string | null
           current_step_index?: number | null
           error_count?: number | null
           error_message?: string | null
@@ -2645,6 +3752,7 @@ export type Database = {
           name: string
           sort_order: number | null
           tenant_id: string | null
+          win_probability: number | null
         }
         Insert: {
           color?: string | null
@@ -2656,6 +3764,7 @@ export type Database = {
           name: string
           sort_order?: number | null
           tenant_id?: string | null
+          win_probability?: number | null
         }
         Update: {
           color?: string | null
@@ -2667,6 +3776,7 @@ export type Database = {
           name?: string
           sort_order?: number | null
           tenant_id?: string | null
+          win_probability?: number | null
         }
         Relationships: [
           {
@@ -2878,6 +3988,80 @@ export type Database = {
           },
         ]
       }
+      instagram_comments: {
+        Row: {
+          channel_id: string | null
+          comment_id: string
+          created_at: string
+          dm_sent: boolean | null
+          id: string
+          is_reply: boolean | null
+          parent_id: string | null
+          post_id: string | null
+          processed: boolean | null
+          tenant_id: string
+          text: string | null
+          username: string | null
+        }
+        Insert: {
+          channel_id?: string | null
+          comment_id: string
+          created_at?: string
+          dm_sent?: boolean | null
+          id?: string
+          is_reply?: boolean | null
+          parent_id?: string | null
+          post_id?: string | null
+          processed?: boolean | null
+          tenant_id: string
+          text?: string | null
+          username?: string | null
+        }
+        Update: {
+          channel_id?: string | null
+          comment_id?: string
+          created_at?: string
+          dm_sent?: boolean | null
+          id?: string
+          is_reply?: boolean | null
+          parent_id?: string | null
+          post_id?: string | null
+          processed?: boolean | null
+          tenant_id?: string
+          text?: string | null
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instagram_comments_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instagram_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "instagram_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       instance_health_metrics: {
         Row: {
           avg_delivery_time_ms: number | null
@@ -2961,6 +4145,70 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_sync_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          direction: string
+          error_details: Json | null
+          id: string
+          integration_type: string
+          records_failed: number | null
+          records_processed: number | null
+          started_at: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          direction?: string
+          error_details?: Json | null
+          id?: string
+          integration_type: string
+          records_failed?: number | null
+          records_processed?: number | null
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          direction?: string
+          error_details?: Json | null
+          id?: string
+          integration_type?: string
+          records_failed?: number | null
+          records_processed?: number | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "integration_sync_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
           },
         ]
       }
@@ -3062,6 +4310,72 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_notes: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string | null
+          id: string
+          sender_id: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string | null
+          id?: string
+          sender_id: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string | null
+          id?: string
+          sender_id?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_notes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notes_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "internal_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       invite_links: {
         Row: {
           code: string
@@ -3119,6 +4433,7 @@ export type Database = {
           is_from_template: boolean | null
           keywords: string[] | null
           priority: number | null
+          search_vector: unknown
           tenant_id: string | null
           title: string | null
           updated_at: string | null
@@ -3135,6 +4450,7 @@ export type Database = {
           is_from_template?: boolean | null
           keywords?: string[] | null
           priority?: number | null
+          search_vector?: unknown
           tenant_id?: string | null
           title?: string | null
           updated_at?: string | null
@@ -3151,6 +4467,7 @@ export type Database = {
           is_from_template?: boolean | null
           keywords?: string[] | null
           priority?: number | null
+          search_vector?: unknown
           tenant_id?: string | null
           title?: string | null
           updated_at?: string | null
@@ -3177,6 +4494,60 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      lead_activities: {
+        Row: {
+          activity_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          lead_id: string
+          metadata: Json | null
+          performed_at: string
+          performed_by: string | null
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          lead_id: string
+          metadata?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+          tenant_id: string
+          title: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          lead_id?: string
+          metadata?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activities_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3265,6 +4636,205 @@ export type Database = {
           },
         ]
       }
+      lead_deals: {
+        Row: {
+          closed_at: string
+          closed_by: string | null
+          created_at: string
+          deal_type: string
+          deal_value: number | null
+          discount_percent: number | null
+          funnel_id: string | null
+          id: string
+          lead_id: string
+          loss_notes: string | null
+          loss_reason: string | null
+          metadata: Json | null
+          original_price: number | null
+          previous_stage_id: string | null
+          product_id: string | null
+          product_name: string | null
+          tenant_id: string
+        }
+        Insert: {
+          closed_at?: string
+          closed_by?: string | null
+          created_at?: string
+          deal_type: string
+          deal_value?: number | null
+          discount_percent?: number | null
+          funnel_id?: string | null
+          id?: string
+          lead_id: string
+          loss_notes?: string | null
+          loss_reason?: string | null
+          metadata?: Json | null
+          original_price?: number | null
+          previous_stage_id?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          tenant_id: string
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string | null
+          created_at?: string
+          deal_type?: string
+          deal_value?: number | null
+          discount_percent?: number | null
+          funnel_id?: string | null
+          id?: string
+          lead_id?: string
+          loss_notes?: string | null
+          loss_reason?: string | null
+          metadata?: Json | null
+          original_price?: number | null
+          previous_stage_id?: string | null
+          product_id?: string | null
+          product_name?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_deals_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_deals_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_deals_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "admin_products_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_deals_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_deals_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_deals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_deals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "lead_deals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      lead_import_history: {
+        Row: {
+          assignment_mode: string
+          batch_id: string
+          created_at: string
+          duplicates_count: number
+          errors_count: number
+          file_name: string | null
+          funnel_id: string | null
+          funnel_stage_id: string | null
+          id: string
+          imported_count: number
+          metadata: Json | null
+          source_type: string
+          status: string
+          tenant_id: string
+          total_records: number
+          updated_count: number
+          user_id: string
+        }
+        Insert: {
+          assignment_mode?: string
+          batch_id: string
+          created_at?: string
+          duplicates_count?: number
+          errors_count?: number
+          file_name?: string | null
+          funnel_id?: string | null
+          funnel_stage_id?: string | null
+          id?: string
+          imported_count?: number
+          metadata?: Json | null
+          source_type?: string
+          status?: string
+          tenant_id: string
+          total_records?: number
+          updated_count?: number
+          user_id: string
+        }
+        Update: {
+          assignment_mode?: string
+          batch_id?: string
+          created_at?: string
+          duplicates_count?: number
+          errors_count?: number
+          file_name?: string | null
+          funnel_id?: string | null
+          funnel_stage_id?: string | null
+          id?: string
+          imported_count?: number
+          metadata?: Json | null
+          source_type?: string
+          status?: string
+          tenant_id?: string
+          total_records?: number
+          updated_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_import_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_import_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "lead_import_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       lead_interaction_times: {
         Row: {
           avg_response_time_ms: number | null
@@ -3339,6 +4909,7 @@ export type Database = {
           budget_info: Json | null
           communication_style: string | null
           competitor_mentions: string[] | null
+          conversation_memories: Json | null
           conversation_summary: string | null
           created_at: string | null
           decision_factors: string[] | null
@@ -3348,6 +4919,7 @@ export type Database = {
           key_quotes: string[] | null
           last_interaction_at: string | null
           lead_id: string
+          memory_text: string | null
           metadata: Json | null
           next_steps: string | null
           objections_raised: string[] | null
@@ -3365,6 +4937,7 @@ export type Database = {
           budget_info?: Json | null
           communication_style?: string | null
           competitor_mentions?: string[] | null
+          conversation_memories?: Json | null
           conversation_summary?: string | null
           created_at?: string | null
           decision_factors?: string[] | null
@@ -3374,6 +4947,7 @@ export type Database = {
           key_quotes?: string[] | null
           last_interaction_at?: string | null
           lead_id: string
+          memory_text?: string | null
           metadata?: Json | null
           next_steps?: string | null
           objections_raised?: string[] | null
@@ -3391,6 +4965,7 @@ export type Database = {
           budget_info?: Json | null
           communication_style?: string | null
           competitor_mentions?: string[] | null
+          conversation_memories?: Json | null
           conversation_summary?: string | null
           created_at?: string | null
           decision_factors?: string[] | null
@@ -3400,6 +4975,7 @@ export type Database = {
           key_quotes?: string[] | null
           last_interaction_at?: string | null
           lead_id?: string
+          memory_text?: string | null
           metadata?: Json | null
           next_steps?: string | null
           objections_raised?: string[] | null
@@ -3413,6 +4989,68 @@ export type Database = {
           urgency_level?: string | null
         }
         Relationships: []
+      }
+      lead_notes: {
+        Row: {
+          color: string | null
+          content: string
+          created_at: string
+          id: string
+          lead_id: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_notes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "lead_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
       lead_transfers: {
         Row: {
@@ -3527,6 +5165,7 @@ export type Database = {
           avatar: string | null
           birth_date: string | null
           created_at: string | null
+          created_by: string | null
           custom_fields: Json | null
           deleted_at: string | null
           deleted_by: string | null
@@ -3537,14 +5176,18 @@ export type Database = {
           id: string
           import_campaign_id: string | null
           import_source: string | null
+          last_contact: string | null
           meta_ads_referral: Json | null
           name: string | null
+          notes: string[] | null
           phone: string
           product_id: string | null
           product_interest: string | null
           profile_data: Json | null
+          sort_position: number | null
           source: string | null
           stage: string | null
+          stage_changed_at: string | null
           tags: string[] | null
           temperature: string | null
           tenant_id: string
@@ -3563,6 +5206,7 @@ export type Database = {
           avatar?: string | null
           birth_date?: string | null
           created_at?: string | null
+          created_by?: string | null
           custom_fields?: Json | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -3573,14 +5217,18 @@ export type Database = {
           id?: string
           import_campaign_id?: string | null
           import_source?: string | null
+          last_contact?: string | null
           meta_ads_referral?: Json | null
           name?: string | null
+          notes?: string[] | null
           phone: string
           product_id?: string | null
           product_interest?: string | null
           profile_data?: Json | null
+          sort_position?: number | null
           source?: string | null
           stage?: string | null
+          stage_changed_at?: string | null
           tags?: string[] | null
           temperature?: string | null
           tenant_id: string
@@ -3599,6 +5247,7 @@ export type Database = {
           avatar?: string | null
           birth_date?: string | null
           created_at?: string | null
+          created_by?: string | null
           custom_fields?: Json | null
           deleted_at?: string | null
           deleted_by?: string | null
@@ -3609,14 +5258,18 @@ export type Database = {
           id?: string
           import_campaign_id?: string | null
           import_source?: string | null
+          last_contact?: string | null
           meta_ads_referral?: Json | null
           name?: string | null
+          notes?: string[] | null
           phone?: string
           product_id?: string | null
           product_interest?: string | null
           profile_data?: Json | null
+          sort_position?: number | null
           source?: string | null
           stage?: string | null
+          stage_changed_at?: string | null
           tags?: string[] | null
           temperature?: string | null
           tenant_id?: string
@@ -3674,6 +5327,181 @@ export type Database = {
           },
         ]
       }
+      live_comments: {
+        Row: {
+          comment_id: string | null
+          created_at: string
+          dm_sent: boolean | null
+          id: string
+          is_purchase_intent: boolean | null
+          live_session_id: string | null
+          processed: boolean | null
+          product_matched: string | null
+          tenant_id: string
+          text: string | null
+          username: string | null
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string
+          dm_sent?: boolean | null
+          id?: string
+          is_purchase_intent?: boolean | null
+          live_session_id?: string | null
+          processed?: boolean | null
+          product_matched?: string | null
+          tenant_id: string
+          text?: string | null
+          username?: string | null
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string
+          dm_sent?: boolean | null
+          id?: string
+          is_purchase_intent?: boolean | null
+          live_session_id?: string | null
+          processed?: boolean | null
+          product_matched?: string | null
+          tenant_id?: string
+          text?: string | null
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_comments_live_session_id_fkey"
+            columns: ["live_session_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_comments_product_matched_fkey"
+            columns: ["product_matched"]
+            isOneToOne: false
+            referencedRelation: "admin_products_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_comments_product_matched_fkey"
+            columns: ["product_matched"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_comments_product_matched_fkey"
+            columns: ["product_matched"]
+            isOneToOne: false
+            referencedRelation: "public_catalog_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "live_comments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      live_sessions: {
+        Row: {
+          channel_id: string | null
+          comments_count: number | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          last_comment_cursor: string | null
+          live_video_id: string
+          metadata: Json | null
+          products_linked: string[] | null
+          started_at: string | null
+          status: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+          viewer_count: number | null
+        }
+        Insert: {
+          channel_id?: string | null
+          comments_count?: number | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          last_comment_cursor?: string | null
+          live_video_id: string
+          metadata?: Json | null
+          products_linked?: string[] | null
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+          viewer_count?: number | null
+        }
+        Update: {
+          channel_id?: string | null
+          comments_count?: number | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          last_comment_cursor?: string | null
+          live_video_id?: string
+          metadata?: Json | null
+          products_linked?: string[] | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+          viewer_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_sessions_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "live_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       master_ai_prompts: {
         Row: {
           content: string
@@ -3695,6 +5523,57 @@ export type Database = {
           id?: string
           prompt_type?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      master_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          description: string | null
+          id: string
+          is_resolved: boolean
+          metadata: Json | null
+          resolution_reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_notes: string | null
+          severity: string
+          tenant_id: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_resolved?: boolean
+          metadata?: Json | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_notes?: string | null
+          severity?: string
+          tenant_id?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_resolved?: boolean
+          metadata?: Json | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_notes?: string | null
+          severity?: string
+          tenant_id?: string | null
+          title?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -3881,7 +5760,7 @@ export type Database = {
           description: string | null
           id: string
           key: string
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string | null
           updated_by: string | null
           value: Json
@@ -3901,7 +5780,7 @@ export type Database = {
           description?: string | null
           id?: string
           key: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string | null
           updated_by?: string | null
           value?: Json
@@ -3921,7 +5800,7 @@ export type Database = {
           description?: string | null
           id?: string
           key?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string | null
           updated_by?: string | null
           value?: Json
@@ -4004,6 +5883,8 @@ export type Database = {
         Row: {
           attempt_count: number
           campaign_id: string | null
+          channel_id: string | null
+          channel_type: string | null
           conversation_id: string
           created_at: string
           delivered_at: string | null
@@ -4028,6 +5909,8 @@ export type Database = {
         Insert: {
           attempt_count?: number
           campaign_id?: string | null
+          channel_id?: string | null
+          channel_type?: string | null
           conversation_id: string
           created_at?: string
           delivered_at?: string | null
@@ -4052,6 +5935,8 @@ export type Database = {
         Update: {
           attempt_count?: number
           campaign_id?: string | null
+          channel_id?: string | null
+          channel_type?: string | null
           conversation_id?: string
           created_at?: string
           delivered_at?: string | null
@@ -4138,6 +6023,7 @@ export type Database = {
           ai_metadata: Json | null
           attachments: Json | null
           audio_summary: string | null
+          channel_type: string | null
           content: string | null
           conversation_id: string
           created_at: string | null
@@ -4164,6 +6050,7 @@ export type Database = {
           ai_metadata?: Json | null
           attachments?: Json | null
           audio_summary?: string | null
+          channel_type?: string | null
           content?: string | null
           conversation_id: string
           created_at?: string | null
@@ -4190,6 +6077,7 @@ export type Database = {
           ai_metadata?: Json | null
           attachments?: Json | null
           audio_summary?: string | null
+          channel_type?: string | null
           content?: string | null
           conversation_id?: string
           created_at?: string | null
@@ -4229,6 +6117,7 @@ export type Database = {
           instagram_account_id: string | null
           instagram_profile_pic: string | null
           instagram_username: string | null
+          is_active: boolean | null
           last_error: string | null
           messaging_enabled: boolean | null
           page_access_token: string | null
@@ -4249,6 +6138,7 @@ export type Database = {
           instagram_account_id?: string | null
           instagram_profile_pic?: string | null
           instagram_username?: string | null
+          is_active?: boolean | null
           last_error?: string | null
           messaging_enabled?: boolean | null
           page_access_token?: string | null
@@ -4269,6 +6159,7 @@ export type Database = {
           instagram_account_id?: string | null
           instagram_profile_pic?: string | null
           instagram_username?: string | null
+          is_active?: boolean | null
           last_error?: string | null
           messaging_enabled?: boolean | null
           page_access_token?: string | null
@@ -4299,6 +6190,73 @@ export type Database = {
           },
           {
             foreignKeyName: "meta_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      migration_jobs: {
+        Row: {
+          batch_id: string | null
+          completed_at: string | null
+          config: Json | null
+          created_at: string | null
+          created_by: string | null
+          error_log: Json | null
+          id: string
+          progress: Json | null
+          source_platform: string
+          started_at: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          batch_id?: string | null
+          completed_at?: string | null
+          config?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          error_log?: Json | null
+          id?: string
+          progress?: Json | null
+          source_platform?: string
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          batch_id?: string | null
+          completed_at?: string | null
+          config?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          error_log?: Json | null
+          id?: string
+          progress?: Json | null
+          source_platform?: string
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "migration_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "migration_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "migration_jobs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
@@ -4546,6 +6504,54 @@ export type Database = {
             referencedColumns: ["tenant_id"]
           },
         ]
+      }
+      ops_health_history: {
+        Row: {
+          created_at: string
+          hour: string
+          id: string
+          metrics: Json
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          hour: string
+          id?: string
+          metrics?: Json
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          hour?: string
+          id?: string
+          metrics?: Json
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      ops_health_snapshots: {
+        Row: {
+          created_at: string | null
+          id: string
+          snapshot_data: Json
+          snapshot_type: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          snapshot_data: Json
+          snapshot_type?: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          snapshot_data?: Json
+          snapshot_type?: string
+          tenant_id?: string
+        }
+        Relationships: []
       }
       orchestrator_logs: {
         Row: {
@@ -4857,6 +6863,7 @@ export type Database = {
           ai_can_use_minimum_price: boolean | null
           category: string | null
           category_id: string | null
+          compare_at_price: number | null
           created_at: string | null
           custom_fields: Json | null
           deleted_at: string | null
@@ -4880,6 +6887,7 @@ export type Database = {
           price_max: number | null
           pricing_type: string | null
           reserved_by: string | null
+          search_vector: unknown
           seller_badge: string | null
           sku: string | null
           status: string
@@ -4894,6 +6902,7 @@ export type Database = {
           ai_can_use_minimum_price?: boolean | null
           category?: string | null
           category_id?: string | null
+          compare_at_price?: number | null
           created_at?: string | null
           custom_fields?: Json | null
           deleted_at?: string | null
@@ -4917,6 +6926,7 @@ export type Database = {
           price_max?: number | null
           pricing_type?: string | null
           reserved_by?: string | null
+          search_vector?: unknown
           seller_badge?: string | null
           sku?: string | null
           status?: string
@@ -4931,6 +6941,7 @@ export type Database = {
           ai_can_use_minimum_price?: boolean | null
           category?: string | null
           category_id?: string | null
+          compare_at_price?: number | null
           created_at?: string | null
           custom_fields?: Json | null
           deleted_at?: string | null
@@ -4954,6 +6965,7 @@ export type Database = {
           price_max?: number | null
           pricing_type?: string | null
           reserved_by?: string | null
+          search_vector?: unknown
           seller_badge?: string | null
           sku?: string | null
           status?: string
@@ -5007,6 +7019,7 @@ export type Database = {
           email: string | null
           first_login_at: string | null
           full_name: string | null
+          gender: string | null
           id: string
           is_active: boolean | null
           is_online: boolean | null
@@ -5036,6 +7049,7 @@ export type Database = {
           email?: string | null
           first_login_at?: string | null
           full_name?: string | null
+          gender?: string | null
           id: string
           is_active?: boolean | null
           is_online?: boolean | null
@@ -5065,6 +7079,7 @@ export type Database = {
           email?: string | null
           first_login_at?: string | null
           full_name?: string | null
+          gender?: string | null
           id?: string
           is_active?: boolean | null
           is_online?: boolean | null
@@ -5107,10 +7122,72 @@ export type Database = {
           },
         ]
       }
+      prompt_templates: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          tenant_id: string | null
+          updated_at: string | null
+          variables: string[] | null
+          version: number | null
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          tenant_id?: string | null
+          updated_at?: string | null
+          variables?: string[] | null
+          version?: number | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          tenant_id?: string | null
+          updated_at?: string | null
+          variables?: string[] | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prompt_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "prompt_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       public_customers: {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          company_name: string | null
           created_at: string | null
           email: string
           id: string
@@ -5123,6 +7200,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          company_name?: string | null
           created_at?: string | null
           email: string
           id?: string
@@ -5135,6 +7213,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          company_name?: string | null
           created_at?: string | null
           email?: string
           id?: string
@@ -5143,6 +7222,116 @@ export type Database = {
           phone?: string | null
           tenant_id?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      push_notification_history: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          data: Json | null
+          error_message: string | null
+          id: string
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          tenant_id: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          data?: Json | null
+          error_message?: string | null
+          id?: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          tenant_id: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          data?: Json | null
+          error_message?: string | null
+          id?: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          tenant_id?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_notification_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_notification_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "push_notification_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "push_notification_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_reply_tokens: {
+        Row: {
+          conversation_id: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          instance_id: string | null
+          lead_phone: string
+          tenant_id: string
+          token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          instance_id?: string | null
+          lead_phone: string
+          tenant_id: string
+          token: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          instance_id?: string | null
+          lead_phone?: string
+          tenant_id?: string
+          token?: string
+          used_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -5301,39 +7490,363 @@ export type Database = {
           },
         ]
       }
+      rag_events: {
+        Row: {
+          auto_tags: Json | null
+          channel: string | null
+          chunked_results_count: number | null
+          conversation_quality_score: number | null
+          created_at: string
+          fallback_to_general: boolean | null
+          fallback_to_keyword: boolean | null
+          feedback_type: string | null
+          guardrail_violations: string[] | null
+          hybrid_rrf_used: boolean | null
+          id: string
+          injection_detected: boolean | null
+          keyword_results_count: number | null
+          knowledge_items_used: string[] | null
+          latency_llm_ms: number | null
+          latency_rag_ms: number | null
+          latency_total_ms: number | null
+          product_context_used: boolean | null
+          prompt_variant: string | null
+          query_length: number | null
+          reranker_used: boolean | null
+          response_confidence: number | null
+          tenant_id: string
+          top_similarity_score: number | null
+          uopa_context_used: boolean | null
+          vector_results_count: number | null
+          was_reformulated: boolean | null
+        }
+        Insert: {
+          auto_tags?: Json | null
+          channel?: string | null
+          chunked_results_count?: number | null
+          conversation_quality_score?: number | null
+          created_at?: string
+          fallback_to_general?: boolean | null
+          fallback_to_keyword?: boolean | null
+          feedback_type?: string | null
+          guardrail_violations?: string[] | null
+          hybrid_rrf_used?: boolean | null
+          id?: string
+          injection_detected?: boolean | null
+          keyword_results_count?: number | null
+          knowledge_items_used?: string[] | null
+          latency_llm_ms?: number | null
+          latency_rag_ms?: number | null
+          latency_total_ms?: number | null
+          product_context_used?: boolean | null
+          prompt_variant?: string | null
+          query_length?: number | null
+          reranker_used?: boolean | null
+          response_confidence?: number | null
+          tenant_id: string
+          top_similarity_score?: number | null
+          uopa_context_used?: boolean | null
+          vector_results_count?: number | null
+          was_reformulated?: boolean | null
+        }
+        Update: {
+          auto_tags?: Json | null
+          channel?: string | null
+          chunked_results_count?: number | null
+          conversation_quality_score?: number | null
+          created_at?: string
+          fallback_to_general?: boolean | null
+          fallback_to_keyword?: boolean | null
+          feedback_type?: string | null
+          guardrail_violations?: string[] | null
+          hybrid_rrf_used?: boolean | null
+          id?: string
+          injection_detected?: boolean | null
+          keyword_results_count?: number | null
+          knowledge_items_used?: string[] | null
+          latency_llm_ms?: number | null
+          latency_rag_ms?: number | null
+          latency_total_ms?: number | null
+          product_context_used?: boolean | null
+          prompt_variant?: string | null
+          query_length?: number | null
+          reranker_used?: boolean | null
+          response_confidence?: number | null
+          tenant_id?: string
+          top_similarity_score?: number | null
+          uopa_context_used?: boolean | null
+          vector_results_count?: number | null
+          was_reformulated?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rag_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rag_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "rag_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      rag_quality_daily: {
+        Row: {
+          avg_confidence: number | null
+          avg_cqs: number | null
+          avg_latency_llm_ms: number | null
+          avg_latency_rag_ms: number | null
+          avg_latency_total_ms: number | null
+          avg_similarity: number | null
+          channel_distribution: Json | null
+          chunk_usage_rate: number | null
+          date: string
+          general_fallback_rate: number | null
+          hybrid_usage_rate: number | null
+          id: string
+          keyword_fallback_rate: number | null
+          negative_feedback_rate: number | null
+          positive_feedback_rate: number | null
+          product_usage_rate: number | null
+          prompt_variant_stats: Json | null
+          reformulation_rate: number | null
+          reranker_usage_rate: number | null
+          tenant_id: string
+          total_feedback: number | null
+          total_queries: number | null
+          uopa_usage_rate: number | null
+          vector_hit_rate: number | null
+        }
+        Insert: {
+          avg_confidence?: number | null
+          avg_cqs?: number | null
+          avg_latency_llm_ms?: number | null
+          avg_latency_rag_ms?: number | null
+          avg_latency_total_ms?: number | null
+          avg_similarity?: number | null
+          channel_distribution?: Json | null
+          chunk_usage_rate?: number | null
+          date: string
+          general_fallback_rate?: number | null
+          hybrid_usage_rate?: number | null
+          id?: string
+          keyword_fallback_rate?: number | null
+          negative_feedback_rate?: number | null
+          positive_feedback_rate?: number | null
+          product_usage_rate?: number | null
+          prompt_variant_stats?: Json | null
+          reformulation_rate?: number | null
+          reranker_usage_rate?: number | null
+          tenant_id: string
+          total_feedback?: number | null
+          total_queries?: number | null
+          uopa_usage_rate?: number | null
+          vector_hit_rate?: number | null
+        }
+        Update: {
+          avg_confidence?: number | null
+          avg_cqs?: number | null
+          avg_latency_llm_ms?: number | null
+          avg_latency_rag_ms?: number | null
+          avg_latency_total_ms?: number | null
+          avg_similarity?: number | null
+          channel_distribution?: Json | null
+          chunk_usage_rate?: number | null
+          date?: string
+          general_fallback_rate?: number | null
+          hybrid_usage_rate?: number | null
+          id?: string
+          keyword_fallback_rate?: number | null
+          negative_feedback_rate?: number | null
+          positive_feedback_rate?: number | null
+          product_usage_rate?: number | null
+          prompt_variant_stats?: Json | null
+          reformulation_rate?: number | null
+          reranker_usage_rate?: number | null
+          tenant_id?: string
+          total_feedback?: number | null
+          total_queries?: number | null
+          uopa_usage_rate?: number | null
+          vector_hit_rate?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rag_quality_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rag_quality_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "rag_quality_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          identifier: string
+          request_count: number
+          window_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          identifier: string
+          request_count?: number
+          window_start?: string
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          identifier?: string
+          request_count?: number
+          window_start?: string
+        }
+        Relationships: []
+      }
+      rate_limits_fast: {
+        Row: {
+          endpoint: string
+          id: string
+          identifier: string
+          request_count: number | null
+          window_start: string | null
+        }
+        Insert: {
+          endpoint: string
+          id?: string
+          identifier: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Update: {
+          endpoint?: string
+          id?: string
+          identifier?: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
+      rotation_config: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          rotation_type: string
+          tenant_id: string
+          updated_at: string | null
+          user_weights: Json | null
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rotation_type?: string
+          tenant_id: string
+          updated_at?: string | null
+          user_weights?: Json | null
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rotation_type?: string
+          tenant_id?: string
+          updated_at?: string | null
+          user_weights?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotation_config_tenant_id_fkey1"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotation_config_tenant_id_fkey1"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "rotation_config_tenant_id_fkey1"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       rotation_members: {
         Row: {
           created_at: string | null
           id: string
           is_active: boolean | null
+          is_ai_agent: boolean
           max_concurrent_leads: number | null
           priority: number | null
           specialties: string[] | null
           tenant_id: string
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_ai_agent?: boolean
           max_concurrent_leads?: number | null
           priority?: number | null
           specialties?: string[] | null
           tenant_id: string
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_ai_agent?: boolean
           max_concurrent_leads?: number | null
           priority?: number | null
           specialties?: string[] | null
           tenant_id?: string
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -5368,6 +7881,7 @@ export type Database = {
       }
       rotation_settings: {
         Row: {
+          ai_in_rotation: boolean
           conflict_auto_decision: string | null
           conflict_timeout_minutes: number | null
           created_at: string | null
@@ -5383,6 +7897,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ai_in_rotation?: boolean
           conflict_auto_decision?: string | null
           conflict_timeout_minutes?: number | null
           created_at?: string | null
@@ -5398,6 +7913,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ai_in_rotation?: boolean
           conflict_auto_decision?: string | null
           conflict_timeout_minutes?: number | null
           created_at?: string | null
@@ -5483,6 +7999,7 @@ export type Database = {
           current_value: number | null
           goal_amount: number | null
           goal_count: number | null
+          goal_type: string | null
           id: string
           month: number | null
           period_end: string
@@ -5495,6 +8012,7 @@ export type Database = {
           target_user_id: string | null
           target_value: number
           tenant_id: string
+          type: string | null
           updated_at: string | null
           user_id: string | null
           year: number | null
@@ -5506,6 +8024,7 @@ export type Database = {
           current_value?: number | null
           goal_amount?: number | null
           goal_count?: number | null
+          goal_type?: string | null
           id?: string
           month?: number | null
           period_end: string
@@ -5518,6 +8037,7 @@ export type Database = {
           target_user_id?: string | null
           target_value?: number
           tenant_id: string
+          type?: string | null
           updated_at?: string | null
           user_id?: string | null
           year?: number | null
@@ -5529,6 +8049,7 @@ export type Database = {
           current_value?: number | null
           goal_amount?: number | null
           goal_count?: number | null
+          goal_type?: string | null
           id?: string
           month?: number | null
           period_end?: string
@@ -5541,6 +8062,7 @@ export type Database = {
           target_user_id?: string | null
           target_value?: number
           tenant_id?: string
+          type?: string | null
           updated_at?: string | null
           user_id?: string | null
           year?: number | null
@@ -5601,6 +8123,83 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_push_notifications: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          created_by: string | null
+          data: Json | null
+          id: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          target_ids: string[] | null
+          target_type: string
+          tenant_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data?: Json | null
+          id?: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          target_ids?: string[] | null
+          target_type?: string
+          tenant_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data?: Json | null
+          id?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          target_ids?: string[] | null
+          target_type?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_push_notifications_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_push_notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_push_notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "scheduled_push_notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
           },
         ]
       }
@@ -5672,6 +8271,76 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      security_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          ip_address: string | null
+          is_resolved: boolean | null
+          metadata: Json | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          tenant_id: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: string | null
+          is_resolved?: boolean | null
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          tenant_id?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: string | null
+          is_resolved?: boolean | null
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          tenant_id?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "security_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "security_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
       }
       sla_config: {
         Row: {
@@ -5866,6 +8535,73 @@ export type Database = {
         }
         Relationships: []
       }
+      store_product_sections: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          filter_config: Json | null
+          id: string
+          is_active: boolean | null
+          max_products: number | null
+          product_ids: string[] | null
+          section_type: string
+          tenant_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          filter_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_products?: number | null
+          product_ids?: string[] | null
+          section_type?: string
+          tenant_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          filter_config?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_products?: number | null
+          product_ids?: string[] | null
+          section_type?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_product_sections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_product_sections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "store_product_sections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       store_promotional_bar: {
         Row: {
           animation_type: string | null
@@ -5971,6 +8707,7 @@ export type Database = {
           reminder_sent_at: string | null
           reminder_time_sent_at: string | null
           status: string | null
+          subtasks: Json | null
           task_type: string | null
           tenant_id: string
           title: string
@@ -5996,6 +8733,7 @@ export type Database = {
           reminder_sent_at?: string | null
           reminder_time_sent_at?: string | null
           status?: string | null
+          subtasks?: Json | null
           task_type?: string | null
           tenant_id: string
           title: string
@@ -6021,6 +8759,7 @@ export type Database = {
           reminder_sent_at?: string | null
           reminder_time_sent_at?: string | null
           status?: string | null
+          subtasks?: Json | null
           task_type?: string | null
           tenant_id?: string
           title?: string
@@ -6064,6 +8803,482 @@ export type Database = {
           },
           {
             foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      team_channel_members: {
+        Row: {
+          channel_id: string
+          id: string
+          is_muted: boolean | null
+          joined_at: string | null
+          last_read_at: string | null
+          role: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          id?: string
+          is_muted?: boolean | null
+          joined_at?: string | null
+          last_read_at?: string | null
+          role?: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          id?: string
+          is_muted?: boolean | null
+          joined_at?: string | null
+          last_read_at?: string | null
+          role?: string | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_channel_members_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "team_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_channel_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_channel_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "team_channel_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "team_channel_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_channels: {
+        Row: {
+          channel_type: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_archived: boolean | null
+          name: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          channel_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          name?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          channel_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_archived?: boolean | null
+          name?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_channels_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "team_channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          priority: number
+          team_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          team_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority?: number
+          team_id?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "team_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_messages: {
+        Row: {
+          attachments: Json | null
+          channel_id: string
+          content: string
+          created_at: string | null
+          id: string
+          reply_to_id: string | null
+          sender_id: string
+          tenant_id: string
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          channel_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          reply_to_id?: string | null
+          sender_id: string
+          tenant_id: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          channel_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          reply_to_id?: string | null
+          sender_id?: string
+          tenant_id?: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "team_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "team_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          color: string | null
+          created_at: string
+          current_round_robin_index: number
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          current_round_robin_index?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          current_round_robin_index?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "teams_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      template_applications: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          config_snapshot: Json | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          result: Json | null
+          status: string
+          template_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          config_snapshot?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          template_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          config_snapshot?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          template_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_applications_applied_by_fkey"
+            columns: ["applied_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_applications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      template_publish_history: {
+        Row: {
+          changelog: string | null
+          created_at: string | null
+          id: string
+          published_at: string | null
+          published_by: string | null
+          snapshot: Json | null
+          template_id: string | null
+          tenant_id: string | null
+          version_major: number | null
+          version_minor: number | null
+        }
+        Insert: {
+          changelog?: string | null
+          created_at?: string | null
+          id?: string
+          published_at?: string | null
+          published_by?: string | null
+          snapshot?: Json | null
+          template_id?: string | null
+          tenant_id?: string | null
+          version_major?: number | null
+          version_minor?: number | null
+        }
+        Update: {
+          changelog?: string | null
+          created_at?: string | null
+          id?: string
+          published_at?: string | null
+          published_by?: string | null
+          snapshot?: Json | null
+          template_id?: string | null
+          tenant_id?: string | null
+          version_major?: number | null
+          version_minor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_publish_history_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_publish_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_publish_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_publish_history_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
@@ -6304,6 +9519,54 @@ export type Database = {
           },
         ]
       }
+      tenant_custom_fields: {
+        Row: {
+          created_at: string | null
+          default_value: string | null
+          entity_type: string
+          field_label: string
+          field_name: string
+          field_options: Json | null
+          field_type: string
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          sort_order: number | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_value?: string | null
+          entity_type?: string
+          field_label: string
+          field_name: string
+          field_options?: Json | null
+          field_type: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          sort_order?: number | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_value?: string | null
+          entity_type?: string
+          field_label?: string
+          field_name?: string
+          field_options?: Json | null
+          field_type?: string
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          sort_order?: number | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tenant_domains: {
         Row: {
           created_at: string
@@ -6397,6 +9660,7 @@ export type Database = {
           ai_use_global_config: boolean | null
           created_at: string | null
           credits_per_user: number | null
+          extra_credits: number | null
           id: string
           limit_ai_tokens_monthly: number | null
           limit_leads: number | null
@@ -6431,6 +9695,7 @@ export type Database = {
           ai_use_global_config?: boolean | null
           created_at?: string | null
           credits_per_user?: number | null
+          extra_credits?: number | null
           id?: string
           limit_ai_tokens_monthly?: number | null
           limit_leads?: number | null
@@ -6465,6 +9730,7 @@ export type Database = {
           ai_use_global_config?: boolean | null
           created_at?: string | null
           credits_per_user?: number | null
+          extra_credits?: number | null
           id?: string
           limit_ai_tokens_monthly?: number | null
           limit_leads?: number | null
@@ -6579,6 +9845,64 @@ export type Database = {
             foreignKeyName: "tenant_onboarding_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      tenant_sync_log: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          details: Json | null
+          error_message: string | null
+          id: string
+          started_at: string | null
+          status: string
+          sync_type: string
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          sync_type: string
+          tenant_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          sync_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_sync_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_sync_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_sync_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
@@ -6745,6 +10069,7 @@ export type Database = {
           active_users: number | null
           ai_credits_remaining: number | null
           ai_credits_used: number | null
+          ai_tokens_month: number | null
           ai_tokens_used: number | null
           api_calls: number | null
           campaign_messages_month: number | null
@@ -6770,6 +10095,7 @@ export type Database = {
           active_users?: number | null
           ai_credits_remaining?: number | null
           ai_credits_used?: number | null
+          ai_tokens_month?: number | null
           ai_tokens_used?: number | null
           api_calls?: number | null
           campaign_messages_month?: number | null
@@ -6795,6 +10121,7 @@ export type Database = {
           active_users?: number | null
           ai_credits_remaining?: number | null
           ai_credits_used?: number | null
+          ai_tokens_month?: number | null
           ai_tokens_used?: number | null
           api_calls?: number | null
           campaign_messages_month?: number | null
@@ -7001,6 +10328,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tool_executions: {
+        Row: {
+          conversation_id: string | null
+          created_at: string | null
+          execution_time_ms: number | null
+          id: string
+          params: Json | null
+          result: Json | null
+          status: string | null
+          tenant_id: string
+          tool_name: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          params?: Json | null
+          result?: Json | null
+          status?: string | null
+          tenant_id: string
+          tool_name: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          params?: Json | null
+          result?: Json | null
+          status?: string | null
+          tenant_id?: string
+          tool_name?: string
+        }
+        Relationships: []
       }
       uopa_context: {
         Row: {
@@ -7463,6 +10826,7 @@ export type Database = {
           api_calls_month: number | null
           billing_period_start: string | null
           credits_consumed_month: number | null
+          extra_credits: number | null
           id: string
           last_updated_at: string | null
           messages_sent_month: number | null
@@ -7477,6 +10841,7 @@ export type Database = {
           api_calls_month?: number | null
           billing_period_start?: string | null
           credits_consumed_month?: number | null
+          extra_credits?: number | null
           id?: string
           last_updated_at?: string | null
           messages_sent_month?: number | null
@@ -7491,6 +10856,7 @@ export type Database = {
           api_calls_month?: number | null
           billing_period_start?: string | null
           credits_consumed_month?: number | null
+          extra_credits?: number | null
           id?: string
           last_updated_at?: string | null
           messages_sent_month?: number | null
@@ -7524,7 +10890,7 @@ export type Database = {
           {
             foreignKeyName: "user_usage_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -7609,6 +10975,121 @@ export type Database = {
           },
         ]
       }
+      webhook_configs: {
+        Row: {
+          allowed_ips: string[] | null
+          auto_assign_to: string | null
+          created_at: string | null
+          debug_mode: boolean | null
+          dedupe_strategy: string | null
+          default_funnel_id: string | null
+          default_source: string | null
+          default_stage_id: string | null
+          default_tags: string[] | null
+          default_temperature: string | null
+          error_count: number | null
+          field_mapping: Json | null
+          id: string
+          is_active: boolean | null
+          last_submission_at: string | null
+          log_retention_days: number | null
+          merge_policy: Json | null
+          name: string
+          platform: string
+          platform_version: string | null
+          response_mode: string | null
+          signature_required: boolean | null
+          signing_secret: string | null
+          tenant_id: string
+          token: string
+          token_last_rotated_at: string | null
+          total_submissions: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          allowed_ips?: string[] | null
+          auto_assign_to?: string | null
+          created_at?: string | null
+          debug_mode?: boolean | null
+          dedupe_strategy?: string | null
+          default_funnel_id?: string | null
+          default_source?: string | null
+          default_stage_id?: string | null
+          default_tags?: string[] | null
+          default_temperature?: string | null
+          error_count?: number | null
+          field_mapping?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_submission_at?: string | null
+          log_retention_days?: number | null
+          merge_policy?: Json | null
+          name: string
+          platform?: string
+          platform_version?: string | null
+          response_mode?: string | null
+          signature_required?: boolean | null
+          signing_secret?: string | null
+          tenant_id: string
+          token?: string
+          token_last_rotated_at?: string | null
+          total_submissions?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          allowed_ips?: string[] | null
+          auto_assign_to?: string | null
+          created_at?: string | null
+          debug_mode?: boolean | null
+          dedupe_strategy?: string | null
+          default_funnel_id?: string | null
+          default_source?: string | null
+          default_stage_id?: string | null
+          default_tags?: string[] | null
+          default_temperature?: string | null
+          error_count?: number | null
+          field_mapping?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_submission_at?: string | null
+          log_retention_days?: number | null
+          merge_policy?: Json | null
+          name?: string
+          platform?: string
+          platform_version?: string | null
+          response_mode?: string | null
+          signature_required?: boolean | null
+          signing_secret?: string | null
+          tenant_id?: string
+          token?: string
+          token_last_rotated_at?: string | null
+          total_submissions?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "webhook_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       webhook_logs: {
         Row: {
           attempt_number: number | null
@@ -7619,6 +11100,7 @@ export type Database = {
           id: string
           instance_id: string | null
           payload: Json | null
+          received_at: string | null
           response_body: string | null
           response_status: number | null
           success: boolean | null
@@ -7633,6 +11115,7 @@ export type Database = {
           id?: string
           instance_id?: string | null
           payload?: Json | null
+          received_at?: string | null
           response_body?: string | null
           response_status?: number | null
           success?: boolean | null
@@ -7647,6 +11130,7 @@ export type Database = {
           id?: string
           instance_id?: string | null
           payload?: Json | null
+          received_at?: string | null
           response_body?: string | null
           response_status?: number | null
           success?: boolean | null
@@ -7658,6 +11142,95 @@ export type Database = {
             columns: ["webhook_id"]
             isOneToOne: false
             referencedRelation: "webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_submissions: {
+        Row: {
+          connector_version: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          idempotency_key: string | null
+          ip_address: string | null
+          lead_id: string | null
+          mapped_data: Json | null
+          processed_at: string | null
+          processing_time_ms: number | null
+          raw_payload: Json | null
+          redacted_payload: Json | null
+          signature_valid: boolean | null
+          status: string | null
+          tenant_id: string
+          user_agent: string | null
+          webhook_config_id: string
+        }
+        Insert: {
+          connector_version?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          ip_address?: string | null
+          lead_id?: string | null
+          mapped_data?: Json | null
+          processed_at?: string | null
+          processing_time_ms?: number | null
+          raw_payload?: Json | null
+          redacted_payload?: Json | null
+          signature_valid?: boolean | null
+          status?: string | null
+          tenant_id: string
+          user_agent?: string | null
+          webhook_config_id: string
+        }
+        Update: {
+          connector_version?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string | null
+          ip_address?: string | null
+          lead_id?: string | null
+          mapped_data?: Json | null
+          processed_at?: string | null
+          processing_time_ms?: number | null
+          raw_payload?: Json | null
+          redacted_payload?: Json | null
+          signature_valid?: boolean | null
+          status?: string | null
+          tenant_id?: string
+          user_agent?: string | null
+          webhook_config_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "webhook_submissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "webhook_submissions_webhook_config_id_fkey"
+            columns: ["webhook_config_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_configs"
             referencedColumns: ["id"]
           },
         ]
@@ -7722,6 +11295,154 @@ export type Database = {
           },
           {
             foreignKeyName: "webhooks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      whatsapp_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_type: string | null
+          created_at: string | null
+          details: Json | null
+          id: string
+          instance_id: string | null
+          ip_address: string | null
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_type?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          instance_id?: string | null
+          ip_address?: string | null
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_type?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          instance_id?: string | null
+          ip_address?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      whatsapp_calls: {
+        Row: {
+          answered_at: string | null
+          call_type: string
+          conversation_id: string | null
+          created_at: string | null
+          direction: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          instance_id: string | null
+          lead_id: string | null
+          metadata: Json | null
+          recording_url: string | null
+          started_at: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          answered_at?: string | null
+          call_type?: string
+          conversation_id?: string | null
+          created_at?: string | null
+          direction?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          instance_id?: string | null
+          lead_id?: string | null
+          metadata?: Json | null
+          recording_url?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          answered_at?: string | null
+          call_type?: string
+          conversation_id?: string | null
+          created_at?: string | null
+          direction?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          instance_id?: string | null
+          lead_id?: string | null
+          metadata?: Json | null
+          recording_url?: string | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_calls_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_calls_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_calls_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_calls_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
@@ -8054,6 +11775,7 @@ export type Database = {
           category: string | null
           category_id: string | null
           category_name: string | null
+          compare_at_price: number | null
           created_at: string | null
           custom_fields: Json | null
           deleted_at: string | null
@@ -8061,6 +11783,7 @@ export type Database = {
           display_size: string | null
           embedding: string | null
           embedding_generated_at: string | null
+          embedding_model: string | null
           id: string | null
           image_url: string | null
           images: string[] | null
@@ -8122,6 +11845,7 @@ export type Database = {
           category: string | null
           category_id: string | null
           category_name: string | null
+          compare_at_price: number | null
           created_at: string | null
           description: string | null
           display_size: string | null
@@ -8162,6 +11886,244 @@ export type Database = {
             foreignKeyName: "products_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      public_store_display: {
+        Row: {
+          accent_color: string | null
+          benefit_delivery_text: string | null
+          benefit_installment_text: string | null
+          benefit_shipping_text: string | null
+          benefit_warranty_text: string | null
+          boleto_discount_percent: number | null
+          boleto_enabled: boolean | null
+          business_address: string | null
+          business_hours: Json | null
+          button_style: string | null
+          catalog_columns_desktop: number | null
+          catalog_columns_mobile: number | null
+          catalog_default_sort: string | null
+          debit_card_discount_percent: number | null
+          debit_card_enabled: boolean | null
+          enable_catalog_filters: boolean | null
+          favicon_url: string | null
+          financing_enabled: boolean | null
+          financing_label: string | null
+          financing_max_installments: number | null
+          financing_simulator_enabled: boolean | null
+          financing_simulator_title: string | null
+          font_family: string | null
+          footer_city_state: string | null
+          footer_cta_enabled: boolean | null
+          footer_cta_link: string | null
+          footer_cta_text: string | null
+          footer_cta_type: string | null
+          footer_description: string | null
+          footer_links: Json | null
+          footer_show_social: boolean | null
+          footer_show_trust_badges: boolean | null
+          footer_social_facebook: string | null
+          footer_social_instagram: string | null
+          footer_social_tiktok: string | null
+          footer_social_youtube: string | null
+          footer_trust_badges: Json | null
+          google_analytics_id: string | null
+          google_tag_manager_id: string | null
+          id: string | null
+          installment_enabled: boolean | null
+          installment_max_without_interest: number | null
+          installment_min_value: number | null
+          installment_with_interest_enabled: boolean | null
+          installment_with_interest_max: number | null
+          installment_with_interest_rate: number | null
+          layout_template: string | null
+          logo_size: string | null
+          logo_url: string | null
+          meta_pixel_id: string | null
+          mobile_fixed_cta: boolean | null
+          pix_discount_percent: number | null
+          pix_enabled: boolean | null
+          pix_label: string | null
+          primary_color: string | null
+          product_cta_text: string | null
+          product_cta_type: string | null
+          product_faq: Json | null
+          secondary_color: string | null
+          show_benefits_bar: boolean | null
+          show_descriptions: boolean | null
+          show_prices: boolean | null
+          show_product_faq: boolean | null
+          show_stock_status: boolean | null
+          show_trust_badges: boolean | null
+          store_name: string | null
+          tenant_id: string | null
+          tiktok_pixel_id: string | null
+          tracking_pixels_enabled: boolean | null
+        }
+        Insert: {
+          accent_color?: string | null
+          benefit_delivery_text?: string | null
+          benefit_installment_text?: string | null
+          benefit_shipping_text?: string | null
+          benefit_warranty_text?: string | null
+          boleto_discount_percent?: number | null
+          boleto_enabled?: boolean | null
+          business_address?: string | null
+          business_hours?: Json | null
+          button_style?: string | null
+          catalog_columns_desktop?: number | null
+          catalog_columns_mobile?: number | null
+          catalog_default_sort?: string | null
+          debit_card_discount_percent?: number | null
+          debit_card_enabled?: boolean | null
+          enable_catalog_filters?: boolean | null
+          favicon_url?: string | null
+          financing_enabled?: boolean | null
+          financing_label?: string | null
+          financing_max_installments?: number | null
+          financing_simulator_enabled?: boolean | null
+          financing_simulator_title?: string | null
+          font_family?: string | null
+          footer_city_state?: string | null
+          footer_cta_enabled?: boolean | null
+          footer_cta_link?: string | null
+          footer_cta_text?: string | null
+          footer_cta_type?: string | null
+          footer_description?: string | null
+          footer_links?: Json | null
+          footer_show_social?: boolean | null
+          footer_show_trust_badges?: boolean | null
+          footer_social_facebook?: string | null
+          footer_social_instagram?: string | null
+          footer_social_tiktok?: string | null
+          footer_social_youtube?: string | null
+          footer_trust_badges?: Json | null
+          google_analytics_id?: string | null
+          google_tag_manager_id?: string | null
+          id?: string | null
+          installment_enabled?: boolean | null
+          installment_max_without_interest?: number | null
+          installment_min_value?: number | null
+          installment_with_interest_enabled?: boolean | null
+          installment_with_interest_max?: number | null
+          installment_with_interest_rate?: number | null
+          layout_template?: string | null
+          logo_size?: string | null
+          logo_url?: string | null
+          meta_pixel_id?: string | null
+          mobile_fixed_cta?: boolean | null
+          pix_discount_percent?: number | null
+          pix_enabled?: boolean | null
+          pix_label?: string | null
+          primary_color?: string | null
+          product_cta_text?: string | null
+          product_cta_type?: string | null
+          product_faq?: Json | null
+          secondary_color?: string | null
+          show_benefits_bar?: boolean | null
+          show_descriptions?: boolean | null
+          show_prices?: boolean | null
+          show_product_faq?: boolean | null
+          show_stock_status?: boolean | null
+          show_trust_badges?: boolean | null
+          store_name?: string | null
+          tenant_id?: string | null
+          tiktok_pixel_id?: string | null
+          tracking_pixels_enabled?: boolean | null
+        }
+        Update: {
+          accent_color?: string | null
+          benefit_delivery_text?: string | null
+          benefit_installment_text?: string | null
+          benefit_shipping_text?: string | null
+          benefit_warranty_text?: string | null
+          boleto_discount_percent?: number | null
+          boleto_enabled?: boolean | null
+          business_address?: string | null
+          business_hours?: Json | null
+          button_style?: string | null
+          catalog_columns_desktop?: number | null
+          catalog_columns_mobile?: number | null
+          catalog_default_sort?: string | null
+          debit_card_discount_percent?: number | null
+          debit_card_enabled?: boolean | null
+          enable_catalog_filters?: boolean | null
+          favicon_url?: string | null
+          financing_enabled?: boolean | null
+          financing_label?: string | null
+          financing_max_installments?: number | null
+          financing_simulator_enabled?: boolean | null
+          financing_simulator_title?: string | null
+          font_family?: string | null
+          footer_city_state?: string | null
+          footer_cta_enabled?: boolean | null
+          footer_cta_link?: string | null
+          footer_cta_text?: string | null
+          footer_cta_type?: string | null
+          footer_description?: string | null
+          footer_links?: Json | null
+          footer_show_social?: boolean | null
+          footer_show_trust_badges?: boolean | null
+          footer_social_facebook?: string | null
+          footer_social_instagram?: string | null
+          footer_social_tiktok?: string | null
+          footer_social_youtube?: string | null
+          footer_trust_badges?: Json | null
+          google_analytics_id?: string | null
+          google_tag_manager_id?: string | null
+          id?: string | null
+          installment_enabled?: boolean | null
+          installment_max_without_interest?: number | null
+          installment_min_value?: number | null
+          installment_with_interest_enabled?: boolean | null
+          installment_with_interest_max?: number | null
+          installment_with_interest_rate?: number | null
+          layout_template?: string | null
+          logo_size?: string | null
+          logo_url?: string | null
+          meta_pixel_id?: string | null
+          mobile_fixed_cta?: boolean | null
+          pix_discount_percent?: number | null
+          pix_enabled?: boolean | null
+          pix_label?: string | null
+          primary_color?: string | null
+          product_cta_text?: string | null
+          product_cta_type?: string | null
+          product_faq?: Json | null
+          secondary_color?: string | null
+          show_benefits_bar?: boolean | null
+          show_descriptions?: boolean | null
+          show_prices?: boolean | null
+          show_product_faq?: boolean | null
+          show_stock_status?: boolean | null
+          show_trust_badges?: boolean | null
+          store_name?: string | null
+          tenant_id?: string | null
+          tiktok_pixel_id?: string | null
+          tracking_pixels_enabled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "ecommerce_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
           },
@@ -8232,13 +12194,41 @@ export type Database = {
       }
       v_effective_ai_config: {
         Row: {
-          context_variables: Json | null
-          effective_layer_1_model: string | null
-          effective_layer_2_model: string | null
-          effective_layer_3_model: string | null
-          effective_system_prompt: string | null
+          active_mode: string | null
+          agent_modes: Json | null
+          aggression_level: string | null
+          ai_enabled: boolean | null
+          ai_model_provider: string | null
+          allowed_modes: string[] | null
+          auto_transfer_triggers: string[] | null
+          autonomy_profile: string | null
+          catalog_access: boolean | null
+          custom_layer_1_model: string | null
+          custom_layer_2_model: string | null
+          custom_layer_3_model: string | null
+          escalation_rules: Json | null
+          flow_fallback_to_rotation: boolean | null
+          flow_integration_enabled: boolean | null
+          flow_notify_on_fallback: boolean | null
+          followup_interval_minutes: number | null
+          greeting: string | null
+          human_delay_enabled: boolean | null
+          knowledge_base: string[] | null
+          max_delay_seconds: number | null
+          max_followups: number | null
+          max_interactions: number | null
+          min_delay_seconds: number | null
+          minimum_price_triggers: string[] | null
+          mode_switch_rules: Json | null
+          orchestrator_config: Json | null
+          payment_config: Json | null
+          personality: string | null
+          scheduling_config: Json | null
           tenant_id: string | null
           tenant_name: string | null
+          typing_indicator_enabled: boolean | null
+          use_minimum_price_in_recovery: boolean | null
+          working_hours: Json | null
         }
         Relationships: []
       }
@@ -8320,8 +12310,16 @@ export type Database = {
         Args: { p_conversation_id: string; p_lock_timestamp?: string }
         Returns: Json
       }
+      aggregate_rag_daily: { Args: never; Returns: undefined }
       anonymize_lead_data: {
         Args: { p_lead_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      apply_plan_defaults: {
+        Args: {
+          p_plan_type: Database["public"]["Enums"]["plan_type"]
+          p_tenant_id: string
+        }
         Returns: undefined
       }
       archive_lead: {
@@ -8337,14 +12335,44 @@ export type Database = {
         Returns: undefined
       }
       can_view_wholesale_prices: { Args: never; Returns: boolean }
+      check_copilot_daily_debit: {
+        Args: { p_tenant_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      check_credit_status: {
+        Args: { p_tenant_id: string; p_user_id?: string }
+        Returns: {
+          can_use_layer1: boolean
+          can_use_layer2: boolean
+          can_use_layer3: boolean
+          is_critical: boolean
+          percent_used: number
+          remaining: number
+          status_message: string
+          total_limit: number
+          used: number
+          zone: string
+        }[]
+      }
       check_instance_capacity: {
         Args: { p_instance_id: string }
         Returns: Json
+      }
+      check_rate_limit_fast: {
+        Args: {
+          p_endpoint: string
+          p_identifier: string
+          p_max_requests?: number
+          p_window_minutes?: number
+        }
+        Returns: boolean
       }
       claim_ai_response_event: {
         Args: { p_message_id: string }
         Returns: string
       }
+      cleanup_old_data: { Args: never; Returns: Json }
+      cleanup_ops_health_data: { Args: never; Returns: undefined }
       create_notification_if_enabled: {
         Args: {
           p_message: string
@@ -8357,10 +12385,55 @@ export type Database = {
         Returns: string
       }
       current_tenant_id: { Args: never; Returns: string }
+      custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       deactivate_ai_agent_completely: {
         Args: { p_conversation_id: string }
         Returns: Json
       }
+      debit_ai_credits:
+        | {
+            Args: {
+              p_metadata?: Json
+              p_operation_type: string
+              p_tenant_id: string
+              p_units?: number
+              p_user_id: string
+            }
+            Returns: {
+              can_transcribe: boolean
+              can_use_layer_2: boolean
+              can_use_layer_3: boolean
+              credits_debited: number
+              credits_limit: number
+              credits_remaining: number
+              error_message: string
+              is_degraded: boolean
+              success: boolean
+              usage_percent: number
+            }[]
+          }
+        | {
+            Args: {
+              p_metadata?: Json
+              p_operation_type: string
+              p_tenant_id: string
+              p_units?: number
+              p_user_id: string
+            }
+            Returns: {
+              can_transcribe: boolean
+              can_use_layer_2: boolean
+              can_use_layer_3: boolean
+              credits_debited: number
+              credits_limit: number
+              credits_remaining: number
+              error_message: string
+              is_degraded: boolean
+              success: boolean
+              usage_percent: number
+            }[]
+          }
+      debug_jwt_claims: { Args: never; Returns: Json }
       enqueue_message: {
         Args: {
           p_campaign_id?: string
@@ -8378,11 +12451,25 @@ export type Database = {
         }
         Returns: string
       }
+      get_active_alerts: {
+        Args: { p_limit?: number; p_severity?: string; p_tenant_id?: string }
+        Returns: Json
+      }
+      get_ai_performance_summary: {
+        Args: {
+          p_assigned_to?: string
+          p_end_date?: string
+          p_start_date?: string
+        }
+        Returns: Json
+      }
+      get_alert_stats: { Args: never; Returns: Json }
       get_auth_tenant_id: { Args: never; Returns: string }
       get_best_send_time: {
         Args: { p_default_hour?: number; p_lead_id: string }
         Returns: Json
       }
+      get_effective_tenant_id: { Args: never; Returns: string }
       get_event_queue_stats: {
         Args: never
         Returns: {
@@ -8391,11 +12478,30 @@ export type Database = {
           status: string
         }[]
       }
+      get_global_credits_summary: {
+        Args: { p_end?: string; p_start?: string }
+        Returns: {
+          period_end: string
+          period_start: string
+          total_api_calls: number
+          total_cost_brl: number
+          total_credits_consumed: number
+          total_tenants_with_usage: number
+        }[]
+      }
       get_instance_token_direct: {
         Args: { p_instance_id: string; p_tenant_id?: string }
         Returns: string
       }
+      get_jwt_role: { Args: never; Returns: string }
+      get_jwt_tenant_id: { Args: never; Returns: string }
+      get_latest_ops_snapshot: { Args: { p_tenant_id?: string }; Returns: Json }
       get_lead_interaction_stats: { Args: { p_lead_id: string }; Returns: Json }
+      get_next_team_member: { Args: { p_team_id: string }; Returns: string }
+      get_ops_snapshot_history: {
+        Args: { p_hours?: number; p_tenant_id?: string }
+        Returns: Json
+      }
       get_pending_messages: {
         Args: { p_instance_id?: string; p_limit?: number }
         Returns: {
@@ -8459,7 +12565,7 @@ export type Database = {
         Returns: {
           category: string
           category_id: string
-          category_name: string
+          compare_at_price: number
           created_at: string
           custom_fields: Json
           description: string
@@ -8467,6 +12573,7 @@ export type Database = {
           id: string
           images: string[]
           is_featured: boolean
+          is_published: boolean
           item_type: string
           low_stock_alert: number
           name: string
@@ -8475,8 +12582,10 @@ export type Database = {
           pricing_type: string
           status: string
           stock_quantity: number
+          tenant_id: string
           track_stock: boolean
           updated_at: string
+          wholesale_price: number
         }[]
       }
       get_public_promotional_bar: {
@@ -8499,50 +12608,192 @@ export type Database = {
           benefit_installment_text: string
           benefit_shipping_text: string
           benefit_warranty_text: string
+          boleto_discount_percent: number
+          boleto_enabled: boolean
           business_address: string
           business_hours: string
           button_style: string
           catalog_columns_desktop: number
           catalog_columns_mobile: number
+          catalog_default_sort: string
+          debit_card_discount_percent: number
+          debit_card_enabled: boolean
+          enable_catalog_filters: boolean
           favicon_url: string
           financing_enabled: boolean
           financing_label: string
           financing_max_installments: number
           financing_simulator_enabled: boolean
-          financing_simulator_interest_rate: number
           financing_simulator_title: string
           font_family: string
           footer_city_state: string
+          footer_cta_enabled: boolean
+          footer_cta_link: string
+          footer_cta_text: string
+          footer_cta_type: string
           footer_description: string
+          footer_links: Json
           footer_show_social: boolean
+          footer_show_trust_badges: boolean
           footer_social_facebook: string
           footer_social_instagram: string
           footer_social_tiktok: string
           footer_social_youtube: string
+          footer_trust_badges: Json
           installment_enabled: boolean
           installment_max_without_interest: number
+          installment_min_value: number
+          installment_with_interest_enabled: boolean
+          installment_with_interest_max: number
+          installment_with_interest_rate: number
           layout_template: string
           logo_size: string
           logo_url: string
           mobile_fixed_cta: boolean
+          pix_discount_percent: number
+          pix_enabled: boolean
+          pix_label: string
           primary_color: string
           product_cta_text: string
           product_cta_type: string
+          product_faq: Json
           secondary_color: string
           show_benefits_bar: boolean
           show_descriptions: boolean
           show_prices: boolean
+          show_product_faq: boolean
           show_stock_status: boolean
+          show_trust_badges: boolean
           store_name: string
-          welcome_message: string
-          whatsapp_number: string
         }[]
       }
       get_queue_stats: { Args: { p_tenant_id: string }; Returns: Json }
+      get_rag_daily_timeline: {
+        Args: { p_days?: number; p_tenant_id?: string }
+        Returns: Json
+      }
+      get_rag_quality_by_tenant: { Args: { p_days?: number }; Returns: Json }
+      get_rag_quality_summary: {
+        Args: { p_days?: number; p_tenant_id?: string }
+        Returns: Json
+      }
+      get_report_period_summary: {
+        Args: {
+          p_current_end: string
+          p_current_start: string
+          p_prev_end: string
+          p_prev_start: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      get_report_product_rankings: {
+        Args: { p_end: string; p_start: string; p_tenant_id: string }
+        Returns: {
+          conversion_rate: number
+          product_id: string
+          product_image: string
+          product_name: string
+          total_interests: number
+          total_value: number
+          won_deals: number
+        }[]
+      }
+      get_report_seller_rankings: {
+        Args: { p_end: string; p_start: string; p_tenant_id: string }
+        Returns: {
+          avg_ticket: number
+          conversion_rate: number
+          lost_leads: number
+          seller_avatar: string
+          seller_id: string
+          seller_name: string
+          total_leads: number
+          total_value: number
+          won_leads: number
+        }[]
+      }
+      get_report_source_analysis: {
+        Args: { p_end: string; p_start: string; p_tenant_id: string }
+        Returns: {
+          conversion_rate: number
+          lost_leads: number
+          percentage: number
+          source: string
+          total_leads: number
+          total_value: number
+          won_leads: number
+        }[]
+      }
+      get_resolved_alerts: {
+        Args: {
+          p_alert_type?: string
+          p_limit?: number
+          p_offset?: number
+          p_tenant_id?: string
+        }
+        Returns: {
+          alert_type: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json
+          resolution_reason: string
+          resolved_at: string
+          resolved_by: string
+          resolved_notes: string
+          severity: string
+          tenant_id: string
+          title: string
+          user_id: string
+        }[]
+      }
       get_rotation_sellers: { Args: { p_tenant_id: string }; Returns: string[] }
+      get_tenant_credits_summary: {
+        Args: { p_end?: string; p_start?: string; p_tenant_id: string }
+        Returns: {
+          period_end: string
+          period_start: string
+          total_api_calls: number
+          total_cost_brl: number
+          total_credits_consumed: number
+          users_with_usage: number
+        }[]
+      }
       get_tenant_smart_timing_stats: {
         Args: { p_tenant_id: string }
         Returns: Json
+      }
+      get_tenant_user_credits: {
+        Args: { p_end?: string; p_start?: string; p_tenant_id: string }
+        Returns: {
+          ai_tokens: number
+          api_calls: number
+          credits_consumed: number
+          transcription_minutes: number
+          user_id: string
+          user_name: string
+          user_role: string
+        }[]
+      }
+      get_top_credit_consumers: {
+        Args: { limit_count?: number; p_end?: string; p_start?: string }
+        Returns: {
+          api_calls: number
+          cost_brl: number
+          credits_consumed: number
+          tenant_id: string
+          tenant_name: string
+        }[]
+      }
+      get_user_credits_summary: {
+        Args: { user_id_param: string }
+        Returns: {
+          billing_period_start: string
+          total_api_calls: number
+          total_credits_consumed: number
+          total_tokens: number
+        }[]
       }
       get_user_role: {
         Args: { _user_id: string }
@@ -8577,6 +12828,26 @@ export type Database = {
         }
         Returns: boolean
       }
+      hybrid_search_knowledge: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          p_tenant_id: string
+          query_embedding: string
+          query_text: string
+          rrf_k?: number
+        }
+        Returns: {
+          category: string
+          content: string
+          id: string
+          keyword_rank: number
+          rrf_score: number
+          similarity: number
+          source: string
+          title: string
+        }[]
+      }
       increment_chunks_received: {
         Args: { p_upload_id: string }
         Returns: undefined
@@ -8597,7 +12868,10 @@ export type Database = {
         Args: { _bytes: number; _user_id: string }
         Returns: undefined
       }
+      is_jwt_admin: { Args: never; Returns: boolean }
+      is_jwt_master: { Args: never; Returns: boolean }
       is_master_tenant: { Args: never; Returns: boolean }
+      is_user_admin: { Args: { user_id: string }; Returns: boolean }
       log_audit: {
         Args: {
           _action: string
@@ -8630,6 +12904,10 @@ export type Database = {
         }
         Returns: string
       }
+      login_public_customer: {
+        Args: { p_email: string; p_tenant_id: string }
+        Returns: Json
+      }
       match_knowledge: {
         Args: {
           filter_tenant_id?: string
@@ -8647,10 +12925,10 @@ export type Database = {
       }
       match_knowledge_with_master: {
         Args: {
-          p_filter_tenant_id?: string
-          p_match_count?: number
-          p_match_threshold?: number
-          p_query_embedding: string
+          filter_tenant_id?: string
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
         }
         Returns: {
           category: string
@@ -8676,6 +12954,10 @@ export type Database = {
         }[]
       }
       recalculate_all_tenant_usage: { Args: never; Returns: undefined }
+      recalculate_tenant_usage: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
       record_lead_interaction: {
         Args: {
           p_lead_id: string
@@ -8685,11 +12967,32 @@ export type Database = {
         }
         Returns: undefined
       }
+      register_public_customer: {
+        Args: {
+          p_company_name?: string
+          p_email: string
+          p_name: string
+          p_phone?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       release_ai_proactive_lock: {
         Args: { p_conversation_id: string }
         Returns: Json
       }
       reset_monthly_usage: { Args: never; Returns: undefined }
+      resolve_master_alert:
+        | { Args: { p_alert_id: string; p_user_id?: string }; Returns: boolean }
+        | {
+            Args: {
+              p_alert_id: string
+              p_notes?: string
+              p_reason?: string
+              p_user_id?: string
+            }
+            Returns: boolean
+          }
       restore_lead: { Args: { p_lead_id: string }; Returns: undefined }
       select_best_instance: {
         Args: { p_strategy?: string; p_tenant_id: string }
@@ -8699,6 +13002,8 @@ export type Database = {
         Args: { p_notification_type: string; p_user_id: string }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       trigger_process_event_queue: { Args: never; Returns: undefined }
       update_message_status: {
         Args: {
@@ -8711,6 +13016,13 @@ export type Database = {
       user_can_access_group: {
         Args: { p_group_id: string; p_user_id: string }
         Returns: boolean
+      }
+      validate_beta_recharge: {
+        Args: { p_tenant_id: string; p_user_id: string }
+        Returns: {
+          can_recharge: boolean
+          reason: string
+        }[]
       }
     }
     Enums: {
