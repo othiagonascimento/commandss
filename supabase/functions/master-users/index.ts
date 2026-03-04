@@ -550,8 +550,9 @@ serve(async (req) => {
         user_metadata: {
           full_name: fullName,
           name: fullName,
-          tenant_id: tenantId,
-          role: appRole,
+          // NOTE: tenant_id and role are intentionally omitted here to prevent
+          // the handle_new_user trigger from attempting provisioning that may fail.
+          // They are set via updateUserById AFTER manual provisioning below.
         },
       });
 
