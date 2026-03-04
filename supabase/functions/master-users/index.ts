@@ -34,6 +34,83 @@ function mapToValidRole(role: string | undefined): AppRole {
   return 'seller';
 }
 
+function normalizeAuthError(error: unknown) {
+  const err = error as { message?: string; code?: string; status?: number } | null;
+  return {
+    message: err?.message || 'Unknown auth error',
+    code: err?.code,
+    status: err?.status,
+  };
+}
+
+function isDatabaseCreateUserError(error: unknown): boolean {
+  const normalized = normalizeAuthError(error);
+  const message = (normalized.message || '').toLowerCase();
+  return normalized.code === 'unexpected_failure' || message.includes('database error creating new user');
+}
+
+async function createUserWithMetadataFallback(
+  client: ReturnType<typeof createClient>,
+  params: {
+    email: string;
+    password: string;
+    fullName: string;
+    tenantId: string;
+    appRole: AppRole;
+    logContext: string;
+  }
+) {
+  const { email, password, fullName, tenantId, appRole, logContext } = params;
+
+  const firstAttempt = await client.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: fullName,
+      name: fullName,
+      tenant_id: tenantId,
+      role: appRole,
+    },
+  });
+
+  if (!firstAttempt.error && firstAttempt.data.user) {
+    logStep(`${logContext} createUser succeeded`, { strategy: 'with_metadata', userId: firstAttempt.data.user.id });
+    return { user: firstAttempt.data.user, strategy: 'with_metadata' as const, firstAttemptError: null };
+  }
+
+  const firstAttemptError = normalizeAuthError(firstAttempt.error);
+  logStep(`${logContext} createUser first attempt failed`, { strategy: 'with_metadata', ...firstAttemptError });
+
+  if (!isDatabaseCreateUserError(firstAttempt.error)) {
+    return { user: null, strategy: 'with_metadata' as const, firstAttemptError };
+  }
+
+  const fallbackAttempt = await client.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: fullName,
+      name: fullName,
+    },
+  });
+
+  if (!fallbackAttempt.error && fallbackAttempt.data.user) {
+    logStep(`${logContext} createUser succeeded`, { strategy: 'without_metadata', userId: fallbackAttempt.data.user.id });
+    return { user: fallbackAttempt.data.user, strategy: 'without_metadata' as const, firstAttemptError };
+  }
+
+  const fallbackAttemptError = normalizeAuthError(fallbackAttempt.error);
+  logStep(`${logContext} createUser fallback failed`, { strategy: 'without_metadata', ...fallbackAttemptError });
+  return {
+    user: null,
+    strategy: 'without_metadata' as const,
+    firstAttemptError,
+    fallbackAttemptError,
+  };
+}
+
 // Fetch logo and convert to base64 data URI for inline embedding (uses Deno std base64)
 async function getLogoBase64(): Promise<string> {
   try {
@@ -539,45 +616,36 @@ serve(async (req) => {
         );
       }
 
-      // Create auth user WITHOUT tenant_id/role in metadata to avoid handle_new_user trigger failures.
-      // The trigger may try to provision into tables with constraints that fail.
-      // We provision manually below and then update metadata.
+      // Create auth user with robust strategy:
+      // 1) preferred path: with tenant metadata (supports trigger-based provisioning)
+      // 2) fallback path: without tenant metadata only when DB createUser fails
       const appRole = mapToValidRole(body.role);
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      const createResult = await createUserWithMetadataFallback(supabaseAdmin, {
         email: body.email,
         password: body.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: fullName,
-          name: fullName,
-          // NOTE: tenant_id and role are intentionally omitted here to prevent
-          // the handle_new_user trigger from attempting provisioning that may fail.
-          // They are set via updateUserById AFTER manual provisioning below.
-        },
+        fullName,
+        tenantId,
+        appRole,
+        logContext: 'MASTER',
       });
 
-      if (authError) {
-        const authErrorInfo = {
-          message: authError.message,
-          code: (authError as unknown as { code?: string }).code,
-          status: (authError as unknown as { status?: number }).status,
-        };
-
-        logStep('Auth user creation failed', {
-          ...authErrorInfo,
-          details: JSON.stringify(authError),
-        });
-
+      if (!createResult.user) {
         return new Response(
           JSON.stringify({
-            error: `Erro ao criar usuário (${authErrorInfo.code || 'unknown'}): ${authErrorInfo.message}`,
-            auth: authErrorInfo,
+            error: `Erro ao criar usuário (${createResult.fallbackAttemptError?.code || createResult.firstAttemptError?.code || 'unknown'}): ${createResult.fallbackAttemptError?.message || createResult.firstAttemptError?.message || 'Unknown auth error'}`,
+            auth: {
+              first_attempt: createResult.firstAttemptError,
+              fallback_attempt: createResult.fallbackAttemptError || null,
+            },
           }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      const authUser = authData.user;
-      logStep('Auth user created (without tenant metadata)', { authUserId: authUser.id });
+      const authUser = createResult.user;
+      logStep('Auth user created', {
+        authUserId: authUser.id,
+        strategy: createResult.strategy,
+      });
 
       // Manually provision profile
       const { error: profileError } = await supabaseAdmin
@@ -667,66 +735,64 @@ serve(async (req) => {
         try {
           logStep('Creating user in CRM (dual-write)', { email: body.email, tenantId });
 
-          // Create auth user in CRM WITHOUT tenant metadata (same strategy)
-          const { data: crmAuthData, error: crmAuthError } = await crmSupabase.auth.admin.createUser({
+          const crmCreateResult = await createUserWithMetadataFallback(crmSupabase, {
             email: body.email,
             password: body.password,
-            email_confirm: true,
-            user_metadata: {
-              full_name: fullName,
-              name: fullName,
-              tenant_id: tenantId,
-              role: appRole,
-            },
+            fullName,
+            tenantId,
+            appRole,
+            logContext: 'CRM',
           });
 
-          if (crmAuthError) {
-            logStep('CRM user creation failed (non-blocking)', { error: crmAuthError.message });
+          if (!crmCreateResult.user) {
+            logStep('CRM user creation failed after fallback (non-blocking)', {
+              firstAttempt: crmCreateResult.firstAttemptError,
+              fallbackAttempt: crmCreateResult.fallbackAttemptError || null,
+            });
           } else {
-            logStep('CRM user created successfully', { crmUserId: crmAuthData.user?.id });
+            const crmAuthUser = crmCreateResult.user;
+            logStep('CRM user created successfully', { crmUserId: crmAuthUser.id, strategy: crmCreateResult.strategy });
 
-            if (crmAuthData.user) {
-              // Provision profile in CRM
-              await crmSupabase.from('profiles').upsert({
-                id: crmAuthData.user.id,
-                tenant_id: tenantId,
+            // Provision profile in CRM
+            await crmSupabase.from('profiles').upsert({
+              id: crmAuthUser.id,
+              tenant_id: tenantId,
+              full_name: fullName,
+              name: fullName,
+              email: body.email,
+              is_active: true,
+              status: 'online',
+            }, { onConflict: 'id' });
+
+            // Provision role in CRM
+            await crmSupabase.from('user_roles').upsert({
+              user_id: crmAuthUser.id,
+              tenant_id: tenantId,
+              role: appRole,
+            }, { onConflict: 'user_id,tenant_id' });
+
+            // Provision usage and limits in CRM
+            await crmSupabase.from('user_usage').upsert({
+              user_id: crmAuthUser.id,
+              tenant_id: tenantId,
+            }, { onConflict: 'user_id,tenant_id' });
+
+            await crmSupabase.from('user_limits').upsert({
+              user_id: crmAuthUser.id,
+              tenant_id: tenantId,
+            }, { onConflict: 'user_id,tenant_id' });
+
+            // Keep CRM metadata canonical
+            await crmSupabase.auth.admin.updateUserById(crmAuthUser.id, {
+              user_metadata: {
                 full_name: fullName,
                 name: fullName,
-                email: body.email,
-                is_active: true,
-                status: 'online',
-              }, { onConflict: 'id' });
-
-              // Provision role in CRM
-              await crmSupabase.from('user_roles').upsert({
-                user_id: crmAuthData.user.id,
                 tenant_id: tenantId,
                 role: appRole,
-              }, { onConflict: 'user_id,tenant_id' });
+              },
+            });
 
-              // Provision usage and limits in CRM
-              await crmSupabase.from('user_usage').upsert({
-                user_id: crmAuthData.user.id,
-                tenant_id: tenantId,
-              }, { onConflict: 'user_id,tenant_id' });
-
-              await crmSupabase.from('user_limits').upsert({
-                user_id: crmAuthData.user.id,
-                tenant_id: tenantId,
-              }, { onConflict: 'user_id,tenant_id' });
-
-              // Update CRM user metadata
-              await crmSupabase.auth.admin.updateUserById(crmAuthData.user.id, {
-                user_metadata: {
-                  full_name: fullName,
-                  name: fullName,
-                  tenant_id: tenantId,
-                  role: appRole,
-                },
-              });
-
-              logStep('CRM profile, role, usage, limits synced');
-            }
+            logStep('CRM profile, role, usage, limits synced');
           }
         } catch (crmErr) {
           logStep('CRM dual-write error (non-blocking)', { error: crmErr instanceof Error ? crmErr.message : crmErr });
