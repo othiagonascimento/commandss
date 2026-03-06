@@ -551,37 +551,76 @@ export type Database = {
       }
       ai_available_models: {
         Row: {
+          auto_disabled_at: string | null
+          auto_disabled_reason: string | null
+          cost_per_1k_input: number | null
+          cost_per_1k_output: number | null
           cost_per_1k_tokens: number | null
           created_at: string | null
           display_name: string
+          failure_count: number | null
+          health_status: string | null
           id: string
           is_active: boolean | null
+          last_failure_at: string | null
+          last_health_check: string | null
           layer_category: string
           max_context_tokens: number | null
+          metadata: Json | null
           model_id: string
+          priority: number | null
           provider: string
+          supports_tools: boolean | null
+          supports_vision: boolean | null
+          updated_at: string | null
         }
         Insert: {
+          auto_disabled_at?: string | null
+          auto_disabled_reason?: string | null
+          cost_per_1k_input?: number | null
+          cost_per_1k_output?: number | null
           cost_per_1k_tokens?: number | null
           created_at?: string | null
           display_name: string
+          failure_count?: number | null
+          health_status?: string | null
           id?: string
           is_active?: boolean | null
+          last_failure_at?: string | null
+          last_health_check?: string | null
           layer_category: string
           max_context_tokens?: number | null
+          metadata?: Json | null
           model_id: string
+          priority?: number | null
           provider: string
+          supports_tools?: boolean | null
+          supports_vision?: boolean | null
+          updated_at?: string | null
         }
         Update: {
+          auto_disabled_at?: string | null
+          auto_disabled_reason?: string | null
+          cost_per_1k_input?: number | null
+          cost_per_1k_output?: number | null
           cost_per_1k_tokens?: number | null
           created_at?: string | null
           display_name?: string
+          failure_count?: number | null
+          health_status?: string | null
           id?: string
           is_active?: boolean | null
+          last_failure_at?: string | null
+          last_health_check?: string | null
           layer_category?: string
           max_context_tokens?: number | null
+          metadata?: Json | null
           model_id?: string
+          priority?: number | null
           provider?: string
+          supports_tools?: boolean | null
+          supports_vision?: boolean | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -12326,6 +12365,10 @@ export type Database = {
         Args: { p_lead_id: string; p_reason?: string }
         Returns: undefined
       }
+      auto_heal_model: {
+        Args: { p_model_id: string; p_reason?: string }
+        Returns: undefined
+      }
       calculate_credits_from_cost: {
         Args: { cost_brl: number }
         Returns: number
@@ -12476,6 +12519,14 @@ export type Database = {
           avg_processing_time_ms: number
           count: number
           status: string
+        }[]
+      }
+      get_fallback_model: {
+        Args: { p_failed_model: string; p_preferred_tier?: string }
+        Returns: {
+          display_name: string
+          model_id: string
+          provider: string
         }[]
       }
       get_global_credits_summary: {
@@ -12964,6 +13015,14 @@ export type Database = {
           p_message_received_at?: string
           p_response_time_ms?: number
           p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      record_model_health: {
+        Args: {
+          p_error_message?: string
+          p_is_healthy: boolean
+          p_model_id: string
         }
         Returns: undefined
       }
