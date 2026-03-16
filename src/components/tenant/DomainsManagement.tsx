@@ -147,8 +147,8 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
       setExpandedDomains(prev => new Set(prev).add(data.id));
     },
     onError: (error: Error) => {
-      if (error.message.includes('duplicate')) {
-        toast.error('Este domínio já está cadastrado.');
+      if (error.message.includes('duplicate') || error.message.includes('23505')) {
+        toast.error('Este domínio já está cadastrado em outro tenant. Remova-o primeiro antes de reutilizá-lo aqui.');
       } else {
         toast.error('Erro ao adicionar domínio: ' + error.message);
       }
