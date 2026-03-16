@@ -159,15 +159,6 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
     mutationFn: async (domainId: string) => {
       setVerifyingId(domainId);
       
-      const { data, error } = await supabase.functions.invoke('verify-domains', {
-        body: null,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      // The edge function uses query params, but supabase.functions.invoke doesn't support them directly.
-      // We need to use the URL approach instead.
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
