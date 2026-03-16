@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Dialog,
   DialogContent,
@@ -16,13 +16,20 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { 
   Loader2, 
   Plus, 
@@ -36,6 +43,11 @@ import {
   ExternalLink,
   Shield,
   Clock,
+  ChevronDown,
+  ChevronRight,
+  Info,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -59,14 +71,23 @@ interface TenantDomain {
   last_error: string | null;
 }
 
+interface VerifyResult {
+  domain: string;
+  status: string;
+  error?: string;
+}
+
 interface DomainsManagementProps {
   tenantId: string;
   tenantSubdomain: string;
 }
 
+const DOMAIN_REGEX = /^(?!:\/\/)([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/;
+const EXPECTED_IP = '185.158.133.1';
+
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ElementType }> = {
   pending: { label: 'Pendente', variant: 'outline', icon: Clock },
-  verifying: { label: 'Verificando', variant: 'secondary', icon: RefreshCw },
+  verifying: { label: 'Verificando...', variant: 'secondary', icon: RefreshCw },
   verified: { label: 'Verificado', variant: 'secondary', icon: Check },
   active: { label: 'Ativo', variant: 'default', icon: Check },
   failed: { label: 'Falhou', variant: 'destructive', icon: X },
@@ -77,6 +98,10 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newDomain, setNewDomain] = useState('');
+  const [domainError, setDomainError] = useState('');
+  const [expandedDomains, setExpandedDomains] = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<TenantDomain | null>(null);
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
   const { data: domains, isLoading } = useQuery({
     queryKey: ['tenant-domains', tenantId],
@@ -94,26 +119,32 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
 
   const addDomainMutation = useMutation({
     mutationFn: async (domain: string) => {
-      // Generate verification token
+      const cleanDomain = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '').trim();
       const token = `lovable_verify_${crypto.randomUUID().slice(0, 12)}`;
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tenant_domains')
         .insert({
           tenant_id: tenantId,
-          domain: domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, ''),
+          domain: cleanDomain,
           domain_type: 'custom',
           status: 'pending',
           verification_token: token,
-        });
+        })
+        .select()
+        .single();
       
       if (error) throw error;
+      return data as TenantDomain;
     },
-    onSuccess: () => {
-      toast.success('Domínio adicionado! Configure o DNS para verificar.');
+    onSuccess: (data) => {
+      toast.success('Domínio adicionado! Configure o DNS conforme as instruções abaixo.');
       queryClient.invalidateQueries({ queryKey: ['tenant-domains', tenantId] });
       setIsDialogOpen(false);
       setNewDomain('');
+      setDomainError('');
+      // Auto-expand the new domain's DNS instructions
+      setExpandedDomains(prev => new Set(prev).add(data.id));
     },
     onError: (error: Error) => {
       if (error.message.includes('duplicate')) {
@@ -126,26 +157,49 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
 
   const verifyDomainMutation = useMutation({
     mutationFn: async (domainId: string) => {
-      // Update status to verifying
-      const { error } = await supabase
-        .from('tenant_domains')
-        .update({ 
-          status: 'verifying',
-          last_check_at: new Date().toISOString(),
-        })
-        .eq('id', domainId);
+      setVerifyingId(domainId);
       
-      if (error) throw error;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
-      // In a real implementation, this would trigger DNS verification
-      // For now, we'll simulate it
-      toast.info('Verificação iniciada. Pode levar até 72h para propagação do DNS.');
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/verify-domains?domain_id=${domainId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'apikey': supabaseKey,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erro ${response.status}`);
+      }
+
+      return await response.json() as { results: VerifyResult[]; verified: number; total: number };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['tenant-domains', tenantId] });
+      
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        if (result.status === 'verified') {
+          toast.success(`DNS verificado com sucesso para ${result.domain}!`);
+        } else {
+          toast.warning(`DNS ainda não configurado para ${result.domain}: ${result.error || 'Aguardando propagação'}`);
+        }
+      } else {
+        toast.info('Verificação concluída.');
+      }
     },
-    onError: (error) => {
-      toast.error('Erro ao verificar: ' + error.message);
+    onError: (error: Error) => {
+      toast.error('Erro ao verificar DNS: ' + error.message);
+    },
+    onSettled: () => {
+      setVerifyingId(null);
     },
   });
 
@@ -161,21 +215,20 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
     onSuccess: () => {
       toast.success('Domínio removido.');
       queryClient.invalidateQueries({ queryKey: ['tenant-domains', tenantId] });
+      setDeleteTarget(null);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error('Erro ao remover: ' + error.message);
     },
   });
 
   const setPrimaryMutation = useMutation({
     mutationFn: async (domainId: string) => {
-      // First, unset all as primary
       await supabase
         .from('tenant_domains')
         .update({ is_primary: false })
         .eq('tenant_id', tenantId);
       
-      // Set the selected one as primary
       const { error } = await supabase
         .from('tenant_domains')
         .update({ is_primary: true })
@@ -187,7 +240,7 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
       toast.success('Domínio principal definido.');
       queryClient.invalidateQueries({ queryKey: ['tenant-domains', tenantId] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error('Erro: ' + error.message);
     },
   });
@@ -197,11 +250,31 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
     toast.success('Copiado!');
   };
 
+  const toggleExpanded = (id: string) => {
+    setExpandedDomains(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const validateDomain = (value: string): string => {
+    const clean = value.toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '').trim();
+    if (!clean) return 'Digite um domínio.';
+    if (!DOMAIN_REGEX.test(clean)) return 'Formato de domínio inválido. Ex: meusite.com.br';
+    if (clean.includes(' ')) return 'Domínio não pode conter espaços.';
+    if (domains?.some(d => d.domain === clean)) return 'Este domínio já está cadastrado.';
+    return '';
+  };
+
   const handleAddDomain = () => {
-    if (!newDomain.trim()) {
-      toast.error('Digite um domínio válido');
+    const error = validateDomain(newDomain);
+    if (error) {
+      setDomainError(error);
       return;
     }
+    setDomainError('');
     addDomainMutation.mutate(newDomain);
   };
 
@@ -214,10 +287,7 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
   }
 
   const publicSiteUrl = `https://site.uopacrm.com/${tenantSubdomain}`;
-  
-  const handleOpenPublicSite = () => {
-    window.open(publicSiteUrl, '_blank');
-  };
+  const cleanDomainPreview = newDomain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/+$/, '').trim();
 
   return (
     <div className="space-y-6">
@@ -243,11 +313,11 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Esta é a URL padrão do site público. Configure um domínio próprio abaixo para usar um endereço personalizado.
+                  URL padrão. Configure um domínio próprio abaixo para usar um endereço personalizado.
                 </p>
               </div>
             </div>
-            <Button onClick={handleOpenPublicSite} className="shrink-0">
+            <Button onClick={() => window.open(publicSiteUrl, '_blank')} className="shrink-0">
               <ExternalLink className="w-4 h-4 mr-2" />
               Abrir Site
             </Button>
@@ -255,7 +325,24 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
         </CardContent>
       </Card>
 
-      {/* Domains Table */}
+      {/* How it works — always visible */}
+      <Alert className="border-blue-500/30 bg-blue-500/5">
+        <Info className="h-4 w-4 text-blue-500" />
+        <AlertTitle className="text-blue-500">Como funciona o domínio próprio</AlertTitle>
+        <AlertDescription className="text-sm space-y-2 mt-2">
+          <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+            <li>Adicione o domínio desejado clicando em <strong>"Adicionar Domínio"</strong></li>
+            <li>Configure os registros DNS no seu provedor de domínio (ex: Registro.br, GoDaddy, Cloudflare)</li>
+            <li>Clique em <strong>"Verificar DNS"</strong> para validar a configuração</li>
+            <li>Após verificação, o SSL é provisionado automaticamente e o domínio fica ativo</li>
+          </ol>
+          <p className="text-xs text-muted-foreground/70 mt-2">
+            A propagação DNS pode levar até 72 horas. Enquanto isso, o site continua acessível pela URL padrão.
+          </p>
+        </AlertDescription>
+      </Alert>
+
+      {/* Domains List */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -276,202 +363,187 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
         </CardHeader>
         <CardContent>
           {domains && domains.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Domínio</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>DNS</TableHead>
-                  <TableHead>SSL</TableHead>
-                  <TableHead>Criado em</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {domains.map((domain) => {
-                  const StatusIcon = statusConfig[domain.status]?.icon || Clock;
-                  return (
-                    <TableRow key={domain.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{domain.domain}</span>
-                          {domain.is_primary && (
-                            <Badge variant="outline" className="text-xs">Principal</Badge>
-                          )}
+            <div className="space-y-3">
+              {domains.map((domain) => {
+                const StatusIcon = statusConfig[domain.status]?.icon || Clock;
+                const isExpanded = expandedDomains.has(domain.id);
+                const isVerifying = verifyingId === domain.id;
+
+                return (
+                  <Collapsible key={domain.id} open={isExpanded} onOpenChange={() => toggleExpanded(domain.id)}>
+                    <div className="border rounded-lg overflow-hidden">
+                      {/* Domain header row */}
+                      <div className="flex items-center justify-between p-4 bg-card hover:bg-accent/30 transition-colors">
+                        <CollapsibleTrigger asChild>
+                          <button className="flex items-center gap-3 flex-1 text-left">
+                            {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{domain.domain}</span>
+                                {domain.is_primary && (
+                                  <Badge variant="outline" className="text-xs">Principal</Badge>
+                                )}
+                              </div>
+                              {domain.last_check_at && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Última verificação: {format(new Date(domain.last_check_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                        </CollapsibleTrigger>
+
+                        <div className="flex items-center gap-3">
+                          {/* Status indicators */}
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 text-xs" title="DNS">
+                              {domain.dns_configured ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-muted-foreground/50" />
+                              )}
+                              <span className="text-muted-foreground">DNS</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs" title="SSL">
+                              {domain.ssl_provisioned ? (
+                                <Shield className="w-4 h-4 text-emerald-500" />
+                              ) : (
+                                <Shield className="w-4 h-4 text-muted-foreground/50" />
+                              )}
+                              <span className="text-muted-foreground">SSL</span>
+                            </div>
+                          </div>
+
+                          <Badge variant={statusConfig[domain.status]?.variant || 'outline'}>
+                            <StatusIcon className={`w-3 h-3 mr-1 ${isVerifying ? 'animate-spin' : ''}`} />
+                            {isVerifying ? 'Verificando...' : statusConfig[domain.status]?.label || domain.status}
+                          </Badge>
+
+                          {/* Action buttons */}
+                          <div className="flex items-center gap-1">
+                            {domain.status !== 'active' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => verifyDomainMutation.mutate(domain.id)}
+                                disabled={isVerifying}
+                                title="Verificar DNS agora"
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isVerifying ? 'animate-spin' : ''}`} />
+                                Verificar DNS
+                              </Button>
+                            )}
+                            {domain.status === 'active' && !domain.is_primary && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setPrimaryMutation.mutate(domain.id)}
+                                title="Definir como principal"
+                                className="h-8 w-8"
+                              >
+                                <Check className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {domain.status === 'active' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => window.open(`https://${domain.domain}`, '_blank')}
+                                title="Abrir site"
+                                className="h-8 w-8"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteTarget(domain)}
+                              title="Remover domínio"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        {domain.last_error && (
-                          <p className="text-xs text-destructive mt-1">{domain.last_error}</p>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={statusConfig[domain.status]?.variant || 'outline'}>
-                          <StatusIcon className="w-3 h-3 mr-1" />
-                          {statusConfig[domain.status]?.label || domain.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {domain.dns_configured ? (
-                          <Check className="w-4 h-4 text-success" />
-                        ) : (
-                          <X className="w-4 h-4 text-muted-foreground" />
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {domain.ssl_provisioned ? (
-                          <Shield className="w-4 h-4 text-success" />
-                        ) : (
-                          <X className="w-4 h-4 text-muted-foreground" />
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {format(new Date(domain.created_at), 'dd MMM yyyy', { locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {domain.status === 'active' && !domain.is_primary && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setPrimaryMutation.mutate(domain.id)}
-                              title="Definir como principal"
-                            >
-                              <Check className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {domain.status === 'active' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => window.open(`https://${domain.domain}`, '_blank')}
-                              title="Abrir site"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {['pending', 'failed'].includes(domain.status) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => verifyDomainMutation.mutate(domain.id)}
-                              title="Verificar DNS"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteDomainMutation.mutate(domain.id)}
-                            title="Remover"
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                      </div>
+
+                      {/* Last error */}
+                      {domain.last_error && (
+                        <div className="px-4 py-2 bg-destructive/5 border-t border-destructive/20">
+                          <p className="text-xs text-destructive flex items-center gap-1.5">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                            {domain.last_error}
+                          </p>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                      )}
+
+                      {/* Expandable DNS instructions */}
+                      <CollapsibleContent>
+                        <div className="border-t p-4 bg-muted/30 space-y-4">
+                          <p className="text-sm font-medium">Configuração DNS para <code className="bg-background px-1.5 py-0.5 rounded border text-xs">{domain.domain}</code></p>
+                          <p className="text-xs text-muted-foreground">
+                            Acesse o painel do seu provedor de domínio e adicione os registros abaixo:
+                          </p>
+
+                          <div className="grid gap-3">
+                            {/* A Record (root) */}
+                            <DnsRecordCard
+                              type="A"
+                              name="@"
+                              value={EXPECTED_IP}
+                              description="Registro A — aponta o domínio raiz para o servidor"
+                              onCopy={copyToClipboard}
+                            />
+
+                            {/* A Record (www) */}
+                            <DnsRecordCard
+                              type="A"
+                              name="www"
+                              value={EXPECTED_IP}
+                              description="Registro A — aponta o subdomínio www"
+                              onCopy={copyToClipboard}
+                            />
+
+                            {/* TXT Record */}
+                            {domain.verification_token && (
+                              <DnsRecordCard
+                                type="TXT"
+                                name="_lovable"
+                                value={domain.verification_token}
+                                description="Registro TXT — token de verificação de propriedade"
+                                onCopy={copyToClipboard}
+                              />
+                            )}
+                          </div>
+
+                          <div className="flex items-start gap-2 mt-3 p-3 rounded-md bg-background border">
+                            <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <p>Após configurar os registros, clique em <strong>"Verificar DNS"</strong> acima.</p>
+                              <p>A propagação pode levar até 72 horas, mas geralmente leva poucos minutos.</p>
+                              <p>Se usar Cloudflare, certifique-se que o proxy (nuvem laranja) está <strong>desativado</strong> para o registro A.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                );
+              })}
+            </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <Globe className="w-12 h-12 mx-auto mb-4 opacity-20" />
               <p>Nenhum domínio próprio configurado.</p>
-              <p className="text-sm">Adicione um domínio para o site público do tenant.</p>
+              <p className="text-sm mt-1">Clique em "Adicionar Domínio" para começar.</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* DNS Instructions */}
-      {domains && domains.some(d => d.status === 'pending' || d.status === 'verifying') && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Instruções de Configuração DNS</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Para ativar seu domínio próprio, configure os seguintes registros DNS no seu provedor:
-            </p>
-            
-            <div className="space-y-3">
-              <div className="bg-muted p-3 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Registro A (raiz)</span>
-                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard('185.158.133.1')}>
-                    <Copy className="w-3 h-3 mr-1" />
-                    Copiar
-                  </Button>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Tipo:</span> <code>A</code>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Nome:</span> <code>@</code>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Valor:</span> <code>185.158.133.1</code>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-muted p-3 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm">Registro A (www)</span>
-                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard('185.158.133.1')}>
-                    <Copy className="w-3 h-3 mr-1" />
-                    Copiar
-                  </Button>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Tipo:</span> <code>A</code>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Nome:</span> <code>www</code>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Valor:</span> <code>185.158.133.1</code>
-                  </div>
-                </div>
-              </div>
-
-              {domains.filter(d => d.verification_token).map(domain => (
-                <div key={domain.id} className="bg-muted p-3 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">Registro TXT ({domain.domain})</span>
-                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(domain.verification_token || '')}>
-                      <Copy className="w-3 h-3 mr-1" />
-                      Copiar
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Tipo:</span> <code>TXT</code>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Nome:</span> <code>_lovable</code>
-                    </div>
-                    <div className="col-span-1">
-                      <span className="text-muted-foreground">Valor:</span>{' '}
-                      <code className="break-all">{domain.verification_token}</code>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              A propagação do DNS pode levar até 72 horas. Após configurar, clique em "Verificar" no domínio.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Add Domain Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) { setDomainError(''); setNewDomain(''); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Adicionar Domínio Próprio</DialogTitle>
@@ -484,14 +556,25 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
             <div className="space-y-2">
               <Label>Domínio</Label>
               <Input
-                placeholder="www.exemplo.com.br"
+                placeholder="meusite.com.br"
                 value={newDomain}
-                onChange={(e) => setNewDomain(e.target.value)}
+                onChange={(e) => { setNewDomain(e.target.value); setDomainError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddDomain()}
               />
+              {domainError && (
+                <p className="text-xs text-destructive">{domainError}</p>
+              )}
               <p className="text-xs text-muted-foreground">
                 Apenas para o site público. O CRM continua acessível pelo subdomínio padrão.
               </p>
             </div>
+
+            {cleanDomainPreview && DOMAIN_REGEX.test(cleanDomainPreview) && (
+              <div className="p-3 rounded-md bg-muted border">
+                <p className="text-xs text-muted-foreground mb-1">Preview da URL:</p>
+                <code className="text-sm font-mono">https://{cleanDomainPreview}</code>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -505,6 +588,64 @@ export function DomainsManagement({ tenantId, tenantSubdomain }: DomainsManageme
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover domínio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O domínio <strong>{deleteTarget?.domain}</strong> será removido permanentemente. 
+              Você precisará reconfigurá-lo caso queira usá-lo novamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTarget && deleteDomainMutation.mutate(deleteTarget.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteDomainMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+// ── DNS Record Card Sub-component ──
+function DnsRecordCard({ type, name, value, description, onCopy }: {
+  type: string;
+  name: string;
+  value: string;
+  description: string;
+  onCopy: (text: string) => void;
+}) {
+  return (
+    <div className="bg-background border rounded-lg p-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs text-muted-foreground">{description}</span>
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => onCopy(value)}>
+          <Copy className="w-3 h-3 mr-1" />
+          Copiar valor
+        </Button>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-sm">
+        <div>
+          <span className="text-muted-foreground text-xs block">Tipo</span>
+          <code className="font-medium">{type}</code>
+        </div>
+        <div>
+          <span className="text-muted-foreground text-xs block">Nome</span>
+          <code className="font-medium">{name}</code>
+        </div>
+        <div>
+          <span className="text-muted-foreground text-xs block">Valor</span>
+          <code className="font-medium break-all">{value}</code>
+        </div>
+      </div>
     </div>
   );
 }
