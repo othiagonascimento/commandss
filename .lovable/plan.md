@@ -1,94 +1,39 @@
 
 
-# Auditoria: Compatibilidade do Master com a nova semantica de creditos do CRM
+## Plano: Tornar Gestão de Domínios Robusta e Funcional
 
-## Problemas encontrados
+### Problema Identificado
+O componente `DomainsManagement` já existe na aba "Domínios" do TenantDetail, mas tem limitações:
+1. As instruções de DNS só aparecem quando já existe um domínio com status `pending`/`verifying` — antes de adicionar nenhum domínio, o usuário não vê nada útil
+2. O botão "Verificar DNS" apenas atualiza o status localmente para `verifying` e mostra um toast — **não chama a Edge Function** `verify-domains` que realmente faz a verificação via DNS-over-HTTPS
+3. Não mostra instruções DNS expandíveis por domínio individual
+4. Falta feedback visual claro sobre o que configurar e o estado atual
 
-### 1. Periodo de billing usa dia 1 do mes (INCORRETO)
+### Mudanças Planejadas
 
-Todos os pontos do codigo usam `new Date(now.getFullYear(), now.getMonth(), 1)` como inicio do periodo. O CRM agora usa `billing_subscriptions.current_period_end` como referencia do ciclo contratual.
+#### 1. Melhorar o componente `DomainsManagement.tsx`
+- Sempre exibir um painel informativo com instruções gerais de como funciona o domínio próprio (mesmo sem domínios cadastrados)
+- Adicionar seção expandível de instruções DNS **por domínio** (ao clicar no domínio, mostra os registros A, TXT específicos)
+- Conectar o botão "Verificar DNS" à Edge Function `verify-domains` real via `supabase.functions.invoke('verify-domains', { ... })` passando `?domain_id=X`
+- Adicionar estado de loading durante verificação real
+- Mostrar último erro de verificação de forma mais visível
+- Adicionar confirmação antes de deletar domínio
 
-**Arquivos afetados:**
-- `supabase/functions/log-api-usage/index.ts` (linhas 213-214, 261-262)
-- `supabase/functions/master-usage/index.ts` (linhas 87-88, 472-474, 783-785, 797-799)
-- `src/hooks/useTenantCredits.ts` (linhas 28-29)
+#### 2. Integrar verificação real com Edge Function
+- Substituir a mutation `verifyDomainMutation` para chamar `verify-domains?domain_id={id}` via Edge Function
+- Processar o resultado e atualizar a UI com o status real retornado (verified, pending, error)
+- Mostrar resultado detalhado da verificação (A record OK/NOK, TXT OK/NOK)
 
-**Correcao:** Buscar `billing_subscriptions.current_period_start` e `current_period_end` do tenant antes de calcular periodos. Fallback para dia 1 do mes se nao existir subscription.
+#### 3. Melhorar o diálogo de adicionar domínio
+- Validar formato de domínio no front-end antes de enviar
+- Após adicionar, abrir automaticamente as instruções DNS do novo domínio
+- Mostrar preview de como ficará a URL
 
-### 2. `ai_credits_used` do tenant nao e derivado (INCORRETO)
+#### Arquivos alterados
+- `src/components/tenant/DomainsManagement.tsx` — refatoração principal
 
-O `log-api-usage` incrementa `tenant_usage.ai_credits_used` diretamente a cada chamada (linha 278). O CRM agora define que `ai_credits_used = SUM(user_usage.ai_tokens_month)` de todos os users do tenant -- e um valor derivado, nao incrementado.
-
-**Correcao no `log-api-usage`:** Apos atualizar `user_usage`, recalcular `tenant_usage.ai_credits_used` como `SUM(user_usage.credits_consumed_month)` dos users do tenant, em vez de incrementar.
-
-### 3. Formula de `ai_credits_remaining` incompleta
-
-A formula correta do CRM: `(credits_per_user x user_count + SUM(extra_credits)) - ai_credits_used`
-
-O Master nao tem o campo `extra_credits` em nenhum lugar. A formula atual e `credits_per_user x users` (linhas 187, 591 do master-usage), o que esta parcialmente correto mas falta os extras.
-
-**Correcao:**
-- Adicionar campo `extra_credits` na tabela `tenant_features` (ou ler do CRM remoto)
-- Incluir na formula: `totalCreditsLimit = creditsPerUser * usersCount + extraCredits`
-
-### 4. Validacao de `current_period_end` corrupto ausente
-
-O CRM pede que ao exibir `current_period_end`, se estiver > 2 anos no futuro, mostrar "Data nao configurada". O `TenantDetail.tsx` (linha 843) exibe a data sem nenhuma validacao.
-
-**Correcao em `TenantDetail.tsx`:** Adicionar validacao antes de renderizar.
-
-### 5. Fonte de verdade de creditos por usuario
-
-O CRM define `user_usage.ai_tokens_month` como fonte de verdade individual. O `master-usage/users` endpoint (linha 640) ja busca `ai_tokens_month` do `user_usage`, o que esta correto. Porem o hook `useUserCredits.ts` mapeia `credits_consumed` como metrica primaria (linha 43), quando deveria ser `ai_tokens_month`.
-
-**Correcao em `useUserCredits.ts`:** Usar `ai_tokens_month` como `credits_consumed` primario.
-
----
-
-## Plano de implementacao
-
-### Etapa 1: Edge Function `log-api-usage` -- Derivar tenant_usage
-
-Substituir o bloco de incremento de `tenant_usage.ai_credits_used` (linhas 260-302) por:
-1. Buscar `billing_subscriptions` do tenant para obter `current_period_start/end`
-2. Apos atualizar `user_usage`, fazer `SELECT SUM(credits_consumed_month) FROM user_usage WHERE tenant_id = X` para derivar o total
-3. Upsert `tenant_usage` com o valor somado em vez de incrementado
-
-### Etapa 2: Edge Function `master-usage` -- Periodos e extra_credits
-
-No endpoint `/zones` e `/:tenantId`:
-1. Buscar `billing_subscriptions.current_period_start/end` para cada tenant
-2. Usar essas datas em vez de dia 1 do mes
-3. Buscar `extra_credits` de `tenant_features` (adicionar ao schema se nao existir) e incluir na formula do limite
-
-No endpoint `/:tenantId/recalculate`:
-1. Usar periodo do billing_subscriptions em vez de dia 1
-
-### Etapa 3: Frontend -- Validacoes e mapeamento
-
-**`TenantDetail.tsx`**: Adicionar validacao de `current_period_end`:
-```text
-Se current_period_end > hoje + 2 anos -> mostrar "Data nao configurada"
-```
-
-**`useUserCredits.ts`**: Mapear `ai_tokens_month` como fonte primaria de `credits_consumed`.
-
-**`useTenantCredits.ts`**: Usar periodo do billing ao inves de mes corrente.
-
-### Etapa 4: Schema -- Campo extra_credits
-
-Criar migration para adicionar `extra_credits INTEGER DEFAULT 0` em `tenant_features` (se nao existir). Este campo permite creditos bonus/extras por tenant.
-
----
-
-## Resumo das mudancas
-
-| Arquivo | Mudanca |
-|---------|---------|
-| `supabase/functions/log-api-usage/index.ts` | Derivar tenant_usage via SUM em vez de incremento; usar periodo do billing |
-| `supabase/functions/master-usage/index.ts` | Usar billing_subscriptions para periodos; incluir extra_credits na formula |
-| `src/pages/TenantDetail.tsx` | Validar current_period_end > 2 anos |
-| `src/hooks/useUserCredits.ts` | Usar ai_tokens_month como fonte primaria |
-| `src/hooks/useTenantCredits.ts` | Usar periodo do billing subscription |
-| Nova migration SQL | Adicionar extra_credits em tenant_features |
+#### Detalhes técnicos
+- A Edge Function `verify-domains` já implementa verificação real via Google DNS-over-HTTPS (TXT + A record)
+- A chamada será: `supabase.functions.invoke('verify-domains', { body: null })` com query param `?domain_id=X`
+- RLS já está configurado corretamente (`master_users` têm acesso ALL)
 
