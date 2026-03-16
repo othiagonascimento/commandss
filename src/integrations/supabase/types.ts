@@ -3827,6 +3827,180 @@ export type Database = {
           },
         ]
       }
+      gestao_auto_analyses: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          marketing_insights: Json | null
+          metrics: Json | null
+          source: string
+          tenant_id: string
+          title: string
+          total_vehicles: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          marketing_insights?: Json | null
+          metrics?: Json | null
+          source?: string
+          tenant_id: string
+          title?: string
+          total_vehicles?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          marketing_insights?: Json | null
+          metrics?: Json | null
+          source?: string
+          tenant_id?: string
+          title?: string
+          total_vehicles?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gestao_auto_analyses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_auto_analyses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "gestao_auto_analyses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      gestao_auto_vehicles: {
+        Row: {
+          aging_category: string | null
+          analysis_id: string
+          ano_modelo: string | null
+          categoria: string | null
+          codigo_fipe: string | null
+          created_at: string | null
+          custo_oportunidade: number | null
+          data_entrada: string | null
+          dias_no_patio: number | null
+          diferenca_fipe: number | null
+          diferenca_fipe_pct: number | null
+          extras: Json | null
+          fipe_badge: string | null
+          fipe_referencia: string | null
+          fipe_status: string | null
+          fipe_valor: number | null
+          id: string
+          margem_bruta: number | null
+          margem_bruta_pct: number | null
+          modelo: string
+          placa: string | null
+          preco_custo: number
+          preco_venda: number
+          score_liquidez: number | null
+          tenant_id: string
+        }
+        Insert: {
+          aging_category?: string | null
+          analysis_id: string
+          ano_modelo?: string | null
+          categoria?: string | null
+          codigo_fipe?: string | null
+          created_at?: string | null
+          custo_oportunidade?: number | null
+          data_entrada?: string | null
+          dias_no_patio?: number | null
+          diferenca_fipe?: number | null
+          diferenca_fipe_pct?: number | null
+          extras?: Json | null
+          fipe_badge?: string | null
+          fipe_referencia?: string | null
+          fipe_status?: string | null
+          fipe_valor?: number | null
+          id?: string
+          margem_bruta?: number | null
+          margem_bruta_pct?: number | null
+          modelo: string
+          placa?: string | null
+          preco_custo?: number
+          preco_venda?: number
+          score_liquidez?: number | null
+          tenant_id: string
+        }
+        Update: {
+          aging_category?: string | null
+          analysis_id?: string
+          ano_modelo?: string | null
+          categoria?: string | null
+          codigo_fipe?: string | null
+          created_at?: string | null
+          custo_oportunidade?: number | null
+          data_entrada?: string | null
+          dias_no_patio?: number | null
+          diferenca_fipe?: number | null
+          diferenca_fipe_pct?: number | null
+          extras?: Json | null
+          fipe_badge?: string | null
+          fipe_referencia?: string | null
+          fipe_status?: string | null
+          fipe_valor?: number | null
+          id?: string
+          margem_bruta?: number | null
+          margem_bruta_pct?: number | null
+          modelo?: string
+          placa?: string | null
+          preco_custo?: number
+          preco_venda?: number
+          score_liquidez?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gestao_auto_vehicles_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "gestao_auto_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_auto_vehicles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_auto_vehicles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "gestao_auto_vehicles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       group_campaign_sends: {
         Row: {
           campaign_id: string | null
@@ -7994,6 +8168,7 @@ export type Database = {
       sales_funnels: {
         Row: {
           allowed_roles: string[] | null
+          allowed_team_ids: string[] | null
           category_id: string | null
           created_at: string
           description: string | null
@@ -8006,6 +8181,7 @@ export type Database = {
         }
         Insert: {
           allowed_roles?: string[] | null
+          allowed_team_ids?: string[] | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -8018,6 +8194,7 @@ export type Database = {
         }
         Update: {
           allowed_roles?: string[] | null
+          allowed_team_ids?: string[] | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -12498,14 +12675,32 @@ export type Database = {
         Args: { p_limit?: number; p_severity?: string; p_tenant_id?: string }
         Returns: Json
       }
-      get_ai_performance_summary: {
-        Args: {
-          p_assigned_to?: string
-          p_end_date?: string
-          p_start_date?: string
-        }
-        Returns: Json
-      }
+      get_ai_performance_summary:
+        | {
+            Args: {
+              p_assigned_to?: string
+              p_end_date: string
+              p_start_date: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_assigned_to?: string
+              p_end_date?: string
+              p_start_date?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_assigned_to?: string
+              p_end: string
+              p_start: string
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
       get_alert_stats: { Args: never; Returns: Json }
       get_auth_tenant_id: { Args: never; Returns: string }
       get_best_send_time: {
@@ -12728,54 +12923,106 @@ export type Database = {
         Args: { p_days?: number; p_tenant_id?: string }
         Returns: Json
       }
-      get_report_period_summary: {
-        Args: {
-          p_current_end: string
-          p_current_start: string
-          p_prev_end: string
-          p_prev_start: string
-          p_tenant_id: string
-        }
-        Returns: Json
-      }
-      get_report_product_rankings: {
-        Args: { p_end: string; p_start: string; p_tenant_id: string }
-        Returns: {
-          conversion_rate: number
-          product_id: string
-          product_image: string
-          product_name: string
-          total_interests: number
-          total_value: number
-          won_deals: number
-        }[]
-      }
-      get_report_seller_rankings: {
-        Args: { p_end: string; p_start: string; p_tenant_id: string }
-        Returns: {
-          avg_ticket: number
-          conversion_rate: number
-          lost_leads: number
-          seller_avatar: string
-          seller_id: string
-          seller_name: string
-          total_leads: number
-          total_value: number
-          won_leads: number
-        }[]
-      }
-      get_report_source_analysis: {
-        Args: { p_end: string; p_start: string; p_tenant_id: string }
-        Returns: {
-          conversion_rate: number
-          lost_leads: number
-          percentage: number
-          source: string
-          total_leads: number
-          total_value: number
-          won_leads: number
-        }[]
-      }
+      get_report_period_summary:
+        | {
+            Args: {
+              p_current_end: string
+              p_current_start: string
+              p_prev_end: string
+              p_prev_start: string
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_current_end: string
+              p_current_start: string
+              p_prev_end: string
+              p_prev_start: string
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
+      get_report_product_rankings:
+        | {
+            Args: { p_end: string; p_start: string; p_tenant_id: string }
+            Returns: {
+              conversion_rate: number
+              product_id: string
+              product_image: string
+              product_name: string
+              total_interests: number
+              total_value: number
+              won_deals: number
+            }[]
+          }
+        | {
+            Args: { p_end: string; p_start: string; p_tenant_id: string }
+            Returns: {
+              conversion_rate: number
+              product_id: string
+              product_image: string
+              product_name: string
+              total_interests: number
+              total_value: number
+              won_deals: number
+            }[]
+          }
+      get_report_seller_rankings:
+        | {
+            Args: { p_end: string; p_start: string; p_tenant_id: string }
+            Returns: {
+              avg_ticket: number
+              conversion_rate: number
+              lost_leads: number
+              seller_avatar: string
+              seller_id: string
+              seller_name: string
+              total_leads: number
+              total_value: number
+              won_leads: number
+            }[]
+          }
+        | {
+            Args: { p_end: string; p_start: string; p_tenant_id: string }
+            Returns: {
+              avg_ticket: number
+              conversion_rate: number
+              lost_leads: number
+              seller_avatar: string
+              seller_id: string
+              seller_name: string
+              total_leads: number
+              total_value: number
+              won_leads: number
+            }[]
+          }
+      get_report_source_analysis:
+        | {
+            Args: { p_end: string; p_start: string; p_tenant_id: string }
+            Returns: {
+              conversion_rate: number
+              lost_leads: number
+              percentage: number
+              source: string
+              total_leads: number
+              total_value: number
+              won_leads: number
+            }[]
+          }
+        | {
+            Args: { p_end: string; p_start: string; p_tenant_id: string }
+            Returns: {
+              conversion_rate: number
+              lost_leads: number
+              percentage: number
+              source: string
+              total_leads: number
+              total_value: number
+              won_leads: number
+            }[]
+          }
       get_resolved_alerts: {
         Args: {
           p_alert_type?: string
@@ -13135,6 +13382,28 @@ export type Database = {
         | "manage_flows"
         | "access_admin_panel"
         | "edit_product_details"
+        | "view_minimum_price"
+        | "move_lead_stage"
+        | "move_lead_funnel"
+        | "resolve_lead"
+        | "delete_leads"
+        | "manage_tags"
+        | "export_data"
+        | "manage_inventory"
+        | "adjust_stock"
+        | "manage_rotation"
+        | "manage_funnels"
+        | "manage_channels"
+        | "manage_goals"
+        | "manage_notifications"
+        | "activate_ai_agent"
+        | "manage_content"
+        | "manage_tasks"
+        | "view_tasks"
+        | "manage_wholesale"
+        | "manage_billing"
+        | "manage_branding"
+        | "view_audit_logs"
       plan_type: "trial" | "basic" | "pro" | "enterprise"
       recipient_status:
         | "pending"
@@ -13329,6 +13598,28 @@ export const Constants = {
         "manage_flows",
         "access_admin_panel",
         "edit_product_details",
+        "view_minimum_price",
+        "move_lead_stage",
+        "move_lead_funnel",
+        "resolve_lead",
+        "delete_leads",
+        "manage_tags",
+        "export_data",
+        "manage_inventory",
+        "adjust_stock",
+        "manage_rotation",
+        "manage_funnels",
+        "manage_channels",
+        "manage_goals",
+        "manage_notifications",
+        "activate_ai_agent",
+        "manage_content",
+        "manage_tasks",
+        "view_tasks",
+        "manage_wholesale",
+        "manage_billing",
+        "manage_branding",
+        "view_audit_logs",
       ],
       plan_type: ["trial", "basic", "pro", "enterprise"],
       recipient_status: [
