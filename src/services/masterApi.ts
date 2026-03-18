@@ -77,6 +77,7 @@ export const analyticsApi = {
   getTenantMetrics: (tenantId: string) => 
     callMasterApi<TenantMetrics>('master-analytics', 'GET', `tenant/${tenantId}`),
   getUsage: () => callMasterApi<UsageData>('master-analytics', 'GET', 'usage'),
+  custom: (path: string) => callMasterApi<any>('master-analytics', 'GET', path),
 };
 
 // Tenants API
