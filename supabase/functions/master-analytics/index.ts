@@ -421,20 +421,29 @@ async function getTenantHealthData() {
       .eq('tenant_id', tenant.id)
       .order('period_start', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    // Get user count
+    // Get user count from profiles (source of truth for users)
     const { count: userCount } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
       .eq('tenant_id', tenant.id);
+
+    // Get active users (users with recent activity via audit_logs or profiles updated_at)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const { count: activeUserCount } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('tenant_id', tenant.id)
+      .gte('updated_at', sevenDaysAgo.toISOString());
 
     // Get features/limits
     const { data: features } = await supabase
       .from('tenant_features')
       .select('*')
       .eq('tenant_id', tenant.id)
-      .single();
+      .maybeSingle();
 
     // Calculate health score based on real operational data
     const hasRecentActivity = usage?.messages_sent > 0 || usage?.leads_count > 0;
@@ -498,10 +507,21 @@ async function getTenantHealthData() {
       alerts.push({ type: 'error', message: 'Nenhum usuário cadastrado' });
     }
 
-    // Calculate storage percentage
+    // Calculate storage: try real media_files size, fallback to tenant_usage field
+    let storageUsedMb = usage?.storage_used_mb || 0;
+    if (storageUsedMb === 0) {
+      // Try to get real storage from media files or storage objects
+      const { data: mediaFiles } = await supabase
+        .from('media_files')
+        .select('file_size')
+        .eq('tenant_id', tenant.id);
+      if (mediaFiles && mediaFiles.length > 0) {
+        storageUsedMb = mediaFiles.reduce((sum: number, f: any) => sum + (f.file_size || 0), 0) / (1024 * 1024);
+      }
+    }
+
     const storageLimit = features?.limit_storage_mb || 1000;
-    const storageUsed = usage?.storage_used_mb || 0;
-    const storagePercent = (storageUsed / storageLimit) * 100;
+    const storagePercent = storageLimit > 0 ? (storageUsedMb / storageLimit) * 100 : 0;
 
     if (storagePercent > 80) {
       alerts.push({ type: 'warning', message: `Uso de storage acima de ${Math.round(storagePercent)}%` });
@@ -518,13 +538,13 @@ async function getTenantHealthData() {
       status,
       last_activity: usage?.updated_at || tenant.created_at,
       metrics: {
-        active_users: usage?.active_users || 0,
+        active_users: activeUserCount || usage?.active_users || 0,
         total_users: userCount || 0,
         messages_24h: usage?.messages_sent || 0,
         messages_trend: 0,
         leads_7d: usage?.leads_count || 0,
         error_count: 0,
-        storage_used_percent: Math.round(storagePercent),
+        storage_used_percent: Math.round(Math.min(storagePercent, 100)),
         ai_tokens_used_percent: Math.round(tokensPercent),
       },
       alerts,

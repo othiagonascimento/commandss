@@ -92,7 +92,8 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-function formatPercent(value: number): string {
+function formatPercent(value: number | null | undefined): string {
+  if (value == null) return '0.0%';
   return `${value.toFixed(1)}%`;
 }
 
@@ -360,8 +361,8 @@ export default function Analytics() {
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <p className={cn("text-xl font-bold", metrics.ltv_cac_ratio >= 3 ? "text-success" : "text-warning")}>
-                {metrics.ltv_cac_ratio.toFixed(1)}x
+              <p className={cn("text-xl font-bold", (metrics.ltv_cac_ratio ?? 0) >= 3 ? "text-success" : "text-warning")}>
+                {(metrics.ltv_cac_ratio ?? 0).toFixed(1)}x
               </p>
             )}
           </CardContent>
@@ -378,7 +379,7 @@ export default function Analytics() {
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <p className={cn("text-xl font-bold", metrics.churn_rate <= 5 ? "text-success" : "text-destructive")}>
+              <p className={cn("text-xl font-bold", (metrics.churn_rate ?? 0) <= 5 ? "text-success" : "text-destructive")}>
                 {formatPercent(metrics.churn_rate)}
               </p>
             )}
@@ -412,7 +413,7 @@ export default function Analytics() {
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <p className={cn("text-xl font-bold", metrics.net_revenue_retention >= 100 ? "text-success" : "text-warning")}>
+              <p className={cn("text-xl font-bold", (metrics.net_revenue_retention ?? 0) >= 100 ? "text-success" : "text-warning")}>
                 {formatPercent(metrics.net_revenue_retention)}
               </p>
             )}
