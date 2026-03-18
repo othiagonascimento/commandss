@@ -115,7 +115,6 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           label: 'Centro de Operações',
           path: '/operations',
           description: 'Telemetria e alertas em tempo real',
-          badge: 'Novo',
           permissionCheck: permissions.canViewDashboard,
         },
       ],
