@@ -421,20 +421,29 @@ async function getTenantHealthData() {
       .eq('tenant_id', tenant.id)
       .order('period_start', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    // Get user count
+    // Get user count from profiles (source of truth for users)
     const { count: userCount } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
       .eq('tenant_id', tenant.id);
+
+    // Get active users (users with recent activity via audit_logs or profiles updated_at)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const { count: activeUserCount } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('tenant_id', tenant.id)
+      .gte('updated_at', sevenDaysAgo.toISOString());
 
     // Get features/limits
     const { data: features } = await supabase
       .from('tenant_features')
       .select('*')
       .eq('tenant_id', tenant.id)
-      .single();
+      .maybeSingle();
 
     // Calculate health score based on real operational data
     const hasRecentActivity = usage?.messages_sent > 0 || usage?.leads_count > 0;
