@@ -21,24 +21,10 @@ import {
   Award,
   Target,
   Loader2,
+  ShieldAlert,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TenantSelector } from '@/components/ui/tenant-selector';
-
-interface UserRanking {
-  id: string;
-  user_id: string;
-  tenant_id: string;
-  tenant_name?: string;
-  full_name: string;
-  email: string;
-  ai_tokens_month: number;
-  ai_tokens_total: number;
-  messages_sent_month: number;
-  storage_bytes: number;
-  api_calls_month: number;
-  transcription_seconds_month: number;
-}
 
 interface TenantRanking {
   id: string;
@@ -48,6 +34,8 @@ interface TenantRanking {
   storage_used_mb: number;
   active_users: number;
   leads_count: number;
+  ai_events_count: number;
+  ai_blocks: number;
 }
 
 const RANKING_ICONS = [
@@ -60,13 +48,6 @@ function formatNumber(value: number): string {
   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
   if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
   return value.toLocaleString('pt-BR');
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes >= 1073741824) return `${(bytes / 1073741824).toFixed(1)} GB`;
-  if (bytes >= 1048576) return `${(bytes / 1048576).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${bytes} B`;
 }
 
 function RankingCard({ 
@@ -141,84 +122,25 @@ function RankingCard({
 }
 
 export default function Rankings() {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('tenants');
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
-  // Fetch user usage data
-  const { data: userUsage, isLoading: usersLoading } = useQuery({
-    queryKey: ['user-usage-rankings', selectedTenantId],
-    queryFn: async () => {
-      let query = supabase
-        .from('user_usage')
-        .select(`
-          id,
-          user_id,
-          tenant_id,
-          ai_tokens_month,
-          ai_tokens_total,
-          messages_sent_month,
-          storage_bytes,
-          api_calls_month,
-          transcription_seconds_month
-        `)
-        .order('ai_tokens_month', { ascending: false })
-        .limit(50);
-      
-      if (selectedTenantId) {
-        query = query.eq('tenant_id', selectedTenantId);
-      }
 
-      const { data: usage, error: usageError } = await query;
-      if (usageError) throw usageError;
-      
-      // Get profiles for names
-      const userIds = (usage?.map(u => u.user_id) || []) as string[];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, tenant_id')
-        .in('id', userIds);
-      
-      // Get tenants for names
-      const tenantIds = [...new Set((usage?.map(u => u.tenant_id) || []) as string[])];
-      const { data: tenants } = await supabase
-        .from('tenants')
-        .select('id, name')
-        .in('id', tenantIds);
-      
-      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
-      const tenantMap = new Map(tenants?.map(t => [t.id, t.name]) || []);
-      
-      return usage?.map(u => ({
-        ...u,
-        full_name: profileMap.get(u.user_id)?.full_name || 'Usuário',
-        email: '',
-        tenant_name: tenantMap.get(u.tenant_id) || '',
-      })) as UserRanking[];
-    },
-  });
-
-  // Fetch tenant usage data
-  const { data: tenantUsage, isLoading: tenantsLoading } = useQuery({
-    queryKey: ['tenant-usage-rankings', selectedTenantId],
+  // Fetch tenant rankings from tenant_usage + ai_events aggregation
+  const { data: tenantUsage, isLoading } = useQuery({
+    queryKey: ['tenant-rankings', selectedTenantId],
     queryFn: async () => {
-      let query = supabase
+      // Get tenant_usage data
+      let usageQuery = supabase
         .from('tenant_usage')
-        .select(`
-          id,
-          tenant_id,
-          ai_tokens_used,
-          messages_sent,
-          storage_used_mb,
-          active_users,
-          leads_count
-        `)
-        .order('ai_tokens_used', { ascending: false })
+        .select('id, tenant_id, ai_tokens_used, messages_sent, storage_used_mb, active_users, leads_count')
+        .order('messages_sent', { ascending: false })
         .limit(50);
       
       if (selectedTenantId) {
-        query = query.eq('tenant_id', selectedTenantId);
+        usageQuery = usageQuery.eq('tenant_id', selectedTenantId);
       }
 
-      const { data: usage, error } = await query;
+      const { data: usage, error } = await usageQuery;
       if (error) throw error;
       
       // Get tenant names
@@ -229,36 +151,71 @@ export default function Rankings() {
         .in('id', tenantIds);
       
       const tenantMap = new Map(tenants?.map(t => [t.id, t.name]) || []);
+
+      // Get ai_events aggregation per tenant (last 30 days)
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
       
+      let eventsQuery = supabase
+        .from('ai_events')
+        .select('tenant_id, was_blocked')
+        .gte('created_at', cutoff.toISOString());
+      
+      if (selectedTenantId) {
+        eventsQuery = eventsQuery.eq('tenant_id', selectedTenantId);
+      }
+
+      const { data: events } = await eventsQuery;
+      
+      // Aggregate events per tenant
+      const eventAgg: Record<string, { count: number; blocks: number }> = {};
+      for (const e of (events || [])) {
+        if (!eventAgg[e.tenant_id]) eventAgg[e.tenant_id] = { count: 0, blocks: 0 };
+        eventAgg[e.tenant_id].count++;
+        if (e.was_blocked) eventAgg[e.tenant_id].blocks++;
+      }
+
+      // Also count active users from profiles
+      const profileCounts = await Promise.all(
+        tenantIds.map(async (tid) => {
+          const { count } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', tid);
+          return { tenant_id: tid, count: count || 0 };
+        })
+      );
+      const profileMap = new Map(profileCounts.map(p => [p.tenant_id, p.count]));
+
       return usage?.map(u => ({
         id: u.id,
         name: tenantMap.get(u.tenant_id) || 'Tenant',
         ai_tokens_used: u.ai_tokens_used || 0,
         messages_sent: u.messages_sent || 0,
         storage_used_mb: u.storage_used_mb || 0,
-        active_users: u.active_users || 0,
+        active_users: profileMap.get(u.tenant_id) || u.active_users || 0,
         leads_count: u.leads_count || 0,
+        ai_events_count: eventAgg[u.tenant_id]?.count || 0,
+        ai_blocks: eventAgg[u.tenant_id]?.blocks || 0,
       })) as TenantRanking[];
     },
   });
 
-  const isLoading = usersLoading || tenantsLoading;
+  const tenantsByMessages = [...(tenantUsage || [])].sort((a, b) => b.messages_sent - a.messages_sent);
+  const tenantsByAI = [...(tenantUsage || [])].sort((a, b) => b.ai_events_count - a.ai_events_count);
+  const tenantsByUsers = [...(tenantUsage || [])].sort((a, b) => b.active_users - a.active_users);
+  const tenantsByLeads = [...(tenantUsage || [])].sort((a, b) => b.leads_count - a.leads_count);
 
-  // Sort rankings by different metrics
-  const usersByAI = [...(userUsage || [])].sort((a, b) => (b.ai_tokens_month || 0) - (a.ai_tokens_month || 0));
-  const usersByMessages = [...(userUsage || [])].sort((a, b) => (b.messages_sent_month || 0) - (a.messages_sent_month || 0));
-  const usersByStorage = [...(userUsage || [])].sort((a, b) => (b.storage_bytes || 0) - (a.storage_bytes || 0));
-  
-  const tenantsByAI = [...(tenantUsage || [])].sort((a, b) => (b.ai_tokens_used || 0) - (a.ai_tokens_used || 0));
-  const tenantsByMessages = [...(tenantUsage || [])].sort((a, b) => (b.messages_sent || 0) - (a.messages_sent || 0));
-  const tenantsByUsers = [...(tenantUsage || [])].sort((a, b) => (b.active_users || 0) - (a.active_users || 0));
-  const tenantsByLeads = [...(tenantUsage || [])].sort((a, b) => (b.leads_count || 0) - (a.leads_count || 0));
+  const totalMessages = tenantUsage?.reduce((sum, t) => sum + t.messages_sent, 0) || 0;
+  const totalEvents = tenantUsage?.reduce((sum, t) => sum + t.ai_events_count, 0) || 0;
+  const totalLeads = tenantUsage?.reduce((sum, t) => sum + t.leads_count, 0) || 0;
+  const totalUsers = tenantUsage?.reduce((sum, t) => sum + t.active_users, 0) || 0;
 
   return (
     <DashboardLayout>
       <PageHeader
         title="Rankings & Engajamento"
-        description="Acompanhe os usuários e tenants mais ativos para ações promocionais"
+        description="Ranking real dos tenants mais ativos baseado em dados de uso"
         icon={Trophy}
         actions={
           <TenantSelector
@@ -280,13 +237,13 @@ export default function Rankings() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription className="flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-orange-500" />
-                  Usuários Ativos
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                  Mensagens Totais
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{userUsage?.length || 0}</div>
-                <p className="text-xs text-muted-foreground">com atividade este mês</p>
+                <div className="text-2xl font-bold">{formatNumber(totalMessages)}</div>
+                <p className="text-xs text-muted-foreground">em todos os tenants</p>
               </CardContent>
             </Card>
             
@@ -294,29 +251,25 @@ export default function Rankings() {
               <CardHeader className="pb-2">
                 <CardDescription className="flex items-center gap-2">
                   <Brain className="w-4 h-4 text-primary" />
-                  Tokens IA Usados
+                  Eventos de IA
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatNumber(userUsage?.reduce((sum, u) => sum + (u.ai_tokens_month || 0), 0) || 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">total este mês</p>
+                <div className="text-2xl font-bold">{formatNumber(totalEvents)}</div>
+                <p className="text-xs text-muted-foreground">últimos 30 dias</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-success" />
-                  Mensagens Enviadas
+                  <Flame className="w-4 h-4 text-orange-500" />
+                  Usuários Ativos
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatNumber(userUsage?.reduce((sum, u) => sum + (u.messages_sent_month || 0), 0) || 0)}
-                </div>
-                <p className="text-xs text-muted-foreground">total este mês</p>
+                <div className="text-2xl font-bold">{formatNumber(totalUsers)}</div>
+                <p className="text-xs text-muted-foreground">em todos os tenants</p>
               </CardContent>
             </Card>
             
@@ -328,119 +281,75 @@ export default function Rankings() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {formatNumber(tenantUsage?.reduce((sum, t) => sum + (t.leads_count || 0), 0) || 0)}
-                </div>
+                <div className="text-2xl font-bold">{formatNumber(totalLeads)}</div>
                 <p className="text-xs text-muted-foreground">em todos os tenants</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="users" className="gap-2">
-                <Trophy className="w-4 h-4" />
-                Usuários
-              </TabsTrigger>
-              <TabsTrigger value="tenants" className="gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Tenants
-              </TabsTrigger>
-            </TabsList>
+          {/* Rankings Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <RankingCard
+              title="💬 Mais mensagens"
+              description="Total de mensagens enviadas"
+              icon={MessageSquare}
+              data={tenantsByMessages}
+              valueKey="messages_sent"
+            />
+            <RankingCard
+              title="🧠 Mais IA"
+              description="Eventos de IA (30 dias)"
+              icon={Brain}
+              data={tenantsByAI}
+              valueKey="ai_events_count"
+            />
+            <RankingCard
+              title="👥 Mais usuários"
+              description="Usuários cadastrados"
+              icon={Flame}
+              data={tenantsByUsers}
+              valueKey="active_users"
+            />
+            <RankingCard
+              title="🎯 Mais leads"
+              description="Leads capturados"
+              icon={Target}
+              data={tenantsByLeads}
+              valueKey="leads_count"
+            />
+          </div>
 
-            <TabsContent value="users" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <RankingCard
-                  title="🧠 Mais usou IA"
-                  description="Tokens consumidos este mês"
-                  icon={Brain}
-                  data={usersByAI}
-                  valueKey="ai_tokens_month"
-                />
-                <RankingCard
-                  title="💬 Mais mensagens"
-                  description="Mensagens enviadas este mês"
-                  icon={MessageSquare}
-                  data={usersByMessages}
-                  valueKey="messages_sent_month"
-                />
-                <RankingCard
-                  title="💾 Mais storage"
-                  description="Armazenamento utilizado"
-                  icon={HardDrive}
-                  data={usersByStorage}
-                  valueKey="storage_bytes"
-                  formatValue={formatBytes}
-                />
+          {/* Promotion Ideas */}
+          <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Zap className="w-5 h-5 text-primary" />
+                Ideias de Promoções
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="p-3 rounded-lg bg-background/50">
+                  <p className="font-medium">🎯 100 usuários = Bônus</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Premiar tenants que atingirem 100 usuários ativos
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-background/50">
+                  <p className="font-medium">🏆 Tenant do Mês</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Destacar o tenant mais engajado com badge especial
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-background/50">
+                  <p className="font-medium">🚀 Power Users</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Desconto para quem enviar mais de 10K mensagens/mês
+                  </p>
+                </div>
               </div>
-
-              {/* Promotion Ideas */}
-              <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Zap className="w-5 h-5 text-primary" />
-                    Ideias de Promoções
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="p-3 rounded-lg bg-background/50">
-                      <p className="font-medium">🎯 100 usuários = Bônus</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Premiar tenants que atingirem 100 usuários ativos
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-background/50">
-                      <p className="font-medium">🏆 Usuário do Mês</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Destacar o usuário mais engajado com badge especial
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-background/50">
-                      <p className="font-medium">🚀 Power Users</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Desconto para quem usar mais de 50K tokens/mês
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="tenants" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <RankingCard
-                  title="🧠 Mais usou IA"
-                  description="Tokens consumidos"
-                  icon={Brain}
-                  data={tenantsByAI}
-                  valueKey="ai_tokens_used"
-                />
-                <RankingCard
-                  title="💬 Mais mensagens"
-                  description="Mensagens enviadas"
-                  icon={MessageSquare}
-                  data={tenantsByMessages}
-                  valueKey="messages_sent"
-                />
-                <RankingCard
-                  title="👥 Mais usuários"
-                  description="Usuários ativos"
-                  icon={Flame}
-                  data={tenantsByUsers}
-                  valueKey="active_users"
-                />
-                <RankingCard
-                  title="🎯 Mais leads"
-                  description="Leads capturados"
-                  icon={Target}
-                  data={tenantsByLeads}
-                  valueKey="leads_count"
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
+            </CardContent>
+          </Card>
         </>
       )}
     </DashboardLayout>
