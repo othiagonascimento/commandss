@@ -361,8 +361,8 @@ export default function Analytics() {
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <p className={cn("text-xl font-bold", metrics.ltv_cac_ratio >= 3 ? "text-success" : "text-warning")}>
-                {metrics.ltv_cac_ratio.toFixed(1)}x
+              <p className={cn("text-xl font-bold", (metrics.ltv_cac_ratio ?? 0) >= 3 ? "text-success" : "text-warning")}>
+                {(metrics.ltv_cac_ratio ?? 0).toFixed(1)}x
               </p>
             )}
           </CardContent>
