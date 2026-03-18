@@ -758,6 +758,39 @@ serve(async (req) => {
   }
 
   try {
+    // Validate auth
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify master access
+    const { data: masterUser } = await supabase
+      .from('master_users')
+      .select('id')
+      .eq('user_id', userData.user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (!masterUser) {
+      return new Response(
+        JSON.stringify({ error: 'Access denied: not a master user' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     let endpoint = 'overview';
 
     // Handle URL path routing
