@@ -160,7 +160,6 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           label: 'Rankings',
           path: '/rankings',
           description: 'Engajamento e promoções',
-          badge: 'Novo',
           permissionCheck: permissions.canViewUsers,
         },
       ],

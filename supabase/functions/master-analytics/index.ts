@@ -793,12 +793,24 @@ serve(async (req) => {
 
     let endpoint = 'overview';
 
-    // Handle URL path routing
+    // Handle routing: prefer x-path-suffix header, fallback to URL path
+    const pathSuffix = req.headers.get('x-path-suffix');
     const url = new URL(req.url);
-    const pathParts = url.pathname.split('/').filter(Boolean);
     
-    if (pathParts.length > 1) {
-      endpoint = pathParts[1];
+    if (pathSuffix) {
+      // Strip query params from path suffix for endpoint matching
+      endpoint = pathSuffix.split('?')[0];
+    } else {
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      if (pathParts.length > 1) {
+        endpoint = pathParts[1];
+      }
+    }
+
+    // Merge query params from both URL and path suffix
+    const suffixParams = pathSuffix?.includes('?') ? new URLSearchParams(pathSuffix.split('?')[1]) : null;
+    if (suffixParams) {
+      suffixParams.forEach((v, k) => url.searchParams.set(k, v));
     }
 
     console.log(`[Master Analytics] Endpoint: ${endpoint}`);
