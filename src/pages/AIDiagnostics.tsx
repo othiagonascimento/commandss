@@ -371,7 +371,7 @@ export default function AIDiagnostics() {
                             </span>
                           </div>
                           <div className="text-right">
-                            <span className="text-sm font-bold">{model.pct.toFixed(1)}%</span>
+                            <span className="text-sm font-bold">{(model.pct ?? 0).toFixed(1)}%</span>
                             <span className="text-xs text-muted-foreground ml-2">
                               ({formatNumber(model.count)})
                             </span>
