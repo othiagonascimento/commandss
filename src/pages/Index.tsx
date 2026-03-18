@@ -6,11 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2, DollarSign, TrendingUp, TrendingDown, RefreshCw, AlertCircle,
   Activity, Target, Wifi, WifiOff, ChevronRight, ShieldAlert, Users,
-  CreditCard, CheckCircle2, Cpu, Brain, LayoutDashboard,
+  CreditCard, CheckCircle2, Cpu, Brain, LayoutDashboard, Crown, Zap,
+  BarChart3, Clock, ArrowUpRight,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -56,14 +58,21 @@ export default function Index() {
   const chartData = timeSeries?.data || [];
   const systemOk = alertCount === 0 && disconnectedWA.length === 0 && failedCrons.length === 0;
 
+  // Subscription breakdown
+  const subscriptionBreakdown = overview ? [
+    { label: 'Ativos', value: overview.tenants.active, color: 'text-emerald-600 dark:text-emerald-400' },
+    { label: 'Trial', value: overview.subscriptions.trial, color: 'text-amber-600 dark:text-amber-400' },
+    { label: 'Cancelados', value: overview.subscriptions.cancelled, color: 'text-destructive' },
+  ].filter(s => s.value > 0) : [];
+
   return (
     <DashboardLayout>
       {/* ─── Header ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Painel Master</h1>
           <p className="text-sm text-muted-foreground">
-            {snapAt ? `Atualizado ${formatDistanceToNow(new Date(snapAt), { addSuffix: true, locale: ptBR })}` : 'Visão geral'}
+            {snapAt ? `Atualizado ${formatDistanceToNow(new Date(snapAt), { addSuffix: true, locale: ptBR })}` : 'Visão geral do negócio'}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={refetch} disabled={isLoading}>
@@ -81,47 +90,112 @@ export default function Index() {
         </Card>
       )}
 
-      {/* ─── Hero Metrics ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <HeroMetric
-          label="Usuários"
-          value={overview ? fmtNum(overview.usage.total_users) : '—'}
-          sub={overview ? `${fmtNum(overview.usage.total_messages)} msgs` : undefined}
-          icon={Users}
-          loading={isLoading}
-        />
-        <HeroMetric
-          label="Tenants"
-          value={overview ? fmtNum(overview.tenants.total) : '—'}
-          sub={overview ? `${overview.tenants.active} ativo · ${overview.subscriptions.trial} trial` : undefined}
+      {/* ─── Hero: Usuários + MRR (most important) ────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Users - Primary hero */}
+        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <CardContent className="p-6">
+            {isLoading ? (
+              <div className="space-y-3"><Skeleton className="h-12 w-32" /><Skeleton className="h-4 w-48" /></div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium text-primary">Usuários na Plataforma</span>
+                </div>
+                <p className="text-5xl font-black tracking-tight text-foreground">
+                  {overview ? fmtNum(overview.usage.total_users) : '—'}
+                </p>
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Building2 className="h-3.5 w-3.5" />
+                    <span>{overview ? `${fmtNum(overview.tenants.total)} tenants` : '—'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Activity className="h-3.5 w-3.5" />
+                    <span>{overview ? `${fmtNum(overview.usage.total_messages)} msgs` : '—'}</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* MRR - Secondary hero */}
+        <Card className="bg-gradient-to-br from-emerald-500/5 to-emerald-500/10 border-emerald-500/20">
+          <CardContent className="p-6">
+            {isLoading ? (
+              <div className="space-y-3"><Skeleton className="h-12 w-32" /><Skeleton className="h-4 w-48" /></div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">MRR</span>
+                  {revenue?.growth_percentage !== undefined && (
+                    <Badge variant="secondary" className={cn('text-[10px] gap-0.5 ml-auto', revenue.growth_percentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
+                      {revenue.growth_percentage >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+                      {Math.abs(revenue.growth_percentage)}%
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-5xl font-black tracking-tight text-foreground">
+                  {revenue ? fmtCurrency(revenue.mrr) : '—'}
+                </p>
+                <div className="flex items-center gap-4 mt-3">
+                  <div className="text-sm text-muted-foreground">
+                    ARR <span className="font-semibold text-foreground">{revenue ? fmtCurrency(revenue.arr) : '—'}</span>
+                  </div>
+                  {revenue?.breakdown && (
+                    <div className="text-sm text-muted-foreground">
+                      {revenue.breakdown.paying_tenants} pagante{revenue.breakdown.paying_tenants !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ─── Secondary Metrics Row ────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <MiniMetric
+          label="Tenants Ativos"
+          value={overview ? String(overview.tenants.active) : '—'}
+          sub={overview ? `de ${overview.tenants.total} total` : undefined}
           icon={Building2}
           loading={isLoading}
         />
-        <HeroMetric
-          label="MRR"
-          value={revenue ? fmtCurrency(revenue.mrr) : '—'}
-          trend={revenue?.growth_percentage}
-          sub={revenue?.breakdown ? `${revenue.breakdown.paying_tenants} pagante${revenue.breakdown.paying_tenants !== 1 ? 's' : ''}` : undefined}
-          icon={DollarSign}
+        <MiniMetric
+          label="Trials"
+          value={overview ? String(overview.subscriptions.trial) : '—'}
+          sub="conversão pendente"
+          icon={Clock}
           loading={isLoading}
+          warn={overview ? overview.subscriptions.trial > 3 : false}
         />
-        <HeroMetric
+        <MiniMetric
           label="Leads"
           value={overview ? fmtNum(overview.usage.total_leads) : '—'}
           sub={overview?.recent_activity.new_leads_7d ? `+${fmtNum(overview.recent_activity.new_leads_7d)} (7d)` : 'sem dados CRM'}
           icon={Target}
           loading={isLoading}
         />
+        <MiniMetric
+          label="Novos Tenants (7d)"
+          value={overview ? String(overview.recent_activity.new_tenants_7d) : '—'}
+          icon={Zap}
+          loading={isLoading}
+        />
       </div>
 
-      {/* ─── Atenção Necessária ───────────────────────────────────────── */}
+      {/* ─── Atenção Necessária ───────────────────────────────────── */}
       {!systemOk && (
-        <div className="mb-8 space-y-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <ShieldAlert className="h-4 w-4 text-destructive" /> Requer Atenção
+        <div className="mb-6 space-y-2">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <ShieldAlert className="h-3.5 w-3.5 text-destructive" /> Requer Atenção
           </h2>
 
-          {/* Ops Alerts */}
           {opsAlerts.map(alert => (
             <AttentionItem
               key={alert.id}
@@ -134,7 +208,6 @@ export default function Index() {
             />
           ))}
 
-          {/* Disconnected channels */}
           {disconnectedWA.map((ch, i) => (
             <AttentionItem
               key={`wa-${i}`}
@@ -147,7 +220,6 @@ export default function Index() {
             />
           ))}
 
-          {/* Failed crons */}
           {failedCrons.map((job, i) => (
             <AttentionItem
               key={`cron-${i}`}
@@ -162,83 +234,31 @@ export default function Index() {
         </div>
       )}
 
-      {/* ─── Receita + Gráfico ───────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-        {/* Revenue summary - compact */}
-        <Card className="lg:col-span-1">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Receita</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isLoading ? (
-              <div className="space-y-3"><Skeleton className="h-16" /><Skeleton className="h-16" /></div>
-            ) : revenue ? (
-              <>
-                <div>
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">MRR</p>
-                  <p className="text-3xl font-bold text-foreground">{fmtCurrency(revenue.mrr)}</p>
-                  {revenue.growth_percentage !== undefined && (
-                    <Badge variant="secondary" className={cn('mt-1 gap-1 text-xs', revenue.growth_percentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
-                      {revenue.growth_percentage >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      {revenue.growth_percentage >= 0 ? '+' : ''}{revenue.growth_percentage}%
-                    </Badge>
-                  )}
-                </div>
-                <div className="border-t border-border pt-3 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">ARR</span>
-                    <span className="font-medium">{fmtCurrency(revenue.arr)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total acumulado</span>
-                    <span className="font-medium">{fmtCurrency(revenue.total)}</span>
-                  </div>
-                </div>
-                {overview && (
-                  <div className="border-t border-border pt-3 space-y-2">
-                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Planos</p>
-                    <div className="space-y-1">
-                      {[
-                        { label: 'Enterprise', count: overview.tenants.enterprise },
-                        { label: 'Pro', count: overview.tenants.pro },
-                        { label: 'Basic', count: overview.tenants.basic },
-                      ].filter(p => p.count > 0).map(p => (
-                        <div key={p.label} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">{p.label}</span>
-                          <span className="font-medium">{p.count}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">Sem dados</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Chart - clean */}
+      {/* ─── Chart + Revenue Details ─────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {/* Chart */}
         <Card className="lg:col-span-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold">Evolução MRR</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" /> Evolução MRR
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-[250px] w-full" />
+              <Skeleton className="h-[220px] w-full" />
             ) : chartData.length === 0 ? (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">Sem dados</div>
+              <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">Sem dados de série temporal</div>
             ) : (
-              <div className="h-[250px]">
+              <div className="h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
                         <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
                     <XAxis dataKey="month" className="text-[10px] fill-muted-foreground" tickLine={false} axisLine={false} />
                     <YAxis className="text-[10px] fill-muted-foreground" tickLine={false} axisLine={false} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
                     <RechartsTooltip
@@ -252,13 +272,86 @@ export default function Index() {
             )}
           </CardContent>
         </Card>
+
+        {/* Revenue Breakdown */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center justify-between">
+              <span className="flex items-center gap-2"><CreditCard className="h-4 w-4" /> Receita</span>
+              <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => navigate('/analytics')}>
+                Detalhes <ArrowUpRight className="h-3 w-3 ml-0.5" />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isLoading ? (
+              <div className="space-y-2"><Skeleton className="h-12" /><Skeleton className="h-12" /></div>
+            ) : revenue ? (
+              <>
+                {/* Revenue streams */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">MRR</span>
+                    <span className="font-semibold">{fmtCurrency(revenue.mrr)}</span>
+                  </div>
+                  {revenue.credits_revenue !== undefined && revenue.credits_revenue > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Créditos</span>
+                      <span className="font-medium">{fmtCurrency(revenue.credits_revenue)}</span>
+                    </div>
+                  )}
+                  {revenue.implementation_revenue !== undefined && revenue.implementation_revenue > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Implantação</span>
+                      <span className="font-medium">{fmtCurrency(revenue.implementation_revenue)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Plan distribution */}
+                {overview && (
+                  <div className="border-t border-border pt-3 space-y-1.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Por Plano</p>
+                    {[
+                      { label: 'Enterprise', count: overview.tenants.enterprise },
+                      { label: 'Pro', count: overview.tenants.pro },
+                      { label: 'Basic', count: overview.tenants.basic },
+                    ].filter(p => p.count > 0).map(p => (
+                      <div key={p.label} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{p.label}</span>
+                        <span className="font-medium">{p.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Subscription breakdown */}
+                {subscriptionBreakdown.length > 0 && (
+                  <div className="border-t border-border pt-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Status de Assinatura</p>
+                    <div className="flex gap-3">
+                      {subscriptionBreakdown.map(s => (
+                        <div key={s.label} className="text-center">
+                          <p className={cn('text-lg font-bold', s.color)}>{s.value}</p>
+                          <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground py-4 text-center">Sem dados</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* ─── Pulso Operacional ────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+      {/* ─── Pulso Operacional ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Canais */}
         <Card>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Wifi className="h-4 w-4" /> Canais
             </CardTitle>
@@ -268,11 +361,11 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             {!snap ? (
-              <p className="text-sm text-muted-foreground">Aguardando dados</p>
+              <p className="text-sm text-muted-foreground">Aguardando telemetria do CRM</p>
             ) : whatsappChannels.length === 0 && metaChannels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem canais</p>
+              <p className="text-sm text-muted-foreground">Sem canais configurados</p>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 {whatsappChannels.map((ch, i) => (
                   <div key={`wa-${i}`} className="flex items-center justify-between py-1.5">
                     <div className="flex items-center gap-2 min-w-0">
@@ -307,20 +400,22 @@ export default function Index() {
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
+        {/* Pulso */}
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Activity className="h-4 w-4" /> Pulso
+              <Activity className="h-4 w-4" /> Pulso Operacional
             </CardTitle>
+            <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => navigate('/operations')}>
+              Centro de Ops <ArrowUpRight className="h-3 w-3 ml-0.5" />
+            </Button>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {overview && (
                 <>
-                  <PulseRow label="Usuários totais" value={fmtNum(overview.usage.total_users)} icon={Users} />
-                  <PulseRow label="Mensagens" value={fmtNum(overview.usage.total_messages)} icon={Activity} />
-                  <PulseRow label="Novos tenants (7d)" value={fmtNum(overview.recent_activity.new_tenants_7d)} icon={Building2} />
+                  <PulseRow label="Usuários ativos" value={fmtNum(overview.usage.total_users)} icon={Users} />
+                  <PulseRow label="Mensagens enviadas" value={fmtNum(overview.usage.total_messages)} icon={Activity} />
                 </>
               )}
               {conversations && (
@@ -337,47 +432,50 @@ export default function Index() {
                   warn={failedCrons.length > 0}
                 />
               )}
+              {!snap && !overview && (
+                <p className="text-sm text-muted-foreground py-2">Aguardando dados</p>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* ─── System OK ───────────────────────────────────────────────── */}
+      {/* ─── System Status ───────────────────────────────────────── */}
       {systemOk && (
         <Card className="bg-emerald-500/5 border-emerald-500/20">
-          <CardContent className="flex items-center gap-3 py-4">
+          <CardContent className="flex items-center gap-3 py-3">
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             <span className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">Sistema operacional — nenhuma ação necessária</span>
           </CardContent>
         </Card>
       )}
+
+      {/* ─── Quick Navigation ────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+        <QuickNav label="Tenants" icon={Building2} onClick={() => navigate('/tenants')} />
+        <QuickNav label="Inteligência de Receita" icon={BarChart3} onClick={() => navigate('/analytics')} />
+        <QuickNav label="Saúde dos Tenants" icon={Activity} onClick={() => navigate('/tenant-health')} />
+        <QuickNav label="Diagnóstico IA" icon={Brain} onClick={() => navigate('/ai-diagnostics')} />
+      </div>
     </DashboardLayout>
   );
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function HeroMetric({ label, value, sub, trend, icon: Icon, loading }: {
-  label: string; value: string; sub?: string; trend?: number; icon: React.ElementType; loading?: boolean;
+function MiniMetric({ label, value, sub, icon: Icon, loading, warn }: {
+  label: string; value: string; sub?: string; icon: React.ElementType; loading?: boolean; warn?: boolean;
 }) {
-  if (loading) return <Card><CardContent className="p-4"><Skeleton className="h-4 w-20 mb-2" /><Skeleton className="h-8 w-28" /></CardContent></Card>;
+  if (loading) return <Card><CardContent className="p-3"><Skeleton className="h-3 w-16 mb-1.5" /><Skeleton className="h-6 w-20" /></CardContent></Card>;
   return (
     <Card>
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
-          <Icon className="h-4 w-4 text-muted-foreground" />
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between mb-0.5">
+          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
+          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
         </div>
-        <p className="text-2xl font-bold">{value}</p>
-        <div className="flex items-center gap-2 mt-0.5">
-          {trend !== undefined && (
-            <Badge variant="secondary" className={cn('text-[10px] gap-0.5', trend >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
-              {trend >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
-              {Math.abs(trend)}%
-            </Badge>
-          )}
-          {sub && <span className="text-[11px] text-muted-foreground">{sub}</span>}
-        </div>
+        <p className={cn('text-xl font-bold', warn && 'text-amber-600 dark:text-amber-400')}>{value}</p>
+        {sub && <span className="text-[10px] text-muted-foreground">{sub}</span>}
       </CardContent>
     </Card>
   );
@@ -398,7 +496,7 @@ function AttentionItem({ icon: Icon, severity, title, detail, action, actionLabe
     warning: 'text-amber-600 dark:text-amber-400', info: 'text-muted-foreground',
   };
   return (
-    <div className={cn('flex items-center gap-3 px-4 py-3 rounded-lg border', colors[severity])}>
+    <div className={cn('flex items-center gap-3 px-4 py-2.5 rounded-lg border', colors[severity])}>
       <Icon className={cn('h-4 w-4 shrink-0', iconColors[severity])} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">{title}</p>
@@ -424,5 +522,18 @@ function PulseRow({ label, value, icon: Icon, warn }: {
       </div>
       <span className={cn('text-sm font-medium', warn && 'text-amber-600 dark:text-amber-400')}>{value}</span>
     </div>
+  );
+}
+
+function QuickNav({ label, icon: Icon, onClick }: { label: string; icon: React.ElementType; onClick: () => void }) {
+  return (
+    <Button
+      variant="outline"
+      className="h-auto py-3 px-4 flex flex-col items-start gap-1 justify-start text-left"
+      onClick={onClick}
+    >
+      <Icon className="h-4 w-4 text-muted-foreground" />
+      <span className="text-xs font-medium">{label}</span>
+    </Button>
   );
 }
