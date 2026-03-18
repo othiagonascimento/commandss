@@ -846,28 +846,32 @@ serve(async (req) => {
         responseData = await getBillingIntelligence();
         break;
 
-      case 'tenant':
-        const tenantId = pathParts[2];
-        const { data: tenantUsage } = await supabase
-          .from('tenant_usage')
-          .select('*')
-          .eq('tenant_id', tenantId)
-          .single();
-        
-        const { count: tenantUsers } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('tenant_id', tenantId);
+      default: {
+        // Handle dynamic routes like "tenant/{id}"
+        const parts = endpoint.split('/');
+        if (parts[0] === 'tenant' && parts[1]) {
+          const tenantId = parts[1];
+          const [usageRes, usersRes] = await Promise.all([
+            supabase.from('tenant_usage').select('*').eq('tenant_id', tenantId).single(),
+            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+          ]);
 
-        responseData = {
-          tenant_id: tenantId,
-          leads: tenantUsage?.leads_count || 0,
-          users: tenantUsers || 0,
-          messages: tenantUsage?.messages_sent || 0,
-          storage_used_mb: tenantUsage?.storage_used_mb || 0,
-          api_calls_30d: tenantUsage?.api_calls || 0,
-        };
-        break;
+          responseData = {
+            tenant_id: tenantId,
+            leads: usageRes.data?.leads_count || 0,
+            users: usersRes.count || 0,
+            messages: usageRes.data?.messages_sent || 0,
+            storage_used_mb: usageRes.data?.storage_used_mb || 0,
+            api_calls_30d: usageRes.data?.api_calls || 0,
+          };
+          break;
+        }
+
+        return new Response(
+          JSON.stringify({ error: `Unknown endpoint: ${endpoint}` }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
       case 'usage':
         const { data: allUsage } = await supabase
