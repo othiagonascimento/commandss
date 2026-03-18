@@ -16,7 +16,7 @@ async function getOverviewData() {
   // Get tenant counts by plan
   const { data: tenants, error: tenantsError } = await supabase
     .from('tenants')
-    .select('id, plan_type, status, is_blocked, created_at');
+    .select('id, plan_type, status, is_blocked, created_at, subscription_status');
   
   if (tenantsError) {
     console.error('Error fetching tenants:', tenantsError);
