@@ -614,7 +614,7 @@ export default function AIDiagnostics() {
                         <TableRow key={model.model}>
                           <TableCell className="font-medium text-sm">{model.model}</TableCell>
                           <TableCell className="text-right">{formatNumber(model.count)}</TableCell>
-                          <TableCell className="text-right">{model.avg_latency}ms</TableCell>
+                          <TableCell className="text-right">{model.avg_latency ?? 0}ms</TableCell>
                           <TableCell className="text-right">{formatNumber(model.credits)}</TableCell>
                           <TableCell className="text-right font-bold">{(model.pct ?? 0).toFixed(1)}%</TableCell>
                         </TableRow>
