@@ -379,7 +379,7 @@ export default function Analytics() {
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <p className={cn("text-xl font-bold", metrics.churn_rate <= 5 ? "text-success" : "text-destructive")}>
+              <p className={cn("text-xl font-bold", (metrics.churn_rate ?? 0) <= 5 ? "text-success" : "text-destructive")}>
                 {formatPercent(metrics.churn_rate)}
               </p>
             )}
