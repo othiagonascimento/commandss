@@ -90,8 +90,8 @@ export default function Index() {
         </Card>
       )}
 
-      {/* ─── Hero: Usuários + MRR (most important) ────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      {/* ─── Hero: Usuários + Mensagens + MRR ─────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         {/* Users - Primary hero */}
         <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <CardContent className="p-6">
@@ -101,27 +101,44 @@ export default function Index() {
               <>
                 <div className="flex items-center gap-2 mb-1">
                   <Users className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium text-primary">Usuários na Plataforma</span>
+                  <span className="text-sm font-medium text-primary">Usuários</span>
                 </div>
                 <p className="text-5xl font-black tracking-tight text-foreground">
                   {overview ? fmtNum(overview.usage.total_users) : '—'}
                 </p>
-                <div className="flex items-center gap-4 mt-3">
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Building2 className="h-3.5 w-3.5" />
-                    <span>{overview ? `${fmtNum(overview.tenants.total)} tenants` : '—'}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Activity className="h-3.5 w-3.5" />
-                    <span>{overview ? `${fmtNum(overview.usage.total_messages)} msgs` : '—'}</span>
-                  </div>
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-3">
+                  <Building2 className="h-3.5 w-3.5" />
+                  <span>{overview ? `em ${fmtNum(overview.tenants.total)} tenants` : '—'}</span>
                 </div>
               </>
             )}
           </CardContent>
         </Card>
 
-        {/* MRR - Secondary hero */}
+        {/* Messages - Highlighted hero */}
+        <Card className="bg-gradient-to-br from-violet-500/5 to-violet-500/10 border-violet-500/20">
+          <CardContent className="p-6">
+            {isLoading ? (
+              <div className="space-y-3"><Skeleton className="h-12 w-32" /><Skeleton className="h-4 w-48" /></div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <Activity className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                  <span className="text-sm font-medium text-violet-600 dark:text-violet-400">Mensagens</span>
+                </div>
+                <p className="text-5xl font-black tracking-tight text-foreground">
+                  {overview ? fmtNum(overview.usage.total_messages) : '—'}
+                </p>
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-3">
+                  <Wifi className="h-3.5 w-3.5" />
+                  <span>{connectedWA > 0 ? `${connectedWA} canal${connectedWA > 1 ? 'is' : ''} online` : 'sem canais'}</span>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* MRR */}
         <Card className="bg-gradient-to-br from-emerald-500/5 to-emerald-500/10 border-emerald-500/20">
           <CardContent className="p-6">
             {isLoading ? (
