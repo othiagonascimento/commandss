@@ -93,7 +93,6 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           label: 'Inteligência de Receita',
           path: '/analytics',
           description: 'Cohort, LTV, churn e métricas avançadas',
-          badge: 'Novo',
           permissionCheck: permissions.canViewDashboard,
         },
         {
