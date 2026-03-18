@@ -157,6 +157,12 @@ export default function APICosts() {
     });
   };
 
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toLocaleString('pt-BR');
+  };
+
   const formatCurrency = (value: number, currency: 'USD' | 'BRL' = 'USD') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
