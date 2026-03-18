@@ -846,6 +846,21 @@ serve(async (req) => {
         responseData = await getBillingIntelligence();
         break;
 
+      case 'usage': {
+        const { data: allUsage } = await supabase
+          .from('tenant_usage')
+          .select('storage_used_mb, api_calls, active_users');
+        
+        responseData = {
+          total_api_calls: allUsage?.reduce((sum, u) => sum + (u.api_calls || 0), 0) || 0,
+          total_storage_gb: (allUsage?.reduce((sum, u) => sum + (u.storage_used_mb || 0), 0) || 0) / 1024,
+          total_bandwidth_gb: 0,
+          active_sessions: allUsage?.reduce((sum, u) => sum + (u.active_users || 0), 0) || 0,
+          peak_concurrent_users: 0,
+        };
+        break;
+      }
+
       default: {
         // Handle dynamic routes like "tenant/{id}"
         const parts = endpoint.split('/');
@@ -872,26 +887,6 @@ serve(async (req) => {
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      case 'usage':
-        const { data: allUsage } = await supabase
-          .from('tenant_usage')
-          .select('storage_used_mb, api_calls, active_users');
-        
-        responseData = {
-          total_api_calls: allUsage?.reduce((sum, u) => sum + (u.api_calls || 0), 0) || 0,
-          total_storage_gb: (allUsage?.reduce((sum, u) => sum + (u.storage_used_mb || 0), 0) || 0) / 1024,
-          total_bandwidth_gb: 0,
-          active_sessions: allUsage?.reduce((sum, u) => sum + (u.active_users || 0), 0) || 0,
-          peak_concurrent_users: 0,
-        };
-        break;
-
-      default:
-        return new Response(
-          JSON.stringify({ error: `Unknown endpoint: ${endpoint}` }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
     }
 
     return new Response(
