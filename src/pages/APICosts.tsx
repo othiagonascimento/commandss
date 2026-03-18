@@ -175,6 +175,29 @@ export default function APICosts() {
   const avgRate = configs?.[0]?.usd_to_brl_rate || 5.50;
   const avgMarkup = configs?.[0]?.markup_percent || 0;
 
+  // Fetch real usage data for context
+  const { data: usageContext } = useQuery({
+    queryKey: ['api-costs-usage-context'],
+    queryFn: async () => {
+      const { data: tenantUsage } = await supabase
+        .from('tenant_usage')
+        .select('ai_tokens_used, messages_sent');
+      
+      const totalTokens = tenantUsage?.reduce((sum, t) => sum + (t.ai_tokens_used || 0), 0) || 0;
+      const totalMessages = tenantUsage?.reduce((sum, t) => sum + (t.messages_sent || 0), 0) || 0;
+      
+      // Get event count from last 30 days for actual AI usage
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+      const { count: aiEventsCount } = await supabase
+        .from('ai_events')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', cutoff.toISOString());
+      
+      return { totalTokens, totalMessages, aiEventsCount: aiEventsCount || 0 };
+    },
+  });
+
   return (
     <DashboardLayout>
       <PageHeader
