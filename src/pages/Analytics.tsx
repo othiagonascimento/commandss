@@ -92,7 +92,8 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-function formatPercent(value: number): string {
+function formatPercent(value: number | null | undefined): string {
+  if (value == null) return '0.0%';
   return `${value.toFixed(1)}%`;
 }
 
