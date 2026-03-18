@@ -164,7 +164,7 @@ async function getRevenueData() {
     // Skip MRR for: blocked, trialing, pending, lifetime, partnership, canceled, free plan, or no monthly fee
     if (isBlocked || isTrialing || isPending || isLifetime || isPartnership || isCanceled || isFree || hasNoMonthlyFee) {
       if (isTrialing) trialTenants++;
-      else if (isLifetime || hasNoMonthlyFee) lifetimeTenants++;
+      else if (isLifetime || isPartnership || hasNoMonthlyFee) lifetimeTenants++;
       else if (isPending) pendingTenants++;
       else if (isFree) freeTenants++;
       
