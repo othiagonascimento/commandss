@@ -413,7 +413,7 @@ export default function Analytics() {
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <p className={cn("text-xl font-bold", metrics.net_revenue_retention >= 100 ? "text-success" : "text-warning")}>
+              <p className={cn("text-xl font-bold", (metrics.net_revenue_retention ?? 0) >= 100 ? "text-success" : "text-warning")}>
                 {formatPercent(metrics.net_revenue_retention)}
               </p>
             )}
