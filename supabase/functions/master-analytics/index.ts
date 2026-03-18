@@ -156,12 +156,13 @@ async function getRevenueData() {
     const isTrialing = tenant.subscription_status === 'trialing';
     const isPending = tenant.subscription_status === 'pending';
     const isLifetime = tenant.subscription_status === 'lifetime';
+    const isPartnership = tenant.subscription_status === 'partnership';
     const isCanceled = tenant.subscription_status === 'canceled';
     const isFree = planSlug === 'free';
     const hasNoMonthlyFee = tenant.has_monthly_fee === false;
 
-    // Skip MRR for: blocked, trialing, pending, lifetime, canceled, free plan, or no monthly fee
-    if (isBlocked || isTrialing || isPending || isLifetime || isCanceled || isFree || hasNoMonthlyFee) {
+    // Skip MRR for: blocked, trialing, pending, lifetime, partnership, canceled, free plan, or no monthly fee
+    if (isBlocked || isTrialing || isPending || isLifetime || isPartnership || isCanceled || isFree || hasNoMonthlyFee) {
       if (isTrialing) trialTenants++;
       else if (isLifetime || hasNoMonthlyFee) lifetimeTenants++;
       else if (isPending) pendingTenants++;
