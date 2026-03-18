@@ -84,31 +84,32 @@ export default function Index() {
       {/* ─── Hero Metrics ────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <HeroMetric
-          label="MRR"
-          value={revenue ? fmtCurrency(revenue.mrr) : '—'}
-          trend={revenue?.growth_percentage}
-          icon={DollarSign}
+          label="Usuários"
+          value={overview ? fmtNum(overview.usage.total_users) : '—'}
+          sub={overview ? `${fmtNum(overview.usage.total_messages)} msgs` : undefined}
+          icon={Users}
           loading={isLoading}
         />
         <HeroMetric
-          label="Tenants Ativos"
-          value={overview ? fmtNum(overview.tenants.active) : '—'}
-          sub={overview ? `${overview.tenants.total} total` : undefined}
+          label="Tenants"
+          value={overview ? fmtNum(overview.tenants.total) : '—'}
+          sub={overview ? `${overview.tenants.active} ativo · ${overview.subscriptions.trial} trial` : undefined}
           icon={Building2}
           loading={isLoading}
         />
         <HeroMetric
-          label="Leads (7d)"
-          value={overview ? fmtNum(overview.recent_activity.new_leads_7d) : '—'}
-          sub={overview ? `${fmtNum(overview.usage.total_leads)} total` : undefined}
-          icon={Target}
+          label="MRR"
+          value={revenue ? fmtCurrency(revenue.mrr) : '—'}
+          trend={revenue?.growth_percentage}
+          sub={revenue?.breakdown ? `${revenue.breakdown.paying_tenants} pagante${revenue.breakdown.paying_tenants !== 1 ? 's' : ''}` : undefined}
+          icon={DollarSign}
           loading={isLoading}
         />
         <HeroMetric
-          label="Assinaturas"
-          value={overview ? fmtNum(overview.subscriptions.active) : '—'}
-          sub={overview?.subscriptions.trial ? `${overview.subscriptions.trial} trial` : undefined}
-          icon={CreditCard}
+          label="Leads"
+          value={overview ? fmtNum(overview.usage.total_leads) : '—'}
+          sub={overview?.recent_activity.new_leads_7d ? `+${fmtNum(overview.recent_activity.new_leads_7d)} (7d)` : 'sem dados CRM'}
+          icon={Target}
           loading={isLoading}
         />
       </div>

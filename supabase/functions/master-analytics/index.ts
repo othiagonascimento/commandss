@@ -16,7 +16,7 @@ async function getOverviewData() {
   // Get tenant counts by plan
   const { data: tenants, error: tenantsError } = await supabase
     .from('tenants')
-    .select('id, plan_type, status, is_blocked, created_at');
+    .select('id, plan_type, status, is_blocked, created_at, subscription_status');
   
   if (tenantsError) {
     console.error('Error fetching tenants:', tenantsError);
@@ -24,7 +24,7 @@ async function getOverviewData() {
   }
 
   const total = tenants?.length || 0;
-  const active = tenants?.filter(t => !t.is_blocked && t.status !== 'inactive').length || 0;
+  const active = tenants?.filter(t => (t as any).subscription_status === 'active').length || 0;
   const basic = tenants?.filter(t => t.plan_type === 'basic').length || 0;
   const pro = tenants?.filter(t => t.plan_type === 'pro').length || 0;
   const enterprise = tenants?.filter(t => t.plan_type === 'enterprise').length || 0;
@@ -793,12 +793,24 @@ serve(async (req) => {
 
     let endpoint = 'overview';
 
-    // Handle URL path routing
+    // Handle routing: prefer x-path-suffix header, fallback to URL path
+    const pathSuffix = req.headers.get('x-path-suffix');
     const url = new URL(req.url);
-    const pathParts = url.pathname.split('/').filter(Boolean);
     
-    if (pathParts.length > 1) {
-      endpoint = pathParts[1];
+    if (pathSuffix) {
+      // Strip query params from path suffix for endpoint matching
+      endpoint = pathSuffix.split('?')[0];
+    } else {
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      if (pathParts.length > 1) {
+        endpoint = pathParts[1];
+      }
+    }
+
+    // Merge query params from both URL and path suffix
+    const suffixParams = pathSuffix?.includes('?') ? new URLSearchParams(pathSuffix.split('?')[1]) : null;
+    if (suffixParams) {
+      suffixParams.forEach((v, k) => url.searchParams.set(k, v));
     }
 
     console.log(`[Master Analytics] Endpoint: ${endpoint}`);

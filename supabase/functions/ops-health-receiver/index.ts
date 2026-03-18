@@ -185,7 +185,6 @@ Deno.serve(async (req) => {
         tenant_id: tenantId,
         snapshot_type: snapshotType,
         snapshot_data: snapshotData,
-        source: payload.source || 'crm',
       });
 
     if (snapError) {

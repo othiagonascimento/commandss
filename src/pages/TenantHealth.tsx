@@ -35,6 +35,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { analyticsApi } from '@/services/masterApi';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -212,11 +213,9 @@ export default function TenantHealth() {
   const { data: healthData, isLoading, refetch } = useQuery({
     queryKey: ['tenant-health'],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('master-analytics', {
-        body: { endpoint: 'tenant-health' }
-      });
-      if (error) throw error;
-      return safeArray<TenantHealthData>(data);
+      const result = await analyticsApi.custom('tenant-health');
+      if (result.error) throw new Error(result.error);
+      return safeArray<TenantHealthData>(result.data);
     },
     staleTime: 60000,
   });
