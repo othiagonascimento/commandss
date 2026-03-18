@@ -281,7 +281,33 @@ export default function APICosts() {
         </Card>
       </div>
 
-      {/* Cost Table */}
+      {/* Real Usage Context */}
+      {usageContext && (
+        <Card className="mb-6 border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">📊 Consumo Real (Contexto)</CardTitle>
+            <CardDescription className="text-xs">Dados reais de uso para referência ao configurar custos</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-lg font-bold">{formatNumber(usageContext.totalTokens)}</p>
+                <p className="text-xs text-muted-foreground">Tokens IA usados</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold">{formatNumber(usageContext.totalMessages)}</p>
+                <p className="text-xs text-muted-foreground">Mensagens totais</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold">{formatNumber(usageContext.aiEventsCount)}</p>
+                <p className="text-xs text-muted-foreground">Eventos IA (30d)</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
       <Card>
         <CardHeader>
           <CardTitle>Configuração de Custos por Modelo</CardTitle>
