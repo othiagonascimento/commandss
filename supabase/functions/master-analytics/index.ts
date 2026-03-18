@@ -275,7 +275,7 @@ async function getTimeSeriesData(months: number = 12) {
     for (const t of tenants || []) {
       const planSlug = t.plan_id ? planSlugById.get(t.plan_id) : t.plan_type;
       const skip = t.is_blocked || t.subscription_status === 'trialing' || t.subscription_status === 'pending' ||
-        t.subscription_status === 'lifetime' || t.subscription_status === 'canceled' ||
+        t.subscription_status === 'lifetime' || t.subscription_status === 'partnership' || t.subscription_status === 'canceled' ||
         planSlug === 'free' || t.has_monthly_fee === false;
       if (skip) continue;
 
