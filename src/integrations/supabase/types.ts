@@ -12848,70 +12848,7 @@ export type Database = {
       }
       get_public_store_config: {
         Args: { p_tenant_id: string }
-        Returns: {
-          accent_color: string
-          benefit_delivery_text: string
-          benefit_installment_text: string
-          benefit_shipping_text: string
-          benefit_warranty_text: string
-          boleto_discount_percent: number
-          boleto_enabled: boolean
-          business_address: string
-          business_hours: string
-          button_style: string
-          catalog_columns_desktop: number
-          catalog_columns_mobile: number
-          catalog_default_sort: string
-          debit_card_discount_percent: number
-          debit_card_enabled: boolean
-          enable_catalog_filters: boolean
-          favicon_url: string
-          financing_enabled: boolean
-          financing_label: string
-          financing_max_installments: number
-          financing_simulator_enabled: boolean
-          financing_simulator_title: string
-          font_family: string
-          footer_city_state: string
-          footer_cta_enabled: boolean
-          footer_cta_link: string
-          footer_cta_text: string
-          footer_cta_type: string
-          footer_description: string
-          footer_links: Json
-          footer_show_social: boolean
-          footer_show_trust_badges: boolean
-          footer_social_facebook: string
-          footer_social_instagram: string
-          footer_social_tiktok: string
-          footer_social_youtube: string
-          footer_trust_badges: Json
-          installment_enabled: boolean
-          installment_max_without_interest: number
-          installment_min_value: number
-          installment_with_interest_enabled: boolean
-          installment_with_interest_max: number
-          installment_with_interest_rate: number
-          layout_template: string
-          logo_size: string
-          logo_url: string
-          mobile_fixed_cta: boolean
-          pix_discount_percent: number
-          pix_enabled: boolean
-          pix_label: string
-          primary_color: string
-          product_cta_text: string
-          product_cta_type: string
-          product_faq: Json
-          secondary_color: string
-          show_benefits_bar: boolean
-          show_descriptions: boolean
-          show_prices: boolean
-          show_product_faq: boolean
-          show_stock_status: boolean
-          show_trust_badges: boolean
-          store_name: string
-        }[]
+        Returns: Json[]
       }
       get_queue_stats: { Args: { p_tenant_id: string }; Returns: Json }
       get_rag_daily_timeline: {
