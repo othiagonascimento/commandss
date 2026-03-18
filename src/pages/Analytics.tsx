@@ -38,6 +38,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { analyticsApi } from '@/services/masterApi';
 import { cn } from '@/lib/utils';
 import { HelpTooltip } from '@/components/ui/help-tooltip';
 import { TenantSelector } from '@/components/ui/tenant-selector';

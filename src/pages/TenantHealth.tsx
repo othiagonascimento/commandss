@@ -35,6 +35,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { analyticsApi } from '@/services/masterApi';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
