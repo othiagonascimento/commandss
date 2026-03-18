@@ -24,7 +24,7 @@ async function getOverviewData() {
   }
 
   const total = tenants?.length || 0;
-  const active = tenants?.filter(t => !t.is_blocked && t.status !== 'inactive').length || 0;
+  const active = tenants?.filter(t => (t as any).subscription_status === 'active').length || 0;
   const basic = tenants?.filter(t => t.plan_type === 'basic').length || 0;
   const pro = tenants?.filter(t => t.plan_type === 'pro').length || 0;
   const enterprise = tenants?.filter(t => t.plan_type === 'enterprise').length || 0;

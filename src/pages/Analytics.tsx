@@ -236,11 +236,12 @@ export default function Analytics() {
   const { data: analyticsData, isLoading, refetch } = useQuery({
     queryKey: ['billing-analytics', period, selectedTenantId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('master-analytics', {
-        body: { endpoint: 'billing-intelligence', period, tenant_id: selectedTenantId || undefined }
-      });
-      if (error) throw error;
-      const raw = data || {};
+      const suffix = selectedTenantId
+        ? `billing-intelligence?period=${period}&tenant_id=${selectedTenantId}`
+        : `billing-intelligence?period=${period}`;
+      const result = await analyticsApi.custom(suffix);
+      if (result.error) throw new Error(result.error);
+      const raw = result.data || {};
       return {
         cohort: safeArray<CohortData>(raw.cohort),
         churn_risk: safeArray<ChurnRiskTenant>(raw.churn_risk),
