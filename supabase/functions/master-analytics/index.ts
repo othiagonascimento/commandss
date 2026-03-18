@@ -507,10 +507,21 @@ async function getTenantHealthData() {
       alerts.push({ type: 'error', message: 'Nenhum usuário cadastrado' });
     }
 
-    // Calculate storage percentage
+    // Calculate storage: try real media_files size, fallback to tenant_usage field
+    let storageUsedMb = usage?.storage_used_mb || 0;
+    if (storageUsedMb === 0) {
+      // Try to get real storage from media files or storage objects
+      const { data: mediaFiles } = await supabase
+        .from('media_files')
+        .select('file_size')
+        .eq('tenant_id', tenant.id);
+      if (mediaFiles && mediaFiles.length > 0) {
+        storageUsedMb = mediaFiles.reduce((sum: number, f: any) => sum + (f.file_size || 0), 0) / (1024 * 1024);
+      }
+    }
+
     const storageLimit = features?.limit_storage_mb || 1000;
-    const storageUsed = usage?.storage_used_mb || 0;
-    const storagePercent = (storageUsed / storageLimit) * 100;
+    const storagePercent = storageLimit > 0 ? (storageUsedMb / storageLimit) * 100 : 0;
 
     if (storagePercent > 80) {
       alerts.push({ type: 'warning', message: `Uso de storage acima de ${Math.round(storagePercent)}%` });
