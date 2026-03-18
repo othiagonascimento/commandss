@@ -24,6 +24,8 @@ import {
   DollarSign,
   Calculator,
   Wrench,
+  CalendarDays,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -45,6 +47,10 @@ interface TenantCommercialEditorProps {
     implementation_status?: string;
     implementation_paid_externally?: boolean;
     has_monthly_fee?: boolean;
+    billing_day?: number;
+    payment_method?: string;
+    subscription_status?: string;
+    current_period_end?: string;
   };
 }
 
@@ -64,7 +70,29 @@ interface FormData {
   implementation_status: string;
   implementation_paid_externally: boolean;
   has_monthly_fee: boolean;
+  billing_day: number | null;
+  payment_method: string;
+  subscription_status: string;
+  current_period_end: string;
 }
+
+const PAYMENT_METHODS = [
+  { value: 'cash', label: 'Dinheiro/Espécie' },
+  { value: 'pix', label: 'PIX' },
+  { value: 'boleto', label: 'Boleto' },
+  { value: 'stripe', label: 'Stripe' },
+  { value: 'infinitipay', label: 'InfinitiPay' },
+  { value: 'other', label: 'Outro' },
+];
+
+const SUBSCRIPTION_STATUSES = [
+  { value: 'active', label: 'Ativo', color: 'bg-green-500' },
+  { value: 'pending', label: 'Pendente', color: 'bg-yellow-500' },
+  { value: 'trialing', label: 'Trial', color: 'bg-blue-500' },
+  { value: 'partnership', label: 'Parceria', color: 'bg-purple-500' },
+  { value: 'lifetime', label: 'Lifetime', color: 'bg-indigo-500' },
+  { value: 'canceled', label: 'Cancelado', color: 'bg-red-500' },
+];
 
 export function TenantCommercialEditor({ tenant }: TenantCommercialEditorProps) {
   const queryClient = useQueryClient();
@@ -85,6 +113,10 @@ export function TenantCommercialEditor({ tenant }: TenantCommercialEditorProps) 
     implementation_status: tenant.implementation_status || 'pending',
     implementation_paid_externally: tenant.implementation_paid_externally || false,
     has_monthly_fee: tenant.has_monthly_fee ?? true,
+    billing_day: tenant.billing_day ?? null,
+    payment_method: tenant.payment_method || '',
+    subscription_status: tenant.subscription_status || 'pending',
+    current_period_end: tenant.current_period_end ? tenant.current_period_end.split('T')[0] : '',
   });
 
   useEffect(() => {
@@ -104,6 +136,10 @@ export function TenantCommercialEditor({ tenant }: TenantCommercialEditorProps) 
       implementation_status: tenant.implementation_status || 'pending',
       implementation_paid_externally: tenant.implementation_paid_externally || false,
       has_monthly_fee: tenant.has_monthly_fee ?? true,
+      billing_day: tenant.billing_day ?? null,
+      payment_method: tenant.payment_method || '',
+      subscription_status: tenant.subscription_status || 'pending',
+      current_period_end: tenant.current_period_end ? tenant.current_period_end.split('T')[0] : '',
     });
   }, [tenant]);
 
@@ -170,6 +206,10 @@ export function TenantCommercialEditor({ tenant }: TenantCommercialEditorProps) 
       implementation_status: formData.implementation_status,
       implementation_paid_externally: formData.implementation_paid_externally,
       has_monthly_fee: formData.has_monthly_fee,
+      billing_day: formData.billing_day || null,
+      payment_method: formData.payment_method || null,
+      subscription_status: formData.subscription_status,
+      current_period_end: formData.current_period_end ? new Date(formData.current_period_end + 'T23:59:59').toISOString() : null,
     });
   };
 
@@ -179,6 +219,8 @@ export function TenantCommercialEditor({ tenant }: TenantCommercialEditorProps) 
       currency: 'BRL',
     }).format(value);
   };
+
+  const isNonPayingStatus = ['lifetime', 'partnership'].includes(formData.subscription_status);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -217,6 +259,121 @@ export function TenantCommercialEditor({ tenant }: TenantCommercialEditorProps) 
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Status e Cobrança */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wallet className="w-5 h-5" />
+            Status e Cobrança
+          </CardTitle>
+          <CardDescription>Status da assinatura, método de pagamento e vencimento</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Status da Assinatura</Label>
+              <Select
+                value={formData.subscription_status}
+                onValueChange={(v) => setFormData({ ...formData, subscription_status: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUBSCRIPTION_STATUSES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${s.color}`} />
+                        {s.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {isNonPayingStatus && (
+                <p className="text-xs text-muted-foreground">
+                  ⚠️ Este status não gera MRR
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Método de Pagamento</Label>
+              <Select
+                value={formData.payment_method || 'none'}
+                onValueChange={(v) => setFormData({ ...formData, payment_method: v === 'none' ? '' : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Não definido</SelectItem>
+                  {PAYMENT_METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="billing_day">Dia do Vencimento</Label>
+              <Input
+                id="billing_day"
+                type="number"
+                min={1}
+                max={28}
+                placeholder="Ex: 10"
+                value={formData.billing_day ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value ? parseInt(e.target.value) : null;
+                  setFormData({ ...formData, billing_day: val && val >= 1 && val <= 28 ? val : null });
+                }}
+              />
+              <p className="text-xs text-muted-foreground">De 1 a 28</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="current_period_end">
+              <CalendarDays className="w-4 h-4 inline mr-1" />
+              Data de Vencimento Atual
+            </Label>
+            <Input
+              id="current_period_end"
+              type="date"
+              value={formData.current_period_end}
+              onChange={(e) => setFormData({ ...formData, current_period_end: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Data final do período atual de cobrança
+            </p>
+          </div>
+
+          {/* Quick status indicator */}
+          {formData.current_period_end && (
+            <div className="p-3 rounded-lg bg-muted/50 border">
+              <p className="text-sm">
+                <strong>Vencimento:</strong>{' '}
+                {new Date(formData.current_period_end + 'T12:00:00').toLocaleDateString('pt-BR', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+                {formData.billing_day && (
+                  <span className="text-muted-foreground"> · Todo dia {formData.billing_day}</span>
+                )}
+                {formData.payment_method && (
+                  <span className="text-muted-foreground">
+                    {' · '}
+                    {PAYMENT_METHODS.find(m => m.value === formData.payment_method)?.label || formData.payment_method}
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -411,6 +568,9 @@ export function TenantCommercialEditor({ tenant }: TenantCommercialEditorProps) 
             <div className="flex items-center gap-2 mb-2">
               <Calculator className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">MRR Calculado</span>
+              {isNonPayingStatus && (
+                <Badge variant="outline" className="text-xs">Não contabilizado no MRR global</Badge>
+              )}
             </div>
             <p className="text-3xl font-bold text-primary">
               {formatCurrency(calculatedMRR)}

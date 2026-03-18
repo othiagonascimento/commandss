@@ -10388,6 +10388,7 @@ export type Database = {
           ai_credits: number | null
           ai_token_limit: number | null
           api_url: string | null
+          billing_day: number | null
           blocked_at: string | null
           blocked_reason: string | null
           channel_price: number | null
@@ -10416,6 +10417,7 @@ export type Database = {
           limits: Json | null
           limits_override: Json | null
           name: string
+          payment_method: string | null
           plan_features: Json | null
           plan_id: string | null
           plan_type: string | null
@@ -10436,6 +10438,7 @@ export type Database = {
           ai_credits?: number | null
           ai_token_limit?: number | null
           api_url?: string | null
+          billing_day?: number | null
           blocked_at?: string | null
           blocked_reason?: string | null
           channel_price?: number | null
@@ -10464,6 +10467,7 @@ export type Database = {
           limits?: Json | null
           limits_override?: Json | null
           name: string
+          payment_method?: string | null
           plan_features?: Json | null
           plan_id?: string | null
           plan_type?: string | null
@@ -10484,6 +10488,7 @@ export type Database = {
           ai_credits?: number | null
           ai_token_limit?: number | null
           api_url?: string | null
+          billing_day?: number | null
           blocked_at?: string | null
           blocked_reason?: string | null
           channel_price?: number | null
@@ -10512,6 +10517,7 @@ export type Database = {
           limits?: Json | null
           limits_override?: Json | null
           name?: string
+          payment_method?: string | null
           plan_features?: Json | null
           plan_id?: string | null
           plan_type?: string | null

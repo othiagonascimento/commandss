@@ -156,14 +156,15 @@ async function getRevenueData() {
     const isTrialing = tenant.subscription_status === 'trialing';
     const isPending = tenant.subscription_status === 'pending';
     const isLifetime = tenant.subscription_status === 'lifetime';
+    const isPartnership = tenant.subscription_status === 'partnership';
     const isCanceled = tenant.subscription_status === 'canceled';
     const isFree = planSlug === 'free';
     const hasNoMonthlyFee = tenant.has_monthly_fee === false;
 
-    // Skip MRR for: blocked, trialing, pending, lifetime, canceled, free plan, or no monthly fee
-    if (isBlocked || isTrialing || isPending || isLifetime || isCanceled || isFree || hasNoMonthlyFee) {
+    // Skip MRR for: blocked, trialing, pending, lifetime, partnership, canceled, free plan, or no monthly fee
+    if (isBlocked || isTrialing || isPending || isLifetime || isPartnership || isCanceled || isFree || hasNoMonthlyFee) {
       if (isTrialing) trialTenants++;
-      else if (isLifetime || hasNoMonthlyFee) lifetimeTenants++;
+      else if (isLifetime || isPartnership || hasNoMonthlyFee) lifetimeTenants++;
       else if (isPending) pendingTenants++;
       else if (isFree) freeTenants++;
       
@@ -274,7 +275,7 @@ async function getTimeSeriesData(months: number = 12) {
     for (const t of tenants || []) {
       const planSlug = t.plan_id ? planSlugById.get(t.plan_id) : t.plan_type;
       const skip = t.is_blocked || t.subscription_status === 'trialing' || t.subscription_status === 'pending' ||
-        t.subscription_status === 'lifetime' || t.subscription_status === 'canceled' ||
+        t.subscription_status === 'lifetime' || t.subscription_status === 'partnership' || t.subscription_status === 'canceled' ||
         planSlug === 'free' || t.has_monthly_fee === false;
       if (skip) continue;
 
