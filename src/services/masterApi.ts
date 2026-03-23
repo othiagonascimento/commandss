@@ -49,14 +49,46 @@ async function callMasterApi<T>(
           : null;
 
       const realMessage = bodyError || error.message;
+      const status = response?.status;
 
       console.error('[MasterAPI] Error:', {
         name: (error as Error).name,
         error: (error as Error).message,
-        status: response?.status,
+        status,
         realMessage,
         responseBody,
       });
+
+      // Handle 401 - session expired
+      if (status === 401) {
+        const expiredMsg = 'Sessão expirada. Faça login novamente.';
+        // Attempt to refresh session automatically
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.warn('[MasterAPI] Session refresh failed, redirecting to login');
+          // Force re-login
+          await supabase.auth.signOut();
+          window.location.href = '/auth';
+          return { data: null, error: expiredMsg };
+        }
+        // Retry the request once after refresh
+        console.info('[MasterAPI] Session refreshed, retrying request...');
+        try {
+          const retryHeaders: Record<string, string> = {};
+          if (pathSuffix) retryHeaders['x-path-suffix'] = pathSuffix;
+          const { data: retryData, error: retryError } = await supabase.functions.invoke(functionName, {
+            method,
+            headers: retryHeaders,
+            body: requestBody || undefined,
+          });
+          if (retryError) {
+            return { data: null, error: expiredMsg };
+          }
+          return { data: retryData as T, error: null };
+        } catch {
+          return { data: null, error: expiredMsg };
+        }
+      }
 
       return { data: null, error: realMessage };
     }
