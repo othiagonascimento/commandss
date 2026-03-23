@@ -352,15 +352,35 @@ serve(async (req) => {
     : null;
 
   try {
-    // Verify auth
+    // Verify auth - resilient: try getUser, return 401 on failure (not 500)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('No authorization header');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Sessão não encontrada. Faça login novamente.', code: 'NO_AUTH_HEADER' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
-    if (userError || !userData.user) throw new Error('Invalid token');
+    
+    let currentUserId: string | null = null;
 
-    const currentUserId = userData.user.id;
+    // Attempt 1: getUser (validates token against auth server)
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    if (!userError && userData?.user) {
+      currentUserId = userData.user.id;
+    } else {
+      logStep('getUser failed, token may be expired', { error: userError?.message });
+      // Return 401 with descriptive message instead of generic 500
+      return new Response(
+        JSON.stringify({ 
+          error: 'Sessão expirada ou inválida. Faça login novamente.', 
+          code: 'INVALID_TOKEN',
+          detail: userError?.message 
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     logStep('User authenticated', { userId: currentUserId });
 
     const url = new URL(req.url);

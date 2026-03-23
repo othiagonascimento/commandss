@@ -1965,12 +1965,21 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          ai_generated: boolean | null
+          audience_count: number | null
+          audience_filters: Json | null
+          channel: string
           channel_id: string | null
           completed_at: string | null
           created_at: string | null
           created_by: string | null
+          excluded_flow_ids: string[] | null
           failed_count: number | null
+          flow_conflict_check: boolean | null
           id: string
+          message_content: string | null
+          message_template: Json | null
+          message_variations: Json | null
           messages: Json | null
           metadata: Json | null
           name: string
@@ -1978,6 +1987,7 @@ export type Database = {
           resend_unread_after_hours: number | null
           resend_unread_enabled: boolean | null
           scheduled_at: string | null
+          send_rate_per_minute: number | null
           sent_count: number | null
           started_at: string | null
           status: string | null
@@ -1985,14 +1995,24 @@ export type Database = {
           total_recipients: number | null
           type: string | null
           updated_at: string | null
+          whatsapp_instance_id: string | null
         }
         Insert: {
+          ai_generated?: boolean | null
+          audience_count?: number | null
+          audience_filters?: Json | null
+          channel?: string
           channel_id?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
+          excluded_flow_ids?: string[] | null
           failed_count?: number | null
+          flow_conflict_check?: boolean | null
           id?: string
+          message_content?: string | null
+          message_template?: Json | null
+          message_variations?: Json | null
           messages?: Json | null
           metadata?: Json | null
           name: string
@@ -2000,6 +2020,7 @@ export type Database = {
           resend_unread_after_hours?: number | null
           resend_unread_enabled?: boolean | null
           scheduled_at?: string | null
+          send_rate_per_minute?: number | null
           sent_count?: number | null
           started_at?: string | null
           status?: string | null
@@ -2007,14 +2028,24 @@ export type Database = {
           total_recipients?: number | null
           type?: string | null
           updated_at?: string | null
+          whatsapp_instance_id?: string | null
         }
         Update: {
+          ai_generated?: boolean | null
+          audience_count?: number | null
+          audience_filters?: Json | null
+          channel?: string
           channel_id?: string | null
           completed_at?: string | null
           created_at?: string | null
           created_by?: string | null
+          excluded_flow_ids?: string[] | null
           failed_count?: number | null
+          flow_conflict_check?: boolean | null
           id?: string
+          message_content?: string | null
+          message_template?: Json | null
+          message_variations?: Json | null
           messages?: Json | null
           metadata?: Json | null
           name?: string
@@ -2022,6 +2053,7 @@ export type Database = {
           resend_unread_after_hours?: number | null
           resend_unread_enabled?: boolean | null
           scheduled_at?: string | null
+          send_rate_per_minute?: number | null
           sent_count?: number | null
           started_at?: string | null
           status?: string | null
@@ -2029,6 +2061,7 @@ export type Database = {
           total_recipients?: number | null
           type?: string | null
           updated_at?: string | null
+          whatsapp_instance_id?: string | null
         }
         Relationships: [
           {
@@ -2058,6 +2091,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "campaigns_whatsapp_instance_id_fkey"
+            columns: ["whatsapp_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2216,6 +2256,192 @@ export type Database = {
           },
           {
             foreignKeyName: "channels_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      checkout_config: {
+        Row: {
+          button_text_lead_capture: string | null
+          button_text_whatsapp: string | null
+          checkout_mode: string
+          checkout_subtitle: string | null
+          checkout_title: string | null
+          created_at: string | null
+          default_whatsapp_label: string | null
+          default_whatsapp_number: string | null
+          id: string
+          include_product_images: boolean | null
+          include_product_links: boolean | null
+          lead_capture_delay_seconds: number | null
+          lead_capture_enabled: boolean | null
+          lead_capture_message: string | null
+          lead_capture_title: string | null
+          message_template: string | null
+          recovery_audience: string | null
+          recovery_destination_mode: string | null
+          recovery_idle_seconds: number | null
+          recovery_once_per_session: boolean | null
+          recovery_suppress_after_capture: boolean | null
+          recovery_trigger_mode: string | null
+          show_lead_capture_option: boolean | null
+          show_whatsapp_option: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          button_text_lead_capture?: string | null
+          button_text_whatsapp?: string | null
+          checkout_mode?: string
+          checkout_subtitle?: string | null
+          checkout_title?: string | null
+          created_at?: string | null
+          default_whatsapp_label?: string | null
+          default_whatsapp_number?: string | null
+          id?: string
+          include_product_images?: boolean | null
+          include_product_links?: boolean | null
+          lead_capture_delay_seconds?: number | null
+          lead_capture_enabled?: boolean | null
+          lead_capture_message?: string | null
+          lead_capture_title?: string | null
+          message_template?: string | null
+          recovery_audience?: string | null
+          recovery_destination_mode?: string | null
+          recovery_idle_seconds?: number | null
+          recovery_once_per_session?: boolean | null
+          recovery_suppress_after_capture?: boolean | null
+          recovery_trigger_mode?: string | null
+          show_lead_capture_option?: boolean | null
+          show_whatsapp_option?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          button_text_lead_capture?: string | null
+          button_text_whatsapp?: string | null
+          checkout_mode?: string
+          checkout_subtitle?: string | null
+          checkout_title?: string | null
+          created_at?: string | null
+          default_whatsapp_label?: string | null
+          default_whatsapp_number?: string | null
+          id?: string
+          include_product_images?: boolean | null
+          include_product_links?: boolean | null
+          lead_capture_delay_seconds?: number | null
+          lead_capture_enabled?: boolean | null
+          lead_capture_message?: string | null
+          lead_capture_title?: string | null
+          message_template?: string | null
+          recovery_audience?: string | null
+          recovery_destination_mode?: string | null
+          recovery_idle_seconds?: number | null
+          recovery_once_per_session?: boolean | null
+          recovery_suppress_after_capture?: boolean | null
+          recovery_trigger_mode?: string | null
+          show_lead_capture_option?: boolean | null
+          show_whatsapp_option?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checkout_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      checkout_sellers: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          custom_message_template: string | null
+          description: string | null
+          display_name: string
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          seller_id: string
+          tenant_id: string
+          updated_at: string | null
+          whatsapp_label: string | null
+          whatsapp_number: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          custom_message_template?: string | null
+          description?: string | null
+          display_name: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          seller_id: string
+          tenant_id: string
+          updated_at?: string | null
+          whatsapp_label?: string | null
+          whatsapp_number: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          custom_message_template?: string | null
+          description?: string | null
+          display_name?: string
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          seller_id?: string
+          tenant_id?: string
+          updated_at?: string | null
+          whatsapp_label?: string | null
+          whatsapp_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_sellers_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_sellers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_sellers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "checkout_sellers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
@@ -2602,6 +2828,7 @@ export type Database = {
           last_message_time: string | null
           last_summarized_at: string | null
           lead_id: string | null
+          marked_unread: boolean
           message_count_since_summary: number | null
           muted_until: string | null
           orchestrator_state: Json | null
@@ -2665,6 +2892,7 @@ export type Database = {
           last_message_time?: string | null
           last_summarized_at?: string | null
           lead_id?: string | null
+          marked_unread?: boolean
           message_count_since_summary?: number | null
           muted_until?: string | null
           orchestrator_state?: Json | null
@@ -2728,6 +2956,7 @@ export type Database = {
           last_message_time?: string | null
           last_summarized_at?: string | null
           lead_id?: string | null
+          marked_unread?: boolean
           message_count_since_summary?: number | null
           muted_until?: string | null
           orchestrator_state?: Json | null
@@ -3066,6 +3295,9 @@ export type Database = {
           installment_with_interest_rate: number | null
           is_enabled: boolean | null
           layout_template: string | null
+          lead_capture_enabled: boolean | null
+          lead_capture_message: string | null
+          lead_capture_title: string | null
           logo_size: string | null
           logo_url: string | null
           low_stock_threshold: number | null
@@ -3085,6 +3317,7 @@ export type Database = {
           product_faq: Json | null
           require_wholesale_approval: boolean | null
           secondary_color: string | null
+          share_image_url: string | null
           show_benefits_bar: boolean | null
           show_descriptions: boolean | null
           show_prices: boolean | null
@@ -3165,6 +3398,9 @@ export type Database = {
           installment_with_interest_rate?: number | null
           is_enabled?: boolean | null
           layout_template?: string | null
+          lead_capture_enabled?: boolean | null
+          lead_capture_message?: string | null
+          lead_capture_title?: string | null
           logo_size?: string | null
           logo_url?: string | null
           low_stock_threshold?: number | null
@@ -3184,6 +3420,7 @@ export type Database = {
           product_faq?: Json | null
           require_wholesale_approval?: boolean | null
           secondary_color?: string | null
+          share_image_url?: string | null
           show_benefits_bar?: boolean | null
           show_descriptions?: boolean | null
           show_prices?: boolean | null
@@ -3264,6 +3501,9 @@ export type Database = {
           installment_with_interest_rate?: number | null
           is_enabled?: boolean | null
           layout_template?: string | null
+          lead_capture_enabled?: boolean | null
+          lead_capture_message?: string | null
+          lead_capture_title?: string | null
           logo_size?: string | null
           logo_url?: string | null
           low_stock_threshold?: number | null
@@ -3283,6 +3523,7 @@ export type Database = {
           product_faq?: Json | null
           require_wholesale_approval?: boolean | null
           secondary_color?: string | null
+          share_image_url?: string | null
           show_benefits_bar?: boolean | null
           show_descriptions?: boolean | null
           show_prices?: boolean | null
@@ -6098,13 +6339,13 @@ export type Database = {
           campaign_id: string | null
           channel_id: string | null
           channel_type: string | null
-          conversation_id: string
+          conversation_id: string | null
           created_at: string
           delivered_at: string | null
           error_log: Json | null
           flow_id: string | null
           id: string
-          lead_id: string
+          lead_id: string | null
           max_attempts: number
           media_urls: string[] | null
           message_body: string | null
@@ -6124,13 +6365,13 @@ export type Database = {
           campaign_id?: string | null
           channel_id?: string | null
           channel_type?: string | null
-          conversation_id: string
+          conversation_id?: string | null
           created_at?: string
           delivered_at?: string | null
           error_log?: Json | null
           flow_id?: string | null
           id?: string
-          lead_id: string
+          lead_id?: string | null
           max_attempts?: number
           media_urls?: string[] | null
           message_body?: string | null
@@ -6150,13 +6391,13 @@ export type Database = {
           campaign_id?: string | null
           channel_id?: string | null
           channel_type?: string | null
-          conversation_id?: string
+          conversation_id?: string | null
           created_at?: string
           delivered_at?: string | null
           error_log?: Json | null
           flow_id?: string | null
           id?: string
-          lead_id?: string
+          lead_id?: string | null
           max_attempts?: number
           media_urls?: string[] | null
           message_body?: string | null
@@ -6173,31 +6414,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "message_queue_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "message_queue_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "message_queue_flow_id_fkey"
             columns: ["flow_id"]
             isOneToOne: false
             referencedRelation: "automation_flows"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "message_queue_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
           {
@@ -7102,6 +7322,7 @@ export type Database = {
           reserved_by: string | null
           search_vector: unknown
           seller_badge: string | null
+          seller_id: string | null
           sku: string | null
           status: string
           stock_quantity: number | null
@@ -7141,6 +7362,7 @@ export type Database = {
           reserved_by?: string | null
           search_vector?: unknown
           seller_badge?: string | null
+          seller_id?: string | null
           sku?: string | null
           status?: string
           stock_quantity?: number | null
@@ -7180,6 +7402,7 @@ export type Database = {
           reserved_by?: string | null
           search_vector?: unknown
           seller_badge?: string | null
+          seller_id?: string | null
           sku?: string | null
           status?: string
           stock_quantity?: number | null
@@ -7195,6 +7418,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -11312,6 +11542,153 @@ export type Database = {
           },
         ]
       }
+      webhook_events_raw: {
+        Row: {
+          created_at: string | null
+          error_log: string | null
+          event_type: string
+          exhausted_at: string | null
+          external_message_id: string | null
+          id: string
+          processed_at: string | null
+          provider: string | null
+          quarantine_reason: string | null
+          quarantine_until: string | null
+          raw_payload: Json
+          replay_attempts: number | null
+          replay_source: string | null
+          resolution_attempts: number | null
+          resolution_signals: Json | null
+          status: Database["public"]["Enums"]["webhook_event_status"] | null
+          tenant_id: string | null
+          updated_at: string | null
+          whatsapp_instance_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_log?: string | null
+          event_type: string
+          exhausted_at?: string | null
+          external_message_id?: string | null
+          id?: string
+          processed_at?: string | null
+          provider?: string | null
+          quarantine_reason?: string | null
+          quarantine_until?: string | null
+          raw_payload: Json
+          replay_attempts?: number | null
+          replay_source?: string | null
+          resolution_attempts?: number | null
+          resolution_signals?: Json | null
+          status?: Database["public"]["Enums"]["webhook_event_status"] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          whatsapp_instance_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_log?: string | null
+          event_type?: string
+          exhausted_at?: string | null
+          external_message_id?: string | null
+          id?: string
+          processed_at?: string | null
+          provider?: string | null
+          quarantine_reason?: string | null
+          quarantine_until?: string | null
+          raw_payload?: Json
+          replay_attempts?: number | null
+          replay_source?: string | null
+          resolution_attempts?: number | null
+          resolution_signals?: Json | null
+          status?: Database["public"]["Enums"]["webhook_event_status"] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          whatsapp_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_events_raw_replay_source_fkey"
+            columns: ["replay_source"]
+            isOneToOne: false
+            referencedRelation: "webhook_events_raw"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_events_raw_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_events_raw_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "webhook_events_raw_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "webhook_events_raw_whatsapp_instance_id_fkey"
+            columns: ["whatsapp_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_events_raw_backup_before_repair: {
+        Row: {
+          created_at: string | null
+          error_log: string | null
+          event_type: string | null
+          external_message_id: string | null
+          id: string | null
+          processed_at: string | null
+          provider: string | null
+          raw_payload: Json | null
+          status: Database["public"]["Enums"]["webhook_event_status"] | null
+          tenant_id: string | null
+          updated_at: string | null
+          whatsapp_instance_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_log?: string | null
+          event_type?: string | null
+          external_message_id?: string | null
+          id?: string | null
+          processed_at?: string | null
+          provider?: string | null
+          raw_payload?: Json | null
+          status?: Database["public"]["Enums"]["webhook_event_status"] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          whatsapp_instance_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_log?: string | null
+          event_type?: string | null
+          external_message_id?: string | null
+          id?: string | null
+          processed_at?: string | null
+          provider?: string | null
+          raw_payload?: Json | null
+          status?: Database["public"]["Enums"]["webhook_event_status"] | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          whatsapp_instance_id?: string | null
+        }
+        Relationships: []
+      }
       webhook_logs: {
         Row: {
           attempt_number: number | null
@@ -11322,11 +11699,14 @@ export type Database = {
           id: string
           instance_id: string | null
           payload: Json | null
+          processed_at: string | null
+          processing_result: string | null
           received_at: string | null
           response_body: string | null
           response_status: number | null
           success: boolean | null
-          webhook_id: string
+          tenant_id: string | null
+          webhook_id: string | null
         }
         Insert: {
           attempt_number?: number | null
@@ -11337,11 +11717,14 @@ export type Database = {
           id?: string
           instance_id?: string | null
           payload?: Json | null
+          processed_at?: string | null
+          processing_result?: string | null
           received_at?: string | null
           response_body?: string | null
           response_status?: number | null
           success?: boolean | null
-          webhook_id: string
+          tenant_id?: string | null
+          webhook_id?: string | null
         }
         Update: {
           attempt_number?: number | null
@@ -11352,11 +11735,14 @@ export type Database = {
           id?: string
           instance_id?: string | null
           payload?: Json | null
+          processed_at?: string | null
+          processing_result?: string | null
           received_at?: string | null
           response_body?: string | null
           response_status?: number | null
           success?: boolean | null
-          webhook_id?: string
+          tenant_id?: string | null
+          webhook_id?: string | null
         }
         Relationships: [
           {
@@ -11364,6 +11750,48 @@ export type Database = {
             columns: ["webhook_id"]
             isOneToOne: false
             referencedRelation: "webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_quarantine: {
+        Row: {
+          created_at: string | null
+          id: string
+          payload_instance_id: string | null
+          raw_payload: Json | null
+          reason: string
+          token_instance_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          payload_instance_id?: string | null
+          raw_payload?: Json | null
+          reason: string
+          token_instance_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          payload_instance_id?: string | null
+          raw_payload?: Json | null
+          reason?: string
+          token_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_quarantine_payload_instance_id_fkey"
+            columns: ["payload_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_quarantine_token_instance_id_fkey"
+            columns: ["token_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -12561,6 +12989,17 @@ export type Database = {
         Returns: undefined
       }
       can_view_wholesale_prices: { Args: never; Returns: boolean }
+      capture_cart_lead: {
+        Args: {
+          p_assigned_to?: string
+          p_name: string
+          p_phone: string
+          p_product_interest: string
+          p_source?: string
+          p_tenant_id?: string
+        }
+        Returns: string
+      }
       check_copilot_daily_debit: {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: boolean
@@ -12713,6 +13152,7 @@ export type Database = {
         Args: { p_default_hour?: number; p_lead_id: string }
         Returns: Json
       }
+      get_checkout_config: { Args: { p_tenant_id: string }; Returns: Json }
       get_effective_tenant_id: { Args: never; Returns: string }
       get_event_queue_stats: {
         Args: never
@@ -13230,6 +13670,20 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: Json
       }
+      replay_quarantine_events_list: {
+        Args: { p_limit?: number }
+        Returns: {
+          created_at: string
+          event_id: string
+          event_type: string
+          instance_id: string
+          quarantine_reason: string
+          raw_payload: Json
+          resolution_attempts: number
+          resolved_by: string
+          tenant_id: string
+        }[]
+      }
       reset_monthly_usage: { Args: never; Returns: undefined }
       resolve_master_alert:
         | { Args: { p_alert_id: string; p_user_id?: string }; Returns: boolean }
@@ -13242,6 +13696,23 @@ export type Database = {
             }
             Returns: boolean
           }
+      resolve_whatsapp_instance_by_signals: {
+        Args: {
+          p_instance_name: string
+          p_owner: string
+          p_persisted_instance_id: string
+          p_phone: string
+          p_webhook_token: string
+        }
+        Returns: {
+          error_reason: string
+          instance_id: string
+          is_strong_signal: boolean
+          resolved_by: string
+          signals_used: Json
+          tenant_id: string
+        }[]
+      }
       restore_lead: { Args: { p_lead_id: string }; Returns: undefined }
       select_best_instance: {
         Args: { p_strategy?: string; p_tenant_id: string }
@@ -13360,6 +13831,13 @@ export type Database = {
       task_recurrence: "none" | "daily" | "weekly" | "monthly"
       task_status: "pending" | "in_progress" | "completed" | "cancelled"
       user_status: "online" | "away" | "timed_break"
+      webhook_event_status:
+        | "PENDING"
+        | "PROCESSED"
+        | "FAILED"
+        | "IGNORED"
+        | "QUARANTINED"
+        | "EXHAUSTED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -13578,6 +14056,14 @@ export const Constants = {
       task_recurrence: ["none", "daily", "weekly", "monthly"],
       task_status: ["pending", "in_progress", "completed", "cancelled"],
       user_status: ["online", "away", "timed_break"],
+      webhook_event_status: [
+        "PENDING",
+        "PROCESSED",
+        "FAILED",
+        "IGNORED",
+        "QUARANTINED",
+        "EXHAUSTED",
+      ],
     },
   },
 } as const
