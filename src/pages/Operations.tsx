@@ -438,14 +438,23 @@ export default function Operations() {
               </CardContent>
             </Card>
           </div>
+          </section>
 
           {/* ─── Filas + IA — compact row ─────────────────────────────────── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <MiniMetric label="Event Queue" value={noData ? '—' : eqPending} sub={`${eqFailed} falhados`} status={queueStatus} />
-            <MiniMetric label="Message Queue" value={noData ? '—' : mqPending} sub={`${(mq?.sent as number) ?? 0} enviados`} status={mqPending > 0 ? 'warn' : 'ok'} />
-            <MiniMetric label="IA Latência" value={noData ? '—' : `${((ai?.latency_avg as number) ?? 0).toFixed(0)}ms`} sub={`Fallback: ${(((ai?.fallback_rate as number) ?? 0) * 100).toFixed(0)}%`} status={((ai?.fallback_rate as number) ?? 0) > 0.3 ? 'warn' : 'ok'} />
-            <MiniMetric label="Conversas" value={noData ? '—' : (conversations?.active as number) ?? 0} sub={`${(conversations?.unassigned as number) ?? 0} sem atendente`} status={((conversations?.unassigned as number) ?? 0) > 100 ? 'warn' : 'ok'} />
-          </div>
+          <section className="space-y-4">
+            <SectionHeader
+              numeral="04 /"
+              label="Pipelines"
+              title="Filas, IA & conversas"
+              description="Throughput em tempo real do motor operacional"
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <MiniMetric label="Event Queue" value={noData ? '—' : eqPending} sub={`${eqFailed} falhados`} status={queueStatus} />
+              <MiniMetric label="Message Queue" value={noData ? '—' : mqPending} sub={`${(mq?.sent as number) ?? 0} enviados`} status={mqPending > 0 ? 'warn' : 'ok'} />
+              <MiniMetric label="IA Latência" value={noData ? '—' : `${((ai?.latency_avg as number) ?? 0).toFixed(0)}ms`} sub={`Fallback: ${(((ai?.fallback_rate as number) ?? 0) * 100).toFixed(0)}%`} status={((ai?.fallback_rate as number) ?? 0) > 0.3 ? 'warn' : 'ok'} />
+              <MiniMetric label="Conversas" value={noData ? '—' : (conversations?.active as number) ?? 0} sub={`${(conversations?.unassigned as number) ?? 0} sem atendente`} status={((conversations?.unassigned as number) ?? 0) > 100 ? 'warn' : 'ok'} />
+            </div>
+          </section>
 
           {/* Event type breakdown if there's data */}
           {eq?.by_type && Object.keys(eq.by_type as object).length > 0 && (
