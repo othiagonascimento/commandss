@@ -1,519 +1,152 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Building2,
-  CreditCard,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  HelpCircle,
-  LogOut,
-  FlaskConical,
-  Calculator,
-  Link2,
-  Brain,
-  ChevronDown,
-  Briefcase,
-  BarChart3,
-  Cog,
-  UserCog,
-  FileText,
-  Clock,
-  Package,
-  Trophy,
-  Bell,
-  ClipboardList,
-  Radio,
-  DollarSign,
+  LayoutDashboard, Building2, Activity, Brain, Calculator, Trophy,
+  CreditCard, Link2, ClipboardList, Bell, BarChart3, Cog, UserCog,
+  FileText, Clock, Package, FlaskConical, DollarSign, Settings as SettingsIcon,
+  Radio, ChevronsLeft, ChevronsRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import uopaSymbol from '@/assets/uopa-symbol.png';
 
-interface AppSidebarProps {
+interface NavItem { icon: React.ComponentType<{ className?: string }>; label: string; path: string; permissionCheck?: () => boolean; }
+interface NavZone { id: string; label: string; items: NavItem[]; permissionCheck?: () => boolean; }
+
+interface Props {
   collapsed: boolean;
-  onCollapse: (collapsed: boolean) => void;
+  onCollapse: (c: boolean) => void;
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
 
-interface NavItem {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  path: string;
-  description?: string;
-  badge?: string;
-  permissionCheck?: () => boolean;
-}
-
-interface NavGroup {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  items: NavItem[];
-  permissionCheck?: () => boolean;
-}
-
-export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }: AppSidebarProps) {
+export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }: Props) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { signOut } = useAuth();
+  const { pathname } = useLocation();
   const permissions = usePermissions();
-  const [openGroups, setOpenGroups] = useState<string[]>(['overview', 'ai', 'clients', 'commercial', 'finops', 'system']);
 
-  // Define nav groups with permission checks
-  const navGroups: NavGroup[] = useMemo(() => [
+  const zones: NavZone[] = useMemo(() => [
     {
-      id: 'overview',
-      label: 'Visão Geral',
-      icon: BarChart3,
+      id: 'comando', label: 'Comando',
       permissionCheck: permissions.canViewDashboard,
       items: [
-        {
-          icon: LayoutDashboard,
-          label: 'Dashboard',
-          path: '/',
-          description: 'Métricas e visão geral',
-          permissionCheck: permissions.canViewDashboard,
-        },
-        {
-          icon: BarChart3,
-          label: 'Inteligência de Receita',
-          path: '/analytics',
-          description: 'Cohort, LTV, churn e métricas avançadas',
-          permissionCheck: permissions.canViewDashboard,
-        },
-        {
-          icon: Building2,
-          label: 'Saúde dos Tenants',
-          path: '/tenant-health',
-          description: 'Monitoramento de status e alertas',
-          permissionCheck: permissions.canViewTenants,
-        },
-        {
-          icon: Calculator,
-          label: 'Simulador Financeiro',
-          path: '/simulator',
-          description: 'Projeções e cenários',
-          badge: 'IA',
-          permissionCheck: permissions.canViewDashboard,
-        },
-        {
-          icon: Radio,
-          label: 'Centro de Operações',
-          path: '/operations',
-          description: 'Telemetria e alertas em tempo real',
-          permissionCheck: permissions.canViewDashboard,
-        },
+        { icon: LayoutDashboard, label: 'Dashboard',           path: '/',                permissionCheck: permissions.canViewDashboard },
+        { icon: Radio,           label: 'Operações',           path: '/operations',      permissionCheck: permissions.canViewDashboard },
+        { icon: Activity,        label: 'Saúde dos Tenants',   path: '/tenant-health',   permissionCheck: permissions.canViewTenants },
+        { icon: BarChart3,       label: 'Inteligência Receita',path: '/analytics',       permissionCheck: permissions.canViewDashboard },
+        { icon: Brain,           label: 'Diagnóstico de IA',   path: '/ai-diagnostics',  permissionCheck: permissions.canViewSettings },
+        { icon: Calculator,      label: 'Simulador',           path: '/simulator',       permissionCheck: permissions.canViewDashboard },
       ],
     },
     {
-      id: 'ai',
-      label: 'Inteligência Artificial',
-      icon: Brain,
-      permissionCheck: permissions.canViewTemplates,
-      items: [
-        {
-          icon: Brain,
-          label: 'Templates de Nicho',
-          path: '/admin/templates',
-          description: 'Treinar IA por segmento',
-          badge: 'IA',
-          permissionCheck: permissions.canViewTemplates,
-        },
-        {
-          icon: BarChart3,
-          label: 'Diagnóstico de IA',
-          path: '/ai-diagnostics',
-          description: 'Monitoramento em tempo real',
-          permissionCheck: permissions.canViewSettings,
-        },
-      ],
-    },
-    {
-      id: 'clients',
-      label: 'Gestão de Clientes',
-      icon: Building2,
+      id: 'clientes', label: 'Clientes',
       permissionCheck: () => permissions.canViewTenants() || permissions.canViewUsers(),
       items: [
-        {
-          icon: Building2,
-          label: 'Tenants',
-          path: '/tenants',
-          description: 'Empresas cadastradas',
-          permissionCheck: permissions.canViewTenants,
-        },
-        {
-          icon: Trophy,
-          label: 'Rankings',
-          path: '/rankings',
-          description: 'Engajamento e promoções',
-          permissionCheck: permissions.canViewUsers,
-        },
+        { icon: Building2,     label: 'Tenants',     path: '/tenants',          permissionCheck: permissions.canViewTenants },
+        { icon: Trophy,        label: 'Rankings',    path: '/rankings',         permissionCheck: permissions.canViewUsers },
+        { icon: ClipboardList, label: 'Cadastros',   path: '/admin/cadastros',  permissionCheck: permissions.canViewTenants },
+        { icon: Brain,         label: 'Templates',   path: '/admin/templates',  permissionCheck: permissions.canViewTemplates },
       ],
     },
     {
-      id: 'commercial',
-      label: 'Comercial',
-      icon: Briefcase,
-      permissionCheck: () => permissions.canViewSubscriptions() || permissions.canViewInviteLinks() || permissions.canViewBroadcasts(),
+      id: 'plataforma', label: 'Plataforma',
+      permissionCheck: () => true,
       items: [
-        {
-          icon: CreditCard,
-          label: 'Assinaturas',
-          path: '/subscriptions',
-          description: 'Planos e cobranças',
-          permissionCheck: permissions.canViewSubscriptions,
-        },
-        {
-          icon: Link2,
-          label: 'Links de Convite',
-          path: '/invite-links',
-          description: 'Links comerciais',
-          permissionCheck: permissions.canViewInviteLinks,
-        },
-        {
-          icon: ClipboardList,
-          label: 'Cadastros',
-          path: '/admin/cadastros',
-          description: 'Submissões de onboarding',
-          permissionCheck: permissions.canViewTenants,
-        },
-        {
-          icon: Bell,
-          label: 'Comunicados',
-          path: '/comunicados',
-          description: 'Avisos para admins',
-          permissionCheck: permissions.canViewBroadcasts,
-        },
-      ],
-    },
-    {
-      id: 'finops',
-      label: 'FinOps · Privado',
-      icon: DollarSign,
-      permissionCheck: () => permissions.isSuperAdmin(),
-      items: [
-        { icon: BarChart3, label: 'Command Center', path: '/finops', description: 'Visão executiva da economia', permissionCheck: () => permissions.isSuperAdmin() },
-        { icon: Building2, label: 'Tenants P&L', path: '/finops/tenants', description: 'Margem por tenant', permissionCheck: () => permissions.isSuperAdmin() },
-        { icon: UserCog, label: 'Usuários CRM', path: '/finops/users', description: 'Custo por operador', permissionCheck: () => permissions.isSuperAdmin() },
-        { icon: Brain, label: 'AI Economics', path: '/finops/ai', description: 'Custo por modelo/layer/op', permissionCheck: () => permissions.isSuperAdmin() },
-        { icon: Package, label: 'Mídia & Storage', path: '/finops/media', description: 'GCS, vídeo, uploads', permissionCheck: () => permissions.isSuperAdmin() },
-        { icon: Cog, label: 'Infra & Overhead', path: '/finops/infra', description: 'Load Balancer, CDN, GCS', permissionCheck: () => permissions.isSuperAdmin() },
-        { icon: Briefcase, label: 'Investor View', path: '/finops/investor', description: 'Sumário executivo', permissionCheck: () => permissions.isSuperAdmin() },
-        { icon: Bell, label: 'Anomalias', path: '/finops/anomalies', description: 'Inbox de alertas econômicos', permissionCheck: () => permissions.isSuperAdmin() },
-        { icon: Calculator, label: 'Pricing IA', path: '/finops/settings/pricing', description: 'Histórico de preços por modelo', permissionCheck: () => permissions.isSuperAdmin() },
-        { icon: FlaskConical, label: 'Output Budgets', path: '/finops/settings/budgets', description: 'Limites de tokens por layer', permissionCheck: () => permissions.isSuperAdmin() },
-      ],
-    },
-    {
-      id: 'system',
-      label: 'Sistema',
-      icon: Cog,
-      permissionCheck: () => permissions.canViewMasterUsers() || permissions.canViewFeatureFlags() || permissions.canViewSettings(),
-      items: [
-        {
-          icon: Calculator,
-          label: 'Custos de API',
-          path: '/api-costs',
-          description: 'Configurar custos por modelo de IA',
-          permissionCheck: permissions.canViewSettings,
-        },
-        {
-          icon: Package,
-          label: 'Planos',
-          path: '/plans',
-          description: 'Gestão de planos e limites',
-          permissionCheck: permissions.canViewSettings,
-        },
-        {
-          icon: UserCog,
-          label: 'Usuários Master',
-          path: '/master-users',
-          description: 'Gestão de acessos',
-          permissionCheck: permissions.canViewMasterUsers,
-        },
-        {
-          icon: FileText,
-          label: 'Logs de Atividade',
-          path: '/activity-logs',
-          description: 'Auditoria e histórico de ações',
-          permissionCheck: permissions.canViewSettings,
-        },
-        {
-          icon: Clock,
-          label: 'Tarefas Agendadas',
-          path: '/scheduled-tasks',
-          description: 'Ações automáticas programadas',
-          permissionCheck: permissions.canViewSettings,
-        },
-        {
-          icon: FlaskConical,
-          label: 'Recursos Beta',
-          path: '/feature-flags',
-          description: 'Ative funcionalidades experimentais para tenants específicos',
-          badge: '🧪',
-          permissionCheck: permissions.canViewFeatureFlags,
-        },
-        {
-          icon: Settings,
-          label: 'Configurações',
-          path: '/settings',
-          description: 'Config. do sistema',
-          permissionCheck: permissions.canViewSettings,
-        },
+        { icon: CreditCard,  label: 'Assinaturas',  path: '/subscriptions',  permissionCheck: permissions.canViewSubscriptions },
+        { icon: Link2,       label: 'Convites',     path: '/invite-links',   permissionCheck: permissions.canViewInviteLinks },
+        { icon: Bell,        label: 'Comunicados',  path: '/comunicados',    permissionCheck: permissions.canViewBroadcasts },
+        { icon: Package,     label: 'Planos',       path: '/plans',          permissionCheck: permissions.canViewSettings },
+        { icon: DollarSign,  label: 'FinOps',       path: '/finops',         permissionCheck: () => permissions.isSuperAdmin() },
+        { icon: Calculator,  label: 'Custos API',   path: '/api-costs',      permissionCheck: permissions.canViewSettings },
+        { icon: UserCog,     label: 'Master Users', path: '/master-users',   permissionCheck: permissions.canViewMasterUsers },
+        { icon: FileText,    label: 'Logs',         path: '/activity-logs',  permissionCheck: permissions.canViewSettings },
+        { icon: Clock,       label: 'Tarefas',      path: '/scheduled-tasks',permissionCheck: permissions.canViewSettings },
+        { icon: FlaskConical,label: 'Beta',         path: '/feature-flags',  permissionCheck: permissions.canViewFeatureFlags },
+        { icon: SettingsIcon,label: 'Configurações',path: '/settings',       permissionCheck: permissions.canViewSettings },
       ],
     },
   ], [permissions]);
 
-  // Filter items based on permissions (if super admin or no master user yet, show all)
-  const filteredNavGroups = useMemo(() => {
-    // While permissions load, show nav to avoid blank menu on mobile
-    if (permissions.isLoading) {
-      return navGroups;
-    }
+  const filtered = useMemo(() => {
+    const allow = permissions.isSuperAdmin() || !permissions.masterUser
+      || ((permissions.userRoles?.length ?? 0) === 0 && (permissions.userPermissions?.length ?? 0) === 0);
+    return zones
+      .filter(z => allow || !z.permissionCheck || z.permissionCheck())
+      .map(z => ({ ...z, items: z.items.filter(i => allow || !i.permissionCheck || i.permissionCheck!()) }))
+      .filter(z => z.items.length > 0);
+  }, [zones, permissions]);
 
-    // If user is super admin OR no master user record exists (legacy/unregistered user), show everything
-    if (permissions.isSuperAdmin() || !permissions.masterUser) {
-      return navGroups;
-    }
+  const isActive = (path: string) => path === '/' ? pathname === '/' : pathname.startsWith(path);
 
-    // If master user exists but has no roles/permissions configured yet, don't hide the whole menu
-    if ((permissions.userRoles?.length ?? 0) === 0 && (permissions.userPermissions?.length ?? 0) === 0) {
-      return navGroups;
-    }
+  useEffect(() => { if (mobileOpen) document.body.style.overflow = 'hidden'; else document.body.style.overflow = ''; }, [mobileOpen]);
 
-    return navGroups
-      .filter(group => !group.permissionCheck || group.permissionCheck())
-      .map(group => ({
-        ...group,
-        items: group.items.filter(item => !item.permissionCheck || item.permissionCheck()),
-      }))
-      .filter(group => group.items.length > 0);
-  }, [navGroups, permissions.isLoading, permissions.masterUser, permissions.userRoles, permissions.userPermissions, permissions]);
-
-  const toggleGroup = (groupId: string) => {
-    setOpenGroups((prev) =>
-      prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]
-    );
-  };
-
-  const isPathActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
-    return location.pathname.startsWith(path);
-  };
-
-  const isGroupActive = (group: NavGroup) => {
-    return group.items.some((item) => isPathActive(item.path));
-  };
-
-  const NavItemButton = ({ item, index }: { item: NavItem; index: number }) => {
-    const isActive = isPathActive(item.path);
-
-    const handleClick = () => {
-      navigate(item.path);
-      onMobileClose();
-    };
-
-    const button = (
+  const Item = ({ item }: { item: NavItem }) => {
+    const active = isActive(item.path);
+    const btn = (
       <button
-        onClick={handleClick}
+        onClick={() => { navigate(item.path); onMobileClose(); }}
         className={cn(
-          'w-full flex items-center gap-3 px-3 py-2 rounded-lg',
-          'transition-all duration-200',
-          'hover:bg-sidebar-accent',
-          'group relative',
-          collapsed ? 'justify-center' : 'pl-9',
-          isActive && 'bg-sidebar-accent text-primary font-medium'
+          'group relative w-full flex items-center gap-3 h-9 transition-colors',
+          collapsed ? 'justify-center' : 'px-3',
+          active ? 'text-ink' : 'text-ink-2 hover:text-ink',
         )}
       >
-        <item.icon
-          className={cn(
-            'h-4 w-4 flex-shrink-0 transition-colors',
-            isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
-          )}
-        />
-        {!collapsed && (
-          <div className="flex-1 flex items-center justify-between overflow-hidden">
-            <span className="text-sm whitespace-nowrap">{item.label}</span>
-            {item.badge && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                {item.badge}
-              </span>
-            )}
-          </div>
-        )}
-
-        {isActive && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-r-full bg-primary" />
-        )}
+        {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-plasma" />}
+        <item.icon className={cn('h-[15px] w-[15px] shrink-0', active && 'text-plasma')} />
+        {!collapsed && <span className="text-[13px] truncate">{item.label}</span>}
       </button>
     );
-
     if (collapsed) {
       return (
-        <Tooltip key={item.label}>
-          <TooltipTrigger asChild>{button}</TooltipTrigger>
-          <TooltipContent side="right">
-            <p className="font-medium">{item.label}</p>
-            {item.description && (
-              <p className="text-xs text-muted-foreground">{item.description}</p>
-            )}
-          </TooltipContent>
+        <Tooltip key={item.path}>
+          <TooltipTrigger asChild>{btn}</TooltipTrigger>
+          <TooltipContent side="right" className="font-mono text-[11px] uppercase tracking-wider">{item.label}</TooltipContent>
         </Tooltip>
       );
     }
-
-    return button;
+    return btn;
   };
 
-  const sidebarContent = (
+  const content = (
     <>
-      {/* Toggle Button - Desktop */}
-      <div className="hidden lg:flex justify-end p-3 border-b border-border">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onCollapse(!collapsed)}
-          className="h-8 gap-2 text-muted-foreground"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <>
-              <ChevronLeft className="h-4 w-4" />
-              <span className="text-xs">Recolher</span>
-            </>
+      {/* Brand */}
+      <div className={cn('h-14 flex items-center hairline-b px-4', collapsed && 'justify-center px-0')}>
+        <div className="flex items-center gap-2.5">
+          <img src={uopaSymbol} alt="UÔPA" className="h-7 w-auto" />
+          {!collapsed && (
+            <div className="leading-none">
+              <div className="font-display text-[13px] font-semibold tracking-tight text-ink">UÔPA</div>
+              <div className="editorial-label mt-0.5">Master Console</div>
+            </div>
           )}
-        </Button>
-      </div>
-
-      {/* Close Button - Mobile */}
-      <div className="flex lg:hidden justify-between items-center p-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <img 
-            src="/placeholder.svg" 
-            alt="UÔPA" 
-            className="h-6 w-auto"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
-          <span className="font-semibold text-foreground">Menu</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={onMobileClose} className="h-10 w-10">
-          <X className="h-5 w-5" />
-        </Button>
       </div>
 
-      {/* Navigation Groups */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {filteredNavGroups.map((group) => {
-          const isOpen = openGroups.includes(group.id);
-          const groupActive = isGroupActive(group);
-
-          // Single item groups render directly
-          if (group.items.length === 1) {
-            return (
-              <div key={group.id} className="mb-1">
-                <NavItemButton item={group.items[0]} index={0} />
+      {/* Zones */}
+      <nav className="flex-1 overflow-y-auto custom-scrollbar py-3">
+        {filtered.map((zone, zi) => (
+          <div key={zone.id} className={cn('mb-4', zi > 0 && 'pt-3 hairline-t')}>
+            {!collapsed && (
+              <div className="px-4 mb-1.5 flex items-center justify-between">
+                <span className="editorial-label">{zone.label}</span>
+                <span className="font-mono text-[10px] text-ink-faint tabular">{String(zi + 1).padStart(2, '0')}</span>
               </div>
-            );
-          }
-
-          // Collapsed sidebar shows only icons
-          if (collapsed) {
-            return (
-              <div key={group.id} className="mb-2">
-                {group.items.map((item, idx) => (
-                  <NavItemButton key={item.path} item={item} index={idx} />
-                ))}
-              </div>
-            );
-          }
-
-          // Full sidebar with collapsible groups
-          return (
-            <Collapsible
-              key={group.id}
-              open={isOpen}
-              onOpenChange={() => toggleGroup(group.id)}
-              className="mb-1"
-            >
-              <CollapsibleTrigger className="w-full">
-                <div
-                  className={cn(
-                    'flex items-center justify-between px-3 py-2 rounded-lg',
-                    'text-sm font-medium text-muted-foreground',
-                    'hover:bg-sidebar-accent hover:text-foreground',
-                    'transition-colors cursor-pointer',
-                    groupActive && 'text-foreground'
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <group.icon className="h-4 w-4" />
-                    <span>{group.label}</span>
-                  </div>
-                  <ChevronDown
-                    className={cn(
-                      'h-4 w-4 transition-transform duration-200',
-                      isOpen && 'rotate-180'
-                    )}
-                  />
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-1 space-y-0.5">
-                {group.items.map((item, idx) => (
-                  <NavItemButton key={item.path} item={item} index={idx} />
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          );
-        })}
+            )}
+            <div className="flex flex-col">
+              {zone.items.map(item => <Item key={item.path} item={item} />)}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      {/* Bottom Section */}
-      <div className="p-3 border-t border-border space-y-1">
+      {/* Collapse */}
+      <div className="hidden lg:flex hairline-t p-2 justify-end">
         <button
-          className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 rounded-lg',
-            'transition-all duration-200',
-            'hover:bg-sidebar-accent',
-            'text-muted-foreground hover:text-foreground',
-            collapsed && 'justify-center'
-          )}
+          onClick={() => onCollapse(!collapsed)}
+          className="h-8 px-2 inline-flex items-center gap-1.5 text-ink-3 hover:text-ink font-mono text-[10px] uppercase tracking-wider"
         >
-          <HelpCircle className="h-4 w-4 flex-shrink-0" />
-          {!collapsed && (
-            <span className="text-sm whitespace-nowrap">Ajuda</span>
-          )}
-        </button>
-
-        <button
-          onClick={() => signOut()}
-          className={cn(
-            'w-full flex items-center gap-3 px-3 py-2 rounded-lg',
-            'transition-all duration-200',
-            'hover:bg-destructive/10',
-            'text-muted-foreground hover:text-destructive',
-            collapsed && 'justify-center'
-          )}
-        >
-          <LogOut className="h-4 w-4 flex-shrink-0" />
-          {!collapsed && (
-            <span className="text-sm whitespace-nowrap">Sair</span>
-          )}
+          {collapsed ? <ChevronsRight className="h-3.5 w-3.5" /> : (<><ChevronsLeft className="h-3.5 w-3.5" /> recolher</>)}
         </button>
       </div>
     </>
@@ -521,34 +154,25 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
 
   return (
     <>
-      {/* Desktop Sidebar */}
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onMobileClose} />
+          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-canvas hairline-r flex flex-col">
+            {content}
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop rail */}
       <aside
-        style={{ width: collapsed ? 72 : 280 }}
         className={cn(
-          'hidden lg:flex flex-col',
-          'fixed left-0 top-16 bottom-0',
-          'bg-card border-r border-border',
-          'z-40 transition-[width] duration-300 ease-in-out'
+          'hidden lg:flex fixed left-0 top-0 bottom-0 z-40 flex-col bg-canvas hairline-r transition-[width] duration-200',
+          collapsed ? 'w-[56px]' : 'w-[232px]'
         )}
       >
-        {sidebarContent}
+        {content}
       </aside>
-
-      {/* Mobile Overlay */}
-      {mobileOpen && (
-        <>
-          <div
-            onClick={onMobileClose}
-            className="lg:hidden fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 animate-in fade-in duration-200"
-            aria-label="Fechar menu"
-          />
-          <aside
-            className="lg:hidden fixed left-0 top-0 bottom-0 w-[300px] max-w-[85vw] bg-card border-r border-border z-50 flex flex-col animate-in slide-in-from-left duration-300 shadow-xl"
-          >
-            {sidebarContent}
-          </aside>
-        </>
-      )}
     </>
   );
 }
