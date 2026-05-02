@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import uopaSymbol from '@/assets/uopa-symbol.png';
+import uopaLogoWhite from '@/assets/uopa-logo-white.png';
 
 interface NavItem { icon: React.ComponentType<{ className?: string }>; label: string; path: string; permissionCheck?: () => boolean; }
 interface NavZone { id: string; label: string; items: NavItem[]; permissionCheck?: () => boolean; }
