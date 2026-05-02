@@ -213,7 +213,7 @@ export function HomeBrazilMap() {
               return (
                 <path
                   key={uf}
-                  d={pathGen(f as any) || ''}
+                  d={buildPath((f as any).geometry)}
                   fill={fillFor(uf)}
                   stroke={isSel || isHover ? 'hsl(var(--brand-magenta))' : 'hsl(var(--brand-purple) / 0.45)'}
                   strokeWidth={isSel ? 1.6 : isHover ? 1.2 : 0.85}
