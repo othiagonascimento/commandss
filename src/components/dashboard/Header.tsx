@@ -107,16 +107,25 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
         </button>
 
         {/* Status + bell + avatar */}
-        <div className="flex items-center gap-3 ml-auto sm:ml-3">
+        <div className="flex items-center gap-2 ml-auto sm:ml-2">
           <div className="hidden md:block">
             <StatusDot tone={opsTone} label={opsLabel} />
           </div>
-          <button onClick={() => navigate('/operations')} className="relative p-1.5 text-ink-2 hover:text-ink">
+          <button
+            onClick={toggle}
+            className="p-1.5 text-ink-2 hover:text-plasma transition-colors"
+            aria-label={hidden ? 'Mostrar valores financeiros' : 'Ocultar valores financeiros'}
+            title={hidden ? 'Mostrar financeiros' : 'Ocultar financeiros'}
+          >
+            {hidden ? <Eye className="h-[15px] w-[15px]" /> : <EyeOff className="h-[15px] w-[15px]" />}
+          </button>
+          <ThemeToggle />
+          <button onClick={() => navigate('/operations')} className="relative p-1.5 text-ink-2 hover:text-ink transition-colors">
             <Bell className="h-[15px] w-[15px]" />
-            {alertCount > 0 && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-coral" />}
+            {alertCount > 0 && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-coral animate-pulse-ring" />}
           </button>
           <div className="hidden sm:flex items-center gap-2 pl-3 hairline-l h-8">
-            <div className="w-7 h-7 rounded-sm bg-plasma text-plasma-foreground font-mono text-[11px] font-semibold flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-brand-gradient text-white font-mono text-[11px] font-semibold flex items-center justify-center shadow-sm">
               {initials}
             </div>
           </div>
