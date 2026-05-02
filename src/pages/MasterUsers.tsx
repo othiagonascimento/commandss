@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollableTabsList } from '@/components/ui/scrollable-tabs';
 import {
   Table,
   TableBody,
@@ -297,20 +298,13 @@ export default function MasterUsers() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <TabsList>
-            <TabsTrigger value="users" className="gap-2">
-              <Users className="h-4 w-4" />
-              Usuários
-            </TabsTrigger>
-            <TabsTrigger value="roles" className="gap-2">
-              <Shield className="h-4 w-4" />
-              Cargos
-            </TabsTrigger>
-            <TabsTrigger value="permissions" className="gap-2">
-              <Lock className="h-4 w-4" />
-              Permissões
-            </TabsTrigger>
-          </TabsList>
+          <ScrollableTabsList
+            tabs={[
+              { value: 'users', label: 'Usuários', shortLabel: 'Usuários', icon: Users },
+              { value: 'roles', label: 'Cargos', shortLabel: 'Cargos', icon: Shield },
+              { value: 'permissions', label: 'Permissões', shortLabel: 'Perm.', icon: Lock },
+            ]}
+          />
 
           <div className="flex items-center gap-3">
             <div className="relative">
