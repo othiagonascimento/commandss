@@ -136,14 +136,19 @@ export default function Index() {
           <CardContent className="p-6">
             {isLoading ? (
               <div className="space-y-3"><Skeleton className="h-12 w-32" /><Skeleton className="h-4 w-48" /></div>
+            ) : overviewSchemaInvalid ? (
+              <div className="text-sm text-destructive">⚠ Contrato inválido</div>
             ) : (
               <>
                 <div className="flex items-center gap-2 mb-1">
                   <Users className="h-5 w-5 text-primary" />
                   <span className="text-sm font-medium text-primary">Usuários</span>
+                  <DataQualityBadge meta={overviewMeta} className="ml-auto" />
                 </div>
                 <p className="text-5xl font-black tracking-tight text-foreground">
-                  {overview ? fmtNum(overview.usage.total_users) : '—'}
+                  <MetricValue meta={overviewMeta}>
+                    {overview ? fmtNum(overview.usage.total_users) : '—'}
+                  </MetricValue>
                 </p>
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-3">
                   <Building2 className="h-3.5 w-3.5" />
@@ -159,18 +164,31 @@ export default function Index() {
           <CardContent className="p-6">
             {isLoading ? (
               <div className="space-y-3"><Skeleton className="h-12 w-32" /><Skeleton className="h-4 w-48" /></div>
+            ) : overviewSchemaInvalid ? (
+              <div className="text-sm text-destructive">⚠ Contrato inválido</div>
             ) : (
               <>
                 <div className="flex items-center gap-2 mb-1">
                   <Activity className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                   <span className="text-sm font-medium text-violet-600 dark:text-violet-400">Mensagens</span>
+                  <DataQualityBadge meta={overviewMeta} className="ml-auto" />
                 </div>
                 <p className="text-5xl font-black tracking-tight text-foreground">
-                  {overview ? fmtNum(overview.usage.total_messages) : '—'}
+                  <MetricValue meta={overviewMeta}>
+                    {overview ? fmtNum(overview.usage.total_messages) : '—'}
+                  </MetricValue>
                 </p>
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-3">
-                  <Wifi className="h-3.5 w-3.5" />
-                  <span>{connectedWA > 0 ? `${connectedWA} canal${connectedWA > 1 ? 'is' : ''} online` : 'sem canais'}</span>
+                <div className="flex items-center gap-1.5 text-sm mt-3">
+                  {snapMissing ? (
+                    <span className="text-muted-foreground italic">canais sem leitura recente</span>
+                  ) : (
+                    <>
+                      <Wifi className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className={cn(snapStale ? 'text-destructive' : 'text-muted-foreground')}>
+                        {connectedWA > 0 ? `${connectedWA} canal${connectedWA > 1 ? 'is' : ''} online` : 'sem canais'}
+                      </span>
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -182,26 +200,33 @@ export default function Index() {
           <CardContent className="p-6">
             {isLoading ? (
               <div className="space-y-3"><Skeleton className="h-12 w-32" /><Skeleton className="h-4 w-48" /></div>
+            ) : revenueSchemaInvalid ? (
+              <div className="text-sm text-destructive">⚠ Contrato inválido</div>
             ) : (
               <>
                 <div className="flex items-center gap-2 mb-1">
                   <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">MRR</span>
-                  {revenue?.growth_percentage !== undefined && (
-                    <Badge variant="secondary" className={cn('text-[10px] gap-0.5 ml-auto', revenue.growth_percentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
+                  {revenue?.growth_percentage !== undefined && !isUntrustedRead(revenueMeta) && (
+                    <Badge variant="secondary" className={cn('text-[10px] gap-0.5', revenue.growth_percentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
                       {revenue.growth_percentage >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
                       {Math.abs(revenue.growth_percentage)}%
                     </Badge>
                   )}
+                  <DataQualityBadge meta={revenueMeta} className="ml-auto" />
                 </div>
                 <p className="text-5xl font-black tracking-tight text-foreground">
-                  {revenue ? fmtCurrency(revenue.mrr) : '—'}
+                  <MetricValue meta={revenueMeta}>
+                    {revenue ? fmtCurrency(revenue.mrr) : '—'}
+                  </MetricValue>
                 </p>
                 <div className="flex items-center gap-4 mt-3">
                   <div className="text-sm text-muted-foreground">
-                    ARR <span className="font-semibold text-foreground">{revenue ? fmtCurrency(revenue.arr) : '—'}</span>
+                    ARR <span className="font-semibold text-foreground">
+                      <MetricValue meta={revenueMeta}>{revenue ? fmtCurrency(revenue.arr) : '—'}</MetricValue>
+                    </span>
                   </div>
-                  {revenue?.breakdown && (
+                  {revenue?.breakdown && !shouldHideMetric(revenueMeta) && (
                     <div className="text-sm text-muted-foreground">
                       {revenue.breakdown.paying_tenants} pagante{revenue.breakdown.paying_tenants !== 1 ? 's' : ''}
                     </div>
@@ -212,6 +237,7 @@ export default function Index() {
           </CardContent>
         </Card>
       </div>
+
 
       {/* ─── Secondary Metrics Row ────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
