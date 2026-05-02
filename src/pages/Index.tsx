@@ -57,7 +57,7 @@ export default function Index() {
 
   return (
     <DashboardLayout>
-      {/* ─── 01 HERO EXECUTIVO ─────────────────────────────────────── */}
+      {/* ─── 01 HERO EXECUTIVO + MAPA SOBERANO ─────────────────────── */}
       <section className="mb-10 sm:mb-14 animate-fade-in">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-baseline gap-3">
@@ -76,65 +76,65 @@ export default function Index() {
           </div>
         </div>
 
-        {/* Hero principal: MENSAGENS dominantes (impacto visual + social proof) */}
-        <Surface variant="raised" crosshairs className="relative overflow-hidden p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-8 lg:gap-12 items-end glow-hover">
-          {/* Glow gradient signature */}
-          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none opacity-20"
-            style={{ background: 'var(--brand-gradient)', filter: 'blur(80px)' }} />
+        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-5 items-stretch">
+          {/* Hero principal: MENSAGENS dominantes */}
+          <Surface variant="raised" crosshairs className="relative overflow-hidden p-6 sm:p-8 flex flex-col justify-between glow-hover min-w-0">
+            <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none opacity-20"
+              style={{ background: 'var(--brand-gradient)', filter: 'blur(80px)' }} />
 
-          <div className="relative min-w-0">
-            <div className="flex items-center gap-2 mb-4">
-              <StatusDot tone={systemTone} />
-              <span className="font-mono text-[11px] uppercase tracking-wider text-ink-2">
-                {systemTone === 'success' ? 'Operação saudável'
-                 : systemTone === 'warning' ? 'Sinais de atenção'
-                 : `${alertCount + cronFails.length + waOffline.length} incidentes ativos`}
-              </span>
-            </div>
-            <div className="editorial-label mb-2">MENSAGENS PROCESSADAS / 30D</div>
-            <div className="font-display font-bold leading-[0.85] tracking-tighter text-brand-gradient"
-              style={{ fontSize: 'clamp(3.5rem, 11vw, 9rem)' }}>
-              <MetricValue meta={overviewMeta}>
-                {overview ? (
-                  <AnimatedCounter
-                    value={overview.usage.total_messages}
-                    format={(n) => fmtNum(n)}
-                  />
-                ) : '—'}
-              </MetricValue>
-            </div>
-            {overview && (
-              <div className="mt-4 flex items-center gap-5 flex-wrap font-mono text-xs text-ink-2 tabular">
-                <span className="flex items-center gap-1.5">
-                  <Building2 className="h-3 w-3 text-plasma" />
-                  <span className="text-ink font-semibold">{fmtNum(overview.tenants.total)}</span> tenants
-                </span>
-                <span className="text-ink-faint">/</span>
-                <span className="flex items-center gap-1.5">
-                  <Users className="h-3 w-3 text-plasma" />
-                  <span className="text-ink font-semibold">{fmtNum(overview.usage.total_users)}</span> usuários
-                </span>
-                <span className="text-ink-faint">/</span>
-                <span className="flex items-center gap-1.5">
-                  <Wifi className="h-3 w-3" />
-                  <span className="text-ink font-semibold">{waOnline}</span> canais online
+            <div className="relative min-w-0">
+              <div className="flex items-center gap-2 mb-4">
+                <StatusDot tone={systemTone} />
+                <span className="font-mono text-[11px] uppercase tracking-wider text-ink-2">
+                  {systemTone === 'success' ? 'Operação saudável'
+                   : systemTone === 'warning' ? 'Sinais de atenção'
+                   : `${alertCount + cronFails.length + waOffline.length} incidentes ativos`}
                 </span>
               </div>
-            )}
-          </div>
+              <div className="editorial-label mb-2">MENSAGENS PROCESSADAS / 30D</div>
+              <div className="font-display font-bold leading-[0.85] tracking-tighter text-brand-gradient"
+                style={{ fontSize: 'clamp(3rem, 8vw, 7rem)' }}>
+                <MetricValue meta={overviewMeta}>
+                  {overview ? (
+                    <AnimatedCounter
+                      value={overview.usage.total_messages}
+                      format={(n) => fmtNum(n)}
+                    />
+                  ) : '—'}
+                </MetricValue>
+              </div>
+              {overview && (
+                <div className="mt-4 flex items-center gap-5 flex-wrap font-mono text-xs text-ink-2 tabular">
+                  <span className="flex items-center gap-1.5">
+                    <Building2 className="h-3 w-3 text-plasma" />
+                    <span className="text-ink font-semibold">{fmtNum(overview.tenants.total)}</span> tenants
+                  </span>
+                  <span className="text-ink-faint">/</span>
+                  <span className="flex items-center gap-1.5">
+                    <Users className="h-3 w-3 text-plasma" />
+                    <span className="text-ink font-semibold">{fmtNum(overview.usage.total_users)}</span> usuários
+                  </span>
+                  <span className="text-ink-faint">/</span>
+                  <span className="flex items-center gap-1.5">
+                    <Wifi className="h-3 w-3" />
+                    <span className="text-ink font-semibold">{waOnline}</span> canais online
+                  </span>
+                </div>
+              )}
+            </div>
 
-          <div className="grid grid-cols-3 gap-3 relative min-w-0">
-            <MiniHero label="Tenants" value={overview ? fmtNum(overview.tenants.total) : '—'} sub={overview ? `${overview.recent_activity.new_tenants_7d} novos /7d` : ''} tone="plasma" big />
-            <MiniHero label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} tone={overview && overview.subscriptions.trial > 3 ? 'ember' : 'default'} />
-            <MiniHero label="Leads" value={overview ? fmtNum(overview.usage.total_leads) : '—'} />
-          </div>
-        </Surface>
-      </section>
+            <div className="grid grid-cols-3 gap-3 mt-8 relative min-w-0">
+              <MiniHero label="Tenants" value={overview ? fmtNum(overview.tenants.total) : '—'} sub={overview ? `${overview.recent_activity.new_tenants_7d} novos /7d` : ''} tone="plasma" big />
+              <MiniHero label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} tone={overview && overview.subscriptions.trial > 3 ? 'ember' : 'default'} />
+              <MiniHero label="Leads" value={overview ? fmtNum(overview.usage.total_leads) : '—'} />
+            </div>
+          </Surface>
 
-      {/* ─── 02 MAPA SOBERANO ────── */}
-      <section className="mb-10 sm:mb-14">
-        <SectionHeader numeral="02 /" label="Distribuição Nacional" title="Cartografia operacional" />
-        <HomeBrazilMap />
+          {/* Mapa soberano lateral */}
+          <div className="min-w-0">
+            <HomeBrazilMap />
+          </div>
+        </div>
       </section>
 
       {/* ─── 03 PULSO OPERACIONAL ────── */}
