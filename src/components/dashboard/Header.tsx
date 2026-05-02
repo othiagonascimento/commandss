@@ -65,7 +65,7 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
   const opsLabel = alertCount > 0 ? `${alertCount} alertas` : stale ? 'snapshot velho' : 'sistema ok';
 
   const tickerItems = [
-    revenue?.mrr ? { label: 'MRR', value: `R$ ${fmtCompact(revenue.mrr)}`, tone: 'plasma' as const } : null,
+    revenue?.mrr ? { label: 'MRR', value: hidden ? '••••' : `R$ ${fmtCompact(revenue.mrr)}`, tone: 'plasma' as const } : null,
     overview?.tenants?.active != null ? { label: 'Tenants', value: String(overview.tenants.active), tone: 'default' as const } : null,
     overview?.usage?.total_messages != null ? { label: 'MSG/30D', value: fmtCompact(overview.usage.total_messages) } : null,
     overview?.usage?.total_users != null ? { label: 'USERS', value: fmtCompact(overview.usage.total_users) } : null,
