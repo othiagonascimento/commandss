@@ -23,8 +23,8 @@ interface ApiResponse<T> {
  * The edge function lives in the external Supabase (CRM/backopas) and accepts
  * either body.action, query param action, or x-path-suffix header.
  */
-async function callFinOps<T>(action: string, params: Record<string, unknown> = {}): Promise<ApiResponse<T>> {
-  const body = { action, ...params };
+async function callFinOps<T>(action: string, params: Record<string, unknown> | object = {}): Promise<ApiResponse<T>> {
+  const body = { action, ...(params as Record<string, unknown>) };
 
   const invoke = async () => {
     const { data, error, response } = await supabase.functions.invoke('master-analytics', {
