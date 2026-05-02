@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { safeArray } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Loader2, Plus, Pencil, Check } from 'lucide-react';
+import { Loader2, Plus, Pencil, Check, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { moduleConfig, categoryColors, groupModulesByCategory } from '@/lib/modules';
 
