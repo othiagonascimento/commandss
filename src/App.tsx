@@ -31,7 +31,7 @@ const ActivityLogs = lazy(() => import("./pages/ActivityLogs"));
 const TenantHealth = lazy(() => import("./pages/TenantHealth"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const ScheduledTasks = lazy(() => import("./pages/ScheduledTasks"));
-const EditTenant = lazy(() => import("./pages/EditTenant"));
+
 const Rankings = lazy(() => import("./pages/Rankings"));
 const Simulator = lazy(() => import("./pages/Simulator"));
 const APICosts = lazy(() => import("./pages/APICosts"));
@@ -107,7 +107,7 @@ const App = () => (
                 <Route path="/tenants" element={<ProtectedRoute><Tenants /></ProtectedRoute>} />
                 <Route path="/tenants/new" element={<ProtectedRoute><CreateTenant /></ProtectedRoute>} />
                 <Route path="/tenants/:id" element={<ProtectedRoute><TenantDetail /></ProtectedRoute>} />
-                <Route path="/tenants/:id/edit" element={<ProtectedRoute><EditTenant /></ProtectedRoute>} />
+                <Route path="/tenants/:id/edit" element={<Navigate to="../" replace relative="path" />} />
                 <Route path="/rankings" element={<ProtectedRoute><Rankings /></ProtectedRoute>} />
                 <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
