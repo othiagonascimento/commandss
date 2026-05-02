@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { ScrollableTabsList, MobileTabSelector, TabItem } from '@/components/ui/scrollable-tabs';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { Textarea } from '@/components/ui/textarea';
@@ -319,32 +320,21 @@ export default function Settings() {
 
         {/* Tabs */}
         <Tabs defaultValue="general" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
-            <TabsTrigger value="general" className="gap-2">
-              <Globe className="w-4 h-4" />
-              <span className="hidden sm:inline">Geral</span>
-            </TabsTrigger>
-            <TabsTrigger value="ai-engine" className="gap-2">
-              <Brain className="w-4 h-4" />
-              <span className="hidden sm:inline">Motor de IA</span>
-            </TabsTrigger>
-            <TabsTrigger value="base-prompts" className="gap-2">
-              <MessageSquare className="w-4 h-4" />
-              <span className="hidden sm:inline">Prompts Base</span>
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2">
-              <Bell className="w-4 h-4" />
-              <span className="hidden sm:inline">Notificações</span>
-            </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2">
-              <Shield className="w-4 h-4" />
-              <span className="hidden sm:inline">Segurança</span>
-            </TabsTrigger>
-            <TabsTrigger value="api" className="gap-2">
-              <Key className="w-4 h-4" />
-              <span className="hidden sm:inline">API</span>
-            </TabsTrigger>
-          </TabsList>
+          {(() => {
+            const tabs: TabItem[] = [
+              { value: 'general', label: 'Geral', shortLabel: 'Geral', icon: Globe },
+              { value: 'ai-engine', label: 'Motor de IA', shortLabel: 'IA', icon: Brain },
+              { value: 'base-prompts', label: 'Prompts Base', shortLabel: 'Prompts', icon: MessageSquare },
+              { value: 'notifications', label: 'Notificações', shortLabel: 'Notif.', icon: Bell },
+              { value: 'security', label: 'Segurança', shortLabel: 'Seg.', icon: Shield },
+              { value: 'api', label: 'API', shortLabel: 'API', icon: Key },
+            ];
+            return (
+              <div className="hidden sm:block">
+                <ScrollableTabsList tabs={tabs} />
+              </div>
+            );
+          })()}
 
           {/* General Tab */}
           <TabsContent value="general">
