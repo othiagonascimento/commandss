@@ -123,7 +123,7 @@ export default function Index() {
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 relative">
+          <div className="grid grid-cols-3 gap-3 relative min-w-0">
             <MiniHero label="Tenants" value={overview ? fmtNum(overview.tenants.total) : '—'} sub={overview ? `${overview.recent_activity.new_tenants_7d} novos /7d` : ''} tone="plasma" big />
             <MiniHero label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} tone={overview && overview.subscriptions.trial > 3 ? 'ember' : 'default'} />
             <MiniHero label="Leads" value={overview ? fmtNum(overview.usage.total_leads) : '—'} />
