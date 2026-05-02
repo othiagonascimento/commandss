@@ -72,7 +72,7 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
   const location = useLocation();
   const { signOut } = useAuth();
   const permissions = usePermissions();
-  const [openGroups, setOpenGroups] = useState<string[]>(['overview', 'ai', 'clients', 'commercial', 'system']);
+  const [openGroups, setOpenGroups] = useState<string[]>(['overview', 'ai', 'clients', 'commercial', 'finops', 'system']);
 
   // Define nav groups with permission checks
   const navGroups: NavGroup[] = useMemo(() => [
