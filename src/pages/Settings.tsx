@@ -331,7 +331,7 @@ export default function Settings() {
               { value: 'api', label: 'API', shortLabel: 'API', icon: Key },
             ];
             return (
-              <div className="hidden sm:block">
+              <div className="-mx-3 sm:mx-0 px-3 sm:px-0">
                 <ScrollableTabsList tabs={tabs} />
               </div>
             );
