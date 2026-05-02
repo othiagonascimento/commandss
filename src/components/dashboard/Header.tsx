@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Menu, Bell, Search, ChevronRight } from 'lucide-react';
+import { Menu, Bell, Search, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +7,8 @@ import { useMasterDashboard } from '@/hooks/useMasterDashboard';
 import { useOpsHealth } from '@/hooks/useOpsHealth';
 import { Ticker } from '@/components/ds/Feedback';
 import { StatusDot } from '@/components/ds/Atoms';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 
 interface HeaderProps {
   onMenuClick?: () => void;
