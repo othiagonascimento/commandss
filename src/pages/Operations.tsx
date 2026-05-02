@@ -28,6 +28,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { TenantSelector } from '@/components/ui/tenant-selector';
+import { DataQualityBadge } from '@/components/quality/DataQualityBadge';
+import { DataQualityNotice } from '@/components/quality/MetricValue';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -136,7 +138,7 @@ export default function Operations() {
   const [resolveNotes, setResolveNotes] = useState('');
   const [resolveReason, setResolveReason] = useState('');
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
-  const { snapshot, alerts, alertCount, history, isLoading, refetch } = useOpsHealth();
+  const { snapshot, snapshotMeta, snapshotSchemaInvalid, alerts, alertCount, history, isLoading, refetch } = useOpsHealth();
   const { resolve, isResolving } = useAlerts();
 
   // History
@@ -197,6 +199,7 @@ export default function Operations() {
         icon={Radio}
         actions={
           <div className="flex items-center gap-2">
+            {snapshotMeta && <DataQualityBadge meta={snapshotMeta} />}
             <TenantSelector
               value={selectedTenantId}
               onChange={setSelectedTenantId}
@@ -208,6 +211,16 @@ export default function Operations() {
           </div>
         }
       />
+
+      {snapshotSchemaInvalid && (
+        <DataQualityNotice
+          variant="error"
+          message="O snapshot de operações retornou em formato inesperado (schema v2 inválido). Os números abaixo podem estar parciais."
+        />
+      )}
+      {snapshotMeta?.warnings && snapshotMeta.warnings.length > 0 && (
+        <DataQualityNotice variant="warning" message={snapshotMeta.warnings.join(' • ')} />
+      )}
 
       {/* ─── Status Strip ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
