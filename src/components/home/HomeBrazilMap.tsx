@@ -177,7 +177,7 @@ export function HomeBrazilMap() {
           }}
         />
 
-        {!geo || !pathGen ? (
+        {!geo || !projection ? (
           <div className="absolute inset-0 flex items-center justify-center p-8">
             {loading ? (
               <div className="skeleton-sweep w-full h-full max-w-[480px] max-h-[420px] rounded-md" />
