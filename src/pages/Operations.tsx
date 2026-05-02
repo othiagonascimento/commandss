@@ -315,8 +315,29 @@ export default function Operations() {
                   </Card>
                 );
               })}
-            </div>
+            </section>
           )}
+
+          {filteredAlerts.length === 0 && (
+            <section className="space-y-3">
+              <SectionHeader
+                numeral="02 /"
+                label="Radar de incidentes"
+                title="Sistema operacional"
+                description="Nenhum alerta ativo no momento"
+              />
+            </section>
+          )}
+
+          {/* ─── Saúde do Sistema ────────────────────────────────────────── */}
+          <section className="space-y-3">
+            <SectionHeader
+              numeral="03 /"
+              label="Infraestrutura"
+              title="Canais & jobs"
+              description="Conexões WhatsApp/Meta e crons agendados por tenant"
+            />
+          </section>
 
           {filteredAlerts.length === 0 && (
             <Card>
