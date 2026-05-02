@@ -16,9 +16,6 @@ const BR_UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG'
 interface FormState {
   name: string;
   subdomain: string;
-  plan_type: string;
-  trial_enabled: boolean;
-  trial_days: number;
   city: string;
   state: string;
   country: string;
@@ -32,8 +29,7 @@ interface TenantIdentityFormProps {
 export function TenantIdentityForm({ tenantId, tenant }: TenantIdentityFormProps) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>({
-    name: '', subdomain: '', plan_type: 'basic', trial_enabled: false, trial_days: 7,
-    city: '', state: '', country: 'BR',
+    name: '', subdomain: '', city: '', state: '', country: 'BR',
   });
 
   useEffect(() => {
@@ -41,9 +37,6 @@ export function TenantIdentityForm({ tenantId, tenant }: TenantIdentityFormProps
     setForm({
       name: tenant.name || '',
       subdomain: tenant.slug || tenant.subdomain || '',
-      plan_type: tenant.plan_type || 'basic',
-      trial_enabled: tenant.trial_enabled || false,
-      trial_days: tenant.trial_days || 7,
       city: tenant.city || '',
       state: tenant.state || '',
       country: tenant.country || 'BR',
@@ -69,9 +62,6 @@ export function TenantIdentityForm({ tenantId, tenant }: TenantIdentityFormProps
     mutation.mutate({
       name: form.name,
       subdomain: form.subdomain,
-      plan_type: form.plan_type,
-      trial_enabled: form.trial_enabled,
-      trial_days: form.trial_days,
       city: form.city || null,
       state: form.state || null,
       country: form.country || 'BR',
