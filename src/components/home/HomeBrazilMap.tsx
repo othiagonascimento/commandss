@@ -48,9 +48,11 @@ export function HomeBrazilMap() {
       if (!node) return;
       const r = node.getBoundingClientRect();
       if (r.width > 0) {
-        // Brazil aspect ratio ~ 1.06 (slightly taller than wide). Make it sovereign.
+        // Brazil aspect ratio ~ 1.06. Fit to container width with sensible bounds.
         const isMobile = r.width < 640;
-        const h = isMobile ? Math.max(520, r.width * 1.1) : Math.max(640, Math.min(820, r.width * 1.05));
+        const h = isMobile
+          ? Math.max(420, r.width * 1.05)
+          : Math.max(440, Math.min(720, r.width * 1.05));
         setSize({ w: r.width, h });
       }
     };
@@ -261,23 +263,7 @@ export function HomeBrazilMap() {
               );
             })}
 
-            {/* UF labels */}
-            {geo.features.map(f => {
-              const uf = f.properties.uf;
-              const n = byUF.get(uf)?.length ?? 0;
-              const c = centroidFor((f as any).geometry);
-              if (!c || !isFinite(c[0])) return null;
-              return (
-                <text
-                  key={`l-${uf}`} x={c[0]} y={c[1]}
-                  textAnchor="middle" dominantBaseline="middle"
-                  className={`pointer-events-none font-mono ${n > 0 ? 'fill-ink' : 'fill-ink-3'}`}
-                  style={{ fontSize: 10, letterSpacing: '0.08em', fontWeight: n > 0 ? 700 : 400 }}
-                >
-                  {uf}
-                </text>
-              );
-            })}
+            {/* UF labels intentionally omitted for a cleaner, minimalist canvas */}
 
             {/* Pins de cidades */}
             {cityClusters.map((c, i) => {
