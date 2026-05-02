@@ -19,7 +19,7 @@ interface CityCluster {
   tenants: Tenant[];
 }
 
-export function HomeBrazilMap() {
+export function HomeBrazilMap({ bare = false }: { bare?: boolean } = {}) {
   const [geo, setGeo] = useState<FC | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [hover, setHover] = useState<{ uf: string; x: number; y: number; n: number } | null>(null);
@@ -47,20 +47,24 @@ export function HomeBrazilMap() {
       const node = ref.current;
       if (!node) return;
       const r = node.getBoundingClientRect();
-      if (r.width > 0) {
-        // Brazil aspect ratio ~ 1.06. Fit to container width with sensible bounds.
-        const isMobile = r.width < 640;
-        const h = isMobile
-          ? Math.max(420, r.width * 1.05)
-          : Math.max(440, Math.min(720, r.width * 1.05));
-        setSize({ w: r.width, h });
+      if (r.width > 0 && r.height > 0) {
+        if (bare) {
+          // Fill the parent's available height when embedded in another card
+          setSize({ w: r.width, h: r.height });
+        } else {
+          const isMobile = r.width < 640;
+          const h = isMobile
+            ? Math.max(420, r.width * 1.05)
+            : Math.max(440, Math.min(720, r.width * 1.05));
+          setSize({ w: r.width, h });
+        }
       }
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [geo]);
+  }, [geo, bare]);
 
   const byUF = useMemo(() => {
     const m = new Map<string, Tenant[]>();
