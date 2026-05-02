@@ -88,14 +88,10 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
         {/* Mobile logo — atalho para Home */}
         <button
           onClick={() => navigate('/')}
-          className="lg:hidden flex items-center gap-2 group"
+          className="lg:hidden flex items-center group"
           aria-label="Ir para o Dashboard"
         >
-          <div className="relative">
-            <img src={uopaSymbol} alt="UÔPA" className="h-6 w-auto relative z-10" />
-            <div className="absolute inset-0 -m-1 rounded-full opacity-40 blur-md group-hover:opacity-60 transition-opacity" style={{ background: 'var(--brand-gradient)' }} />
-          </div>
-          <span className="font-display text-[12px] font-semibold tracking-tight text-ink">UÔPA</span>
+          <img src={uopaLogoWhite} alt="UÔPA Master Console" className="h-5 w-auto transition-opacity group-hover:opacity-80" />
         </button>
 
         {/* Breadcrumb */}
