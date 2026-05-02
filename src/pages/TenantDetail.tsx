@@ -1,75 +1,35 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { ScrollableTabsList, MobileTabSelector, TabItem } from '@/components/ui/scrollable-tabs';
-import { 
-  tenantsApi, 
-  subscriptionsApi, 
-  usersApi, 
-  featuresApi, 
+import {
+  tenantsApi,
+  featuresApi,
   usageApi,
-  TenantUser,
-  TenantFeatures,
-  TenantUsageDetail,
-  opsHealthApi,
+  usersApi,
+  subscriptionsApi,
 } from '@/services/masterApi';
 import { useTenantCredits } from '@/hooks/useTenantCredits';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { 
-  ArrowLeft, 
-  Loader2, 
-  Building2,
-  Users,
-  CreditCard,
-  Palette,
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
-  XCircle,
-  ClipboardList,
-  DollarSign,
-  ExternalLink,
-  Gift,
-  Handshake,
-  Crown,
-  Ban,
-  Globe,
-  Settings2,
-  Brain,
-  Briefcase,
-  Coins,
-  Radio,
+import {
+  Loader2, Building2, CreditCard, Settings2, Brain, Users, Radio, Crown,
+  Handshake, Gift, Ban, ExternalLink, TrendingUp, TrendingDown, XCircle,
+  RefreshCw, Palette, Globe, ClipboardList, DollarSign, Briefcase,
 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { ImpersonateButton } from '@/components/tenant/ImpersonateButton';
+import { cn } from '@/lib/utils';
 import { OnboardingChecklist } from '@/components/tenant/OnboardingChecklist';
 import { UnitEconomicsCard } from '@/components/tenant/UnitEconomicsCard';
 import { BrandingManagement } from '@/components/tenant/BrandingManagement';
@@ -83,20 +43,16 @@ import { TenantCommercialEditor } from '@/components/tenant/TenantCommercialEdit
 import { UserManagement } from '@/components/tenant/UserManagement';
 import { TenantTemplateManager } from '@/components/tenant/TenantTemplateManager';
 import { TenantUserCreditsTable } from '@/components/tenant/TenantUserCreditsTable';
+import { TenantHero } from '@/components/tenant/TenantHero';
+import { TenantIdentityForm } from '@/components/tenant/TenantIdentityForm';
+import TenantOperationsTab from '@/components/tenant/TenantOperationsTabContent';
+
 const TENANT_TABS: TabItem[] = [
-  { value: 'overview', label: 'Visão Geral', shortLabel: 'Geral', icon: Building2 },
-  { value: 'operations', label: 'Operações', shortLabel: 'Ops', icon: Radio },
-  { value: 'template', label: 'Template', shortLabel: 'Template', icon: ClipboardList },
-  { value: 'commercial', label: 'Comercial', shortLabel: 'Comercial', icon: Briefcase },
+  { value: 'identity', label: 'Identidade', shortLabel: 'Identidade', icon: Building2 },
+  { value: 'commercial', label: 'Plano & Comercial', shortLabel: 'Comercial', icon: Briefcase },
   { value: 'resources', label: 'Recursos', shortLabel: 'Recursos', icon: Settings2 },
-  { value: 'consumption', label: 'Consumo', shortLabel: 'Consumo', icon: Coins },
-  { value: 'ai-engine', label: 'Motor de IA', shortLabel: 'IA', icon: Brain },
-  { value: 'users', label: 'Usuários', shortLabel: 'Usuários', icon: Users },
-  { value: 'subscription', label: 'Assinatura', shortLabel: 'Assin.', icon: CreditCard },
-  { value: 'branding', label: 'Branding', shortLabel: 'Brand', icon: Palette },
-  { value: 'domains', label: 'Domínios', shortLabel: 'Domínios', icon: Globe },
-  { value: 'onboarding', label: 'Onboarding', shortLabel: 'Onboard', icon: ClipboardList },
-  { value: 'economics', label: 'Economics', shortLabel: 'Econ.', icon: DollarSign },
+  { value: 'ai', label: 'Motor de IA', shortLabel: 'IA', icon: Brain },
+  { value: 'people', label: 'Pessoas & Operação', shortLabel: 'Pessoas', icon: Users },
 ];
 
 const planColors: Record<string, string> = {
@@ -105,192 +61,18 @@ const planColors: Record<string, string> = {
   enterprise: 'bg-warning/10 text-warning',
 };
 
-// Helper to validate UUID format
 const isValidUUID = (str: string | undefined): boolean => {
   if (!str) return false;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(str);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 };
 
-// Tenant Operations Tab (inline component)
-function TenantOperationsTab({ tenantId }: { tenantId: string }) {
-  const { data: tenantOps, isLoading: opsLoading } = useQuery({
-    queryKey: ['tenant-ops', tenantId],
-    queryFn: async () => {
-      const res = await opsHealthApi.getTenantOps(tenantId);
-      if (res.error) throw new Error(res.error);
-      return res.data;
-    },
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-  });
-
-  // Fallback: use master-usage data when ops snapshot is missing
-  const snapshot = (tenantOps?.snapshot as Record<string, unknown>)?.snapshot_data as Record<string, unknown> | undefined;
-  const hasOpsSnapshot = !!snapshot;
-
-  const { data: usageFallback, isLoading: usageLoading } = useQuery({
-    queryKey: ['tenant-usage-ops-fallback', tenantId],
-    queryFn: async () => {
-      const res = await usageApi.get(tenantId);
-      if (res.error) throw new Error(res.error);
-      return res.data;
-    },
-    enabled: !hasOpsSnapshot && !opsLoading,
-    staleTime: 30_000,
-  });
-
-  const isLoading = opsLoading || (!hasOpsSnapshot && usageLoading);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-32 w-full" />
-      </div>
-    );
-  }
-
-  const alerts = (tenantOps?.alerts ?? []) as Array<{ id: string; title: string; severity: string; alert_type: string; created_at: string }>;
-
-  // If we have ops snapshot, use it
-  if (hasOpsSnapshot) {
-    const eq = snapshot?.event_queue as Record<string, number> | undefined;
-    const mq = snapshot?.message_queue as Record<string, number> | undefined;
-    const ai = snapshot?.ai_performance as Record<string, number> | undefined;
-    const conversations = snapshot?.conversations as Record<string, number> | undefined;
-
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2"><CardDescription>Event Queue</CardDescription></CardHeader>
-            <CardContent><p className="text-2xl font-bold">{eq?.pending ?? '-'}</p><p className="text-xs text-muted-foreground">pending</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardDescription>Msg Queue</CardDescription></CardHeader>
-            <CardContent><p className="text-2xl font-bold">{mq?.pending ?? '-'}</p><p className="text-xs text-muted-foreground">pending</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardDescription>Latência IA</CardDescription></CardHeader>
-            <CardContent><p className="text-2xl font-bold">{ai?.latency_avg ? `${ai.latency_avg.toFixed(0)}ms` : '-'}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardDescription>Conversas Ativas</CardDescription></CardHeader>
-            <CardContent><p className="text-2xl font-bold">{conversations?.active ?? '-'}</p></CardContent>
-          </Card>
-        </div>
-
-        {alerts.length > 0 && (
-          <Card>
-            <CardHeader><CardTitle className="text-base">Alertas deste Tenant</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {alerts.map((a) => (
-                  <div key={a.id} className="flex items-center gap-3 p-2 rounded border border-border">
-                    <Badge variant={a.severity === 'critical' ? 'destructive' : 'secondary'} className="text-xs">
-                      {a.severity}
-                    </Badge>
-                    <span className="text-sm flex-1">{a.title}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(a.created_at), { addSuffix: true, locale: ptBR })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    );
-  }
-
-  // Fallback: use usage data from master-usage
-  const usageData = usageFallback?.usage as Record<string, number> | undefined;
-  const noData = !usageData;
-
+/** Visual label for a logical sub-section inside a tab. */
+function SectionTitle({ index, title, hint }: { index: string; title: string; hint?: string }) {
   return (
-    <div className="space-y-6">
-      {noData && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="py-4 text-center">
-            <p className="text-sm text-muted-foreground">
-              Sem dados operacionais detalhados. Exibindo dados de consumo disponíveis.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {usageData && (
-        <>
-          <Card className="border-blue-500/20 bg-blue-500/5">
-            <CardContent className="py-3">
-              <p className="text-xs text-muted-foreground">
-                📊 Dados obtidos via consumo do tenant (master-usage). Para métricas de filas e IA em tempo real, o CRM precisa enviar ops_health_sync com tenant_id.
-              </p>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Usuários Ativos</CardDescription></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{usageData.active_users ?? usageData.users ?? 0}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Leads</CardDescription></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{usageData.leads ?? 0}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Mensagens (mês)</CardDescription></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{usageData.messages ?? 0}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>WhatsApp Instances</CardDescription></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{usageData.whatsapp_instances ?? 0}</p></CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Créditos IA</CardDescription></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{usageData.ai_credits ?? 0}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Tokens IA</CardDescription></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{(usageData.ai_tokens ?? 0).toLocaleString()}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Produtos</CardDescription></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{usageData.products ?? 0}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Storage</CardDescription></CardHeader>
-              <CardContent><p className="text-2xl font-bold">{usageData.storage_mb ?? 0} MB</p></CardContent>
-            </Card>
-          </div>
-        </>
-      )}
-
-      {alerts.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-base">Alertas deste Tenant</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {alerts.map((a) => (
-                <div key={a.id} className="flex items-center gap-3 p-2 rounded border border-border">
-                  <Badge variant={a.severity === 'critical' ? 'destructive' : 'secondary'} className="text-xs">
-                    {a.severity}
-                  </Badge>
-                  <span className="text-sm flex-1">{a.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(a.created_at), { addSuffix: true, locale: ptBR })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+    <div className="flex items-baseline gap-3 mb-3">
+      <span className="text-xs font-mono text-primary tracking-widest">{index}</span>
+      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      {hint && <span className="text-xs text-muted-foreground hidden sm:inline">— {hint}</span>}
     </div>
   );
 }
@@ -299,9 +81,8 @@ export default function TenantDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('identity');
 
-  // Validate that id is a valid UUID
   const isIdValid = isValidUUID(id);
 
   const { data: tenant, isLoading } = useQuery({
@@ -313,222 +94,197 @@ export default function TenantDetail() {
     },
     enabled: isIdValid,
     staleTime: 30000,
-    gcTime: 60000,
   });
 
   const { data: users } = useQuery({
     queryKey: ['tenant-users', id],
     queryFn: async () => {
       const result = await usersApi.list(id!);
-      if (result.error) {
-        console.warn('[TenantDetail] Users load failed:', result.error);
-        return [];
-      }
+      if (result.error) return [];
       return result.data?.data || [];
     },
     enabled: isIdValid,
     staleTime: 30000,
-    gcTime: 60000,
   });
 
-  // Fetch tenant features
   const { data: features, isLoading: featuresLoading } = useQuery({
     queryKey: ['tenant-features', id],
     queryFn: async () => {
       const result = await featuresApi.get(id!);
-      if (result.error) {
-        console.warn('[TenantDetail] Features load failed:', result.error);
-        return null;
-      }
+      if (result.error) return null;
       return result.data;
     },
     enabled: isIdValid,
     staleTime: 30000,
-    gcTime: 60000,
   });
 
-  // Fetch tenant usage
   const { data: usage, isLoading: usageLoading, refetch: refetchUsage } = useQuery({
     queryKey: ['tenant-usage', id],
     queryFn: async () => {
       const result = await usageApi.get(id!);
-      if (result.error) {
-        console.warn('[TenantDetail] Usage load failed:', result.error);
-        return null;
-      }
+      if (result.error) return null;
       return result.data;
     },
     enabled: isIdValid,
     staleTime: 30000,
-    gcTime: 60000,
   });
 
-  // Fetch tenant credits summary via RPC
   const { data: tenantCredits, isLoading: creditsLoading } = useTenantCredits(isIdValid ? id : undefined);
 
-  // Update features mutation
+  // ============= Mutations =============
   const updateFeaturesMutation = useMutation({
     mutationFn: async (data: { modules?: Record<string, boolean>; limits?: Record<string, number> }) => {
-      const result = await featuresApi.update(id!, data);
-      if (result.error) throw new Error(result.error);
-      return result.data;
+      const r = await featuresApi.update(id!, data);
+      if (r.error) throw new Error(r.error);
+      return r.data;
     },
     onSuccess: async () => {
-      toast.success('Configurações salvas com sucesso!');
-      // Force invalidate and refetch to ensure UI updates immediately
+      toast.success('Configurações salvas!');
       await queryClient.invalidateQueries({ queryKey: ['tenant-features', id] });
-      await queryClient.refetchQueries({ queryKey: ['tenant-features', id] });
     },
-    onError: () => {
-      toast.error('Erro ao salvar configurações.');
-    },
+    onError: () => toast.error('Erro ao salvar.'),
   });
 
-  // Apply override mutation
   const applyOverrideMutation = useMutation({
     mutationFn: async ({ overrides, reason }: { overrides: Record<string, unknown>; reason: string }) => {
-      const result = await featuresApi.applyOverride(id!, { overrides, reason });
-      if (result.error) throw new Error(result.error);
-      return result.data;
+      const r = await featuresApi.applyOverride(id!, { overrides, reason });
+      if (r.error) throw new Error(r.error);
+      return r.data;
     },
     onSuccess: () => {
-      toast.success('Override aplicado com sucesso!');
+      toast.success('Override aplicado!');
       queryClient.invalidateQueries({ queryKey: ['tenant-features', id] });
     },
-    onError: () => {
-      toast.error('Erro ao aplicar override.');
-    },
+    onError: () => toast.error('Erro no override.'),
   });
 
-  // Clear override mutation
   const clearOverrideMutation = useMutation({
     mutationFn: async () => {
-      const result = await featuresApi.clearOverride(id!);
-      if (result.error) throw new Error(result.error);
-      return result.data;
+      const r = await featuresApi.clearOverride(id!);
+      if (r.error) throw new Error(r.error);
+      return r.data;
     },
     onSuccess: () => {
-      toast.success('Override removido com sucesso!');
+      toast.success('Override removido.');
       queryClient.invalidateQueries({ queryKey: ['tenant-features', id] });
     },
-    onError: () => {
-      toast.error('Erro ao remover override.');
-    },
+    onError: () => toast.error('Erro ao remover override.'),
   });
 
-  // Recalculate usage mutation
   const recalculateUsageMutation = useMutation({
     mutationFn: async () => {
-      const result = await usageApi.recalculate(id!);
-      if (result.error) throw new Error(result.error);
-      return result.data;
+      const r = await usageApi.recalculate(id!);
+      if (r.error) throw new Error(r.error);
+      return r.data;
     },
-    onSuccess: () => {
-      toast.success('Consumo recalculado!');
-      refetchUsage();
-    },
-    onError: () => {
-      toast.error('Erro ao recalcular consumo.');
-    },
+    onSuccess: () => { toast.success('Consumo recalculado!'); refetchUsage(); },
+    onError: () => toast.error('Erro ao recalcular.'),
   });
 
   const upgradeMutation = useMutation({
     mutationFn: (plan: string) => subscriptionsApi.upgrade(id!, plan),
-    onSuccess: () => {
-      toast.success('Plano atualizado com sucesso!');
-      queryClient.invalidateQueries({ queryKey: ['tenant', id] });
-    },
-    onError: () => {
-      toast.error('Erro ao atualizar plano.');
-    },
+    onSuccess: () => { toast.success('Plano atualizado!'); queryClient.invalidateQueries({ queryKey: ['tenant', id] }); },
+    onError: () => toast.error('Erro ao atualizar plano.'),
   });
 
   const cancelMutation = useMutation({
     mutationFn: () => subscriptionsApi.cancel(id!),
-    onSuccess: () => {
-      toast.success('Assinatura cancelada.');
-      queryClient.invalidateQueries({ queryKey: ['tenant', id] });
-    },
-    onError: () => {
-      toast.error('Erro ao cancelar assinatura.');
-    },
+    onSuccess: () => { toast.success('Assinatura cancelada.'); queryClient.invalidateQueries({ queryKey: ['tenant', id] }); },
+    onError: () => toast.error('Erro ao cancelar.'),
   });
 
   const reactivateMutation = useMutation({
     mutationFn: () => subscriptionsApi.reactivate(id!),
-    onSuccess: () => {
-      toast.success('Assinatura reativada!');
-      queryClient.invalidateQueries({ queryKey: ['tenant', id] });
-    },
-    onError: () => {
-      toast.error('Erro ao reativar assinatura.');
-    },
+    onSuccess: () => { toast.success('Assinatura reativada!'); queryClient.invalidateQueries({ queryKey: ['tenant', id] }); },
+    onError: () => toast.error('Erro ao reativar.'),
   });
 
   const customerPortalMutation = useMutation({
     mutationFn: () => subscriptionsApi.openCustomerPortal(id!),
-    onSuccess: (result) => {
-      if (result.data?.url) {
-        window.open(result.data.url, '_blank');
-      } else {
-        toast.error('Não foi possível abrir o portal.');
-      }
+    onSuccess: (r) => {
+      if (r.data?.url) window.open(r.data.url, '_blank');
+      else toast.error('Não foi possível abrir o portal.');
     },
-    onError: () => {
-      toast.error('Erro ao abrir portal do cliente.');
-    },
+    onError: () => toast.error('Erro ao abrir portal.'),
   });
 
   const createCheckoutMutation = useMutation({
     mutationFn: () => subscriptionsApi.createCheckout(id!),
-    onSuccess: (result) => {
-      if (result.data?.url) {
-        window.open(result.data.url, '_blank');
-      } else {
-        toast.error('Não foi possível criar o checkout.');
-      }
+    onSuccess: (r) => {
+      if (r.data?.url) window.open(r.data.url, '_blank');
+      else toast.error('Não foi possível criar o checkout.');
     },
-    onError: () => {
-      toast.error('Erro ao criar checkout.');
-    },
+    onError: () => toast.error('Erro ao criar checkout.'),
   });
 
   const revokePromoMutation = useMutation({
     mutationFn: async () => {
-      const result = await tenantsApi.update(id!, {
-        trial_enabled: false,
-        trial_days: null,
-        subscription_status: 'pending',
-        current_period_end: null,
-        config: null,
+      const r = await tenantsApi.update(id!, {
+        trial_enabled: false, trial_days: null,
+        subscription_status: 'pending', current_period_end: null, config: null,
       });
-      if (result.error) throw new Error(result.error);
-      return result.data;
+      if (r.error) throw new Error(r.error);
+      return r.data;
     },
-    onSuccess: () => {
-      toast.success('Acesso promocional revogado.');
-      queryClient.invalidateQueries({ queryKey: ['tenant', id] });
-    },
-    onError: () => {
-      toast.error('Erro ao revogar acesso.');
-    },
+    onSuccess: () => { toast.success('Acesso promocional revogado.'); queryClient.invalidateQueries({ queryKey: ['tenant', id] }); },
+    onError: () => toast.error('Erro ao revogar.'),
   });
 
-  // Handle invalid ID (e.g., literal ":id" in URL)
+  const toggleStatusMutation = useMutation({
+    mutationFn: async () => {
+      if (tenant?.is_active) return tenantsApi.deactivate(id!);
+      return tenantsApi.update(id!, { is_active: true, status: 'active' });
+    },
+    onSuccess: () => {
+      toast.success(tenant?.is_active ? 'Tenant desativado' : 'Tenant ativado');
+      queryClient.invalidateQueries({ queryKey: ['tenant', id] });
+    },
+    onError: (e) => toast.error('Erro: ' + (e as Error).message),
+  });
+
+  // ============= Derived: alerts =============
+  const alerts = useMemo(() => {
+    const out: Array<{ id: string; severity: 'critical' | 'warning' | 'info'; label: string; hint?: string }> = [];
+    if (!tenant) return out;
+    if (tenant.subscription_status === 'past_due') {
+      out.push({ id: 'past_due', severity: 'critical', label: 'Pagamento atrasado', hint: 'Assinatura em past_due — ação imediata necessária.' });
+    }
+    if (!tenant.is_active) {
+      out.push({ id: 'inactive', severity: 'warning', label: 'Tenant inativo', hint: 'Usuários sem acesso.' });
+    }
+    // Usage thresholds
+    if (usage && features) {
+      const u = usage.usage;
+      const checks: Array<[string, number | undefined, number | undefined]> = [
+        ['mensagens', u?.messages, features.limit_ai_tokens_monthly],
+        ['leads', u?.leads, features.limit_leads],
+        ['usuários', u?.users, features.limit_users],
+      ];
+      checks.forEach(([label, used, limit]) => {
+        if (used && limit && limit > 0 && used / limit >= 0.9) {
+          out.push({
+            id: `lim-${label}`,
+            severity: used >= limit ? 'critical' : 'warning',
+            label: `Limite de ${label} ${used >= limit ? 'excedido' : 'próximo do teto'}`,
+            hint: `${used} / ${limit}`,
+          });
+        }
+      });
+    }
+    return out;
+  }, [tenant, usage, features]);
+
+  // ============= Guards =============
   if (!isIdValid) {
     return (
       <DashboardLayout>
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold">ID de tenant inválido</h2>
-          <p className="text-muted-foreground mt-2">O identificador fornecido não é válido.</p>
-          <Button className="mt-4" onClick={() => navigate('/tenants')}>
-            Voltar para lista
-          </Button>
+          <Button className="mt-4" onClick={() => navigate('/tenants')}>Voltar para lista</Button>
         </div>
       </DashboardLayout>
     );
   }
-
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -538,15 +294,12 @@ export default function TenantDetail() {
       </DashboardLayout>
     );
   }
-
   if (!tenant) {
     return (
       <DashboardLayout>
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold">Tenant não encontrado</h2>
-          <Button className="mt-4" onClick={() => navigate('/tenants')}>
-            Voltar para lista
-          </Button>
+          <Button className="mt-4" onClick={() => navigate('/tenants')}>Voltar para lista</Button>
         </div>
       </DashboardLayout>
     );
@@ -554,87 +307,268 @@ export default function TenantDetail() {
 
   return (
     <DashboardLayout>
-      {/* Breadcrumbs */}
       <Breadcrumbs
-        items={[
-          { label: 'Tenants', href: '/tenants' },
-          { label: tenant.name, current: true },
-        ]}
+        items={[{ label: 'Tenants', href: '/tenants' }, { label: tenant.name, current: true }]}
         className="mb-4"
       />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/tenants')} className="shrink-0 hidden sm:flex">
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">{tenant.name}</h1>
-            <Badge className={cn("shrink-0", planColors[tenant.plan_type])}>
-              {tenant.plan_type}
-            </Badge>
-            {tenant.subscription_status === 'active' ? (
-              <Badge variant="default" className="bg-success text-success-foreground shrink-0">
-                Ativa
-              </Badge>
-            ) : tenant.subscription_status === 'lifetime' ? (
-              <Badge variant="default" className="bg-amber-500 text-white shrink-0">
-                <Crown className="w-3 h-3 mr-1" />
-                Vitalício
-              </Badge>
-            ) : tenant.subscription_status === 'partnership' ? (
-              <Badge variant="default" className="bg-green-600 text-white shrink-0">
-                <Handshake className="w-3 h-3 mr-1" />
-                Parceria
-              </Badge>
-            ) : tenant.subscription_status === 'trialing' ? (
-              <Badge variant="secondary" className="bg-primary/10 text-primary shrink-0">
-                <Gift className="w-3 h-3 mr-1" />
-                Trial
-              </Badge>
-            ) : tenant.subscription_status === 'past_due' ? (
-              <Badge variant="destructive" className="shrink-0">
-                Atrasado
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="border-warning text-warning shrink-0">
-                Pendente
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">{tenant.slug}</p>
-        </div>
-        <ImpersonateButton tenantId={id!} tenantName={tenant.name} />
-      </div>
+      {/* HERO */}
+      <TenantHero
+        tenant={tenant}
+        tenantId={id!}
+        alerts={alerts}
+        onRecalculateUsage={() => recalculateUsageMutation.mutate()}
+        recalculating={recalculateUsageMutation.isPending}
+        onToggleStatus={() => toggleStatusMutation.mutate()}
+      />
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        {/* Mobile Tab Selector */}
-        <MobileTabSelector
-          tabs={TENANT_TABS}
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="mb-4"
-        />
-
-        {/* Desktop Scrollable Tabs */}
+      {/* TABS */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 mt-6">
+        <MobileTabSelector tabs={TENANT_TABS} value={activeTab} onValueChange={setActiveTab} className="mb-4" />
         <div className="hidden sm:block">
           <ScrollableTabsList tabs={TENANT_TABS} />
-
         </div>
 
-          {/* Resources & Limits Tab */}
-          <TabsContent value="resources" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Usage Progress */}
-              <TenantUsageProgress 
-                usage={usage || null} 
-                isLoading={usageLoading || recalculateUsageMutation.isPending}
-                onRecalculate={() => recalculateUsageMutation.mutate()}
-              />
+        {/* ============ IDENTIDADE ============ */}
+        <TabsContent value="identity" className="space-y-8">
+          <div>
+            <SectionTitle index="01" title="Dados gerais" hint="Nome, subdomínio, localização e plano" />
+            <TenantIdentityForm tenantId={id!} tenant={tenant} />
+          </div>
 
-              {/* Modules Editor */}
+          <div>
+            <SectionTitle index="02" title="Branding" hint="Logo, cores e identidade visual" />
+            <BrandingManagement tenantId={id!} branding={tenant.branding} planType={tenant.plan_type} />
+          </div>
+
+          <div>
+            <SectionTitle index="03" title="Domínios" hint="Subdomínio padrão e domínios customizados" />
+            <DomainsManagement tenantId={id!} tenantSubdomain={tenant.slug || tenant.subdomain} />
+          </div>
+
+          <div>
+            <SectionTitle index="04" title="Metadados do sistema" />
+            <Card>
+              <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm pt-6">
+                <div>
+                  <p className="text-muted-foreground text-xs">ID</p>
+                  <p className="font-mono text-xs break-all">{tenant.id}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Criado em</p>
+                  <p>{format(new Date(tenant.created_at), "dd 'de' MMM yyyy", { locale: ptBR })}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Stripe Customer</p>
+                  <p className="font-mono text-xs break-all">{tenant.stripe_customer_id || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Status assinatura</p>
+                  <p className="capitalize">{tenant.subscription_status || '—'}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* ============ PLANO & COMERCIAL ============ */}
+        <TabsContent value="commercial" className="space-y-8">
+          <div>
+            <SectionTitle index="01" title="Configuração comercial" hint="Precificação, mensalidade, descontos e implementação" />
+            <TenantCommercialEditor tenant={tenant} />
+          </div>
+
+          <div>
+            <SectionTitle index="02" title="Assinatura & cobrança" />
+            <Card>
+              <CardContent className="space-y-6 pt-6">
+                <div className="flex items-center gap-3">
+                  <Badge className={cn('text-lg py-1 px-4 capitalize', planColors[tenant.plan_type])}>
+                    {tenant.plan_type}
+                  </Badge>
+                  {tenant.subscription && (
+                    <Badge variant={tenant.subscription.status === 'active' ? 'default' : 'secondary'}>
+                      {tenant.subscription.status}
+                    </Badge>
+                  )}
+                </div>
+
+                {(tenant.trial_enabled || ['trialing', 'partnership', 'lifetime'].includes(tenant.subscription_status)) && (
+                  <Card className="border-primary/30 bg-primary/5">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        {tenant.subscription_status === 'lifetime' && <Crown className="w-4 h-4 text-amber-500" />}
+                        {tenant.subscription_status === 'partnership' && <Handshake className="w-4 h-4 text-green-500" />}
+                        {tenant.subscription_status === 'trialing' && <Gift className="w-4 h-4 text-primary" />}
+                        Acesso promocional ativo
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Tipo:</span>
+                          <p className="font-medium capitalize">{tenant.subscription_status}</p>
+                        </div>
+                        {tenant.current_period_end && tenant.subscription_status !== 'lifetime' && (
+                          <div>
+                            <span className="text-muted-foreground">Expira em:</span>
+                            <p className="font-medium">{format(new Date(tenant.current_period_end), 'dd/MM/yyyy', { locale: ptBR })}</p>
+                          </div>
+                        )}
+                      </div>
+                      {tenant.config?.promo?.reason && (
+                        <div>
+                          <span className="text-sm text-muted-foreground">Motivo:</span>
+                          <p className="text-sm bg-background/50 rounded p-2 mt-1">{tenant.config.promo.reason}</p>
+                        </div>
+                      )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" className="w-full mt-2">
+                            <Ban className="w-4 h-4 mr-2" />Revogar acesso gratuito
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Revogar acesso promocional?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              O tenant perderá acesso gratuito imediatamente.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => revokePromoMutation.mutate()}
+                              className="bg-destructive text-destructive-foreground"
+                            >
+                              Revogar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <ExternalLink className="w-4 h-4 text-primary" />Portal Stripe
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {tenant.stripe_customer_id ? (
+                        <Button variant="outline" className="w-full" onClick={() => customerPortalMutation.mutate()} disabled={customerPortalMutation.isPending}>
+                          {customerPortalMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ExternalLink className="w-4 h-4 mr-2" />}
+                          Abrir portal
+                        </Button>
+                      ) : (
+                        <Button className="w-full" onClick={() => createCheckoutMutation.mutate()} disabled={createCheckoutMutation.isPending}>
+                          {createCheckoutMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CreditCard className="w-4 h-4 mr-2" />}
+                          Criar checkout
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {tenant.plan_type !== 'enterprise' && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-success" />Upgrade
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {tenant.plan_type === 'basic' && (
+                          <>
+                            <Button className="w-full" onClick={() => upgradeMutation.mutate('pro')} disabled={upgradeMutation.isPending}>Para Pro</Button>
+                            <Button variant="outline" className="w-full" onClick={() => upgradeMutation.mutate('enterprise')} disabled={upgradeMutation.isPending}>Para Enterprise</Button>
+                          </>
+                        )}
+                        {tenant.plan_type === 'pro' && (
+                          <Button className="w-full" onClick={() => upgradeMutation.mutate('enterprise')} disabled={upgradeMutation.isPending}>Para Enterprise</Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {tenant.plan_type !== 'basic' && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <TrendingDown className="w-4 h-4 text-warning" />Downgrade
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {tenant.plan_type === 'enterprise' && (
+                          <>
+                            <Button variant="outline" className="w-full" onClick={() => upgradeMutation.mutate('pro')} disabled={upgradeMutation.isPending}>Para Pro</Button>
+                            <Button variant="outline" className="w-full" onClick={() => upgradeMutation.mutate('basic')} disabled={upgradeMutation.isPending}>Para Basic</Button>
+                          </>
+                        )}
+                        {tenant.plan_type === 'pro' && (
+                          <Button variant="outline" className="w-full" onClick={() => upgradeMutation.mutate('basic')} disabled={upgradeMutation.isPending}>Para Basic</Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        {tenant.is_active ? <><XCircle className="w-4 h-4 text-destructive" />Cancelar</> : <><RefreshCw className="w-4 h-4 text-success" />Reativar</>}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {tenant.is_active ? (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full">Cancelar assinatura</Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
+                              <AlertDialogDescription>O tenant será desativado. Pode ser reativado depois.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Voltar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => cancelMutation.mutate()} className="bg-destructive text-destructive-foreground">Confirmar</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : (
+                        <Button className="w-full" onClick={() => reactivateMutation.mutate()} disabled={reactivateMutation.isPending}>
+                          <RefreshCw className="w-4 h-4 mr-2" />Reativar
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div>
+            <SectionTitle index="03" title="Unit economics" hint="CAC, LTV, payback e margem" />
+            <UnitEconomicsCard tenantId={id!} />
+          </div>
+        </TabsContent>
+
+        {/* ============ RECURSOS ============ */}
+        <TabsContent value="resources" className="space-y-8">
+          <div>
+            <SectionTitle index="01" title="Consumo atual" hint="Uso vs. limites contratados" />
+            <TenantUsageProgress
+              usage={usage || null}
+              isLoading={usageLoading || recalculateUsageMutation.isPending}
+              onRecalculate={() => recalculateUsageMutation.mutate()}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <SectionTitle index="02" title="Módulos" hint="Funcionalidades habilitadas" />
               {features && (
                 <TenantModulesEditor
                   modules={{
@@ -654,8 +588,8 @@ export default function TenantDetail() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Limits Editor */}
+            <div>
+              <SectionTitle index="03" title="Limites numéricos" />
               {features && (
                 <TenantLimitsEditor
                   limits={{
@@ -673,464 +607,39 @@ export default function TenantDetail() {
                   usersCount={users?.length || 0}
                 />
               )}
-
-              {/* Overrides Form */}
-              {features && (
-                <TenantOverridesForm
-                  currentOverrides={features.overrides || {}}
-                  overrideReason={features.override_reason}
-                  overriddenBy={features.overridden_by}
-                  overriddenAt={features.overridden_at}
-                  onApply={(overrides, reason) => applyOverrideMutation.mutate({ overrides, reason })}
-                  onClear={() => clearOverrideMutation.mutate()}
-                  disabled={applyOverrideMutation.isPending || clearOverrideMutation.isPending}
-                />
-              )}
             </div>
-          </TabsContent>
+          </div>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription className="flex items-center gap-1">
-                    <Coins className="h-3 w-3" />
-                    Créditos Consumidos
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-primary">
-                    {creditsLoading ? '...' : tenantCredits?.total_credits_consumed || 0}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    R$ {tenantCredits?.total_cost_brl?.toFixed(2) || '0.00'}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Leads</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{tenant.usage?.leads || 0}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Usuários</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{tenant.usage?.users || 0}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Mensagens</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{tenant.usage?.messages || 0}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardDescription>Créditos IA (por Usuário)</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{features?.credits_per_user ?? 500}</p>
-                </CardContent>
-              </Card>
-            </div>
+          <div>
+            <SectionTitle index="04" title="Overrides ativos" hint="Customizações sobrescrevendo o plano" />
+            {features && (
+              <TenantOverridesForm
+                currentOverrides={features.overrides || {}}
+                overrideReason={features.override_reason}
+                overriddenBy={features.overridden_by}
+                overriddenAt={features.overridden_at}
+                onApply={(overrides, reason) => applyOverrideMutation.mutate({ overrides, reason })}
+                onClear={() => clearOverrideMutation.mutate()}
+                disabled={applyOverrideMutation.isPending || clearOverrideMutation.isPending}
+              />
+            )}
+          </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Informações Gerais</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">ID</p>
-                    <p className="font-mono text-sm">{tenant.id}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Criado em</p>
-                    <p>{format(new Date(tenant.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Plano</p>
-                    <Badge className={planColors[tenant.plan_type]}>{tenant.plan_type}</Badge>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <Badge variant={tenant.is_active ? 'default' : 'secondary'}>
-                      {tenant.is_active ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Operations Tab */}
-          <TabsContent value="operations" className="space-y-6">
-            <TenantOperationsTab tenantId={id!} />
-          </TabsContent>
-
-          {/* Commercial Tab */}
-          <TabsContent value="commercial">
-            <TenantCommercialEditor tenant={tenant} />
-          </TabsContent>
-
-          {/* Users Tab */}
-          <TabsContent value="users">
-            <Card>
-              <CardContent className="pt-6">
-                <UserManagement 
-                  tenantId={id!} 
-                  users={users || []} 
-                  isLoading={false}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Subscription Tab */}
-          <TabsContent value="subscription">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestão de Assinatura</CardTitle>
-                <CardDescription>
-                  Gerencie o plano e status da assinatura deste tenant
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <Badge className={cn('text-lg py-1 px-4', planColors[tenant.plan_type])}>
-                    {tenant.plan_type.toUpperCase()}
-                  </Badge>
-                  {tenant.subscription && (
-                    <Badge variant={tenant.subscription.status === 'active' ? 'default' : 'secondary'}>
-                      {tenant.subscription.status}
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Promotional Access Card */}
-                {(tenant.trial_enabled || tenant.subscription_status === 'trialing' || tenant.subscription_status === 'partnership' || tenant.subscription_status === 'lifetime') && (
-                  <Card className="border-primary/30 bg-primary/5">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        {tenant.subscription_status === 'lifetime' && <Crown className="w-4 h-4 text-amber-500" />}
-                        {tenant.subscription_status === 'partnership' && <Handshake className="w-4 h-4 text-green-500" />}
-                        {tenant.subscription_status === 'trialing' && <Gift className="w-4 h-4 text-primary" />}
-                        Acesso Promocional Ativo
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Tipo:</span>
-                          <p className="font-medium">
-                            {tenant.subscription_status === 'lifetime' && 'Vitalício'}
-                            {tenant.subscription_status === 'partnership' && 'Parceria'}
-                            {tenant.subscription_status === 'trialing' && 'Trial'}
-                          </p>
-                        </div>
-                        {tenant.current_period_end && (
-                          <div>
-                            <span className="text-muted-foreground">Expira em:</span>
-                            <p className="font-medium">
-                              {(() => {
-                                const endDate = new Date(tenant.current_period_end);
-                                const twoYearsFromNow = new Date();
-                                twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2);
-                                if (endDate > twoYearsFromNow) {
-                                  return <span className="text-muted-foreground italic">Data não configurada</span>;
-                                }
-                                return format(endDate, "dd/MM/yyyy", { locale: ptBR });
-                              })()}
-                            </p>
-                          </div>
-                        )}
-                        {tenant.subscription_status === 'lifetime' && (
-                          <div>
-                            <span className="text-muted-foreground">Expiração:</span>
-                            <p className="font-medium text-amber-600">Nunca expira</p>
-                          </div>
-                        )}
-                      </div>
-                      {tenant.config?.promo?.reason && (
-                        <div>
-                          <span className="text-sm text-muted-foreground">Motivo:</span>
-                          <p className="text-sm bg-background/50 rounded p-2 mt-1">{tenant.config.promo.reason}</p>
-                        </div>
-                      )}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm" className="w-full mt-2">
-                            <Ban className="w-4 h-4 mr-2" />
-                            Revogar Acesso Gratuito
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Revogar Acesso Promocional?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              O tenant perderá o acesso gratuito imediatamente e precisará fazer o pagamento para continuar usando o sistema.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => revokePromoMutation.mutate()}
-                              disabled={revokePromoMutation.isPending}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              {revokePromoMutation.isPending ? (
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              ) : (
-                                <Ban className="w-4 h-4 mr-2" />
-                              )}
-                              Revogar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Customer Portal */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <ExternalLink className="w-4 h-4 text-primary" />
-                      Portal Stripe
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {tenant.stripe_customer_id ? (
-                      <>
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => customerPortalMutation.mutate()}
-                          disabled={customerPortalMutation.isPending}
-                        >
-                          {customerPortalMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                          )}
-                          Abrir Customer Portal
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          className="w-full"
-                          onClick={() => createCheckoutMutation.mutate()}
-                          disabled={createCheckoutMutation.isPending}
-                        >
-                          {createCheckoutMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          ) : (
-                            <CreditCard className="w-4 h-4 mr-2" />
-                          )}
-                          Criar Checkout Stripe
-                        </Button>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Tenant não possui customer ID no Stripe
-                        </p>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Upgrade Options */}
-                {tenant.plan_type !== 'enterprise' && (
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-success" />
-                        Upgrade
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        {tenant.plan_type === 'basic' && (
-                          <>
-                            <Button 
-                              className="w-full" 
-                              onClick={() => upgradeMutation.mutate('pro')}
-                              disabled={upgradeMutation.isPending}
-                            >
-                              Upgrade para Pro
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              className="w-full"
-                              onClick={() => upgradeMutation.mutate('enterprise')}
-                              disabled={upgradeMutation.isPending}
-                            >
-                              Upgrade para Enterprise
-                            </Button>
-                          </>
-                        )}
-                        {tenant.plan_type === 'pro' && (
-                          <Button 
-                            className="w-full"
-                            onClick={() => upgradeMutation.mutate('enterprise')}
-                            disabled={upgradeMutation.isPending}
-                          >
-                            Upgrade para Enterprise
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Downgrade Options */}
-                  {tenant.plan_type !== 'basic' && (
-                    <Card>
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <TrendingDown className="w-4 h-4 text-warning" />
-                          Downgrade
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {tenant.plan_type === 'enterprise' && (
-                          <>
-                            <Button 
-                              variant="outline" 
-                              className="w-full"
-                              onClick={() => upgradeMutation.mutate('pro')}
-                              disabled={upgradeMutation.isPending}
-                            >
-                              Downgrade para Pro
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              className="w-full"
-                              onClick={() => upgradeMutation.mutate('basic')}
-                              disabled={upgradeMutation.isPending}
-                            >
-                              Downgrade para Basic
-                            </Button>
-                          </>
-                        )}
-                        {tenant.plan_type === 'pro' && (
-                          <Button 
-                            variant="outline" 
-                            className="w-full"
-                            onClick={() => upgradeMutation.mutate('basic')}
-                            disabled={upgradeMutation.isPending}
-                          >
-                            Downgrade para Basic
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Cancel/Reactivate */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        {tenant.is_active ? (
-                          <>
-                            <XCircle className="w-4 h-4 text-destructive" />
-                            Cancelar
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="w-4 h-4 text-success" />
-                            Reativar
-                          </>
-                        )}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {tenant.is_active ? (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="w-full">
-                              Cancelar Assinatura
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta ação irá desativar o tenant e cancelar sua assinatura.
-                                O tenant poderá ser reativado posteriormente.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Voltar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => cancelMutation.mutate()}
-                                className="bg-destructive text-destructive-foreground"
-                              >
-                                Confirmar Cancelamento
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      ) : (
-                        <Button 
-                          className="w-full"
-                          onClick={() => reactivateMutation.mutate()}
-                          disabled={reactivateMutation.isPending}
-                        >
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Reativar Assinatura
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Branding Tab */}
-          <TabsContent value="branding">
-            <BrandingManagement
-              tenantId={id!}
-              branding={tenant.branding}
-              planType={tenant.plan_type}
-            />
-          </TabsContent>
-
-          {/* Onboarding Tab */}
-          <TabsContent value="onboarding">
-            <OnboardingChecklist tenantId={id!} />
-          </TabsContent>
-
-          {/* Domains Tab */}
-          <TabsContent value="domains">
-            <DomainsManagement tenantId={id!} tenantSubdomain={tenant.slug || tenant.subdomain} />
-          </TabsContent>
-
-          {/* Unit Economics Tab */}
-          <TabsContent value="economics">
-            <UnitEconomicsCard tenantId={id!} />
-          </TabsContent>
-
-          {/* Template Tab */}
-          <TabsContent value="template">
-            <TenantTemplateManager tenantId={id!} tenantName={tenant.name} />
-          </TabsContent>
-
-          {/* Consumption Tab */}
-          <TabsContent value="consumption" className="space-y-6">
+          <div>
+            <SectionTitle index="05" title="Consumo por usuário" hint="Tokens e custo por operador" />
             <TenantUserCreditsTable tenantId={id!} />
-          </TabsContent>
+          </div>
+        </TabsContent>
 
-          {/* AI Engine Tab */}
-          <TabsContent value="ai-engine">
+        {/* ============ MOTOR IA ============ */}
+        <TabsContent value="ai" className="space-y-8">
+          <div>
+            <SectionTitle index="01" title="Template aplicado" hint="Nicho/segmento e prompts base" />
+            <TenantTemplateManager tenantId={id!} tenantName={tenant.name} />
+          </div>
+
+          <div>
+            <SectionTitle index="02" title="Camadas do motor de IA" hint="Override por camada (intent, response, fallback)" />
             {features && (
               <TenantAIEngineEditor
                 tenantId={id!}
@@ -1146,8 +655,31 @@ export default function TenantDetail() {
                 isLoading={featuresLoading}
               />
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </TabsContent>
+
+        {/* ============ PESSOAS & OPERAÇÃO ============ */}
+        <TabsContent value="people" className="space-y-8">
+          <div>
+            <SectionTitle index="01" title="Operação ao vivo" hint="Canais WhatsApp, jobs e saúde em tempo real" />
+            <TenantOperationsTab tenantId={id!} />
+          </div>
+
+          <div>
+            <SectionTitle index="02" title="Usuários do tenant" />
+            <Card>
+              <CardContent className="pt-6">
+                <UserManagement tenantId={id!} users={users || []} isLoading={false} />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div>
+            <SectionTitle index="03" title="Onboarding" hint="Checklist de implantação" />
+            <OnboardingChecklist tenantId={id!} />
+          </div>
+        </TabsContent>
+      </Tabs>
     </DashboardLayout>
   );
 }
