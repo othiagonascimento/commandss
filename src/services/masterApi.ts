@@ -100,6 +100,24 @@ async function callMasterApi<T>(
   }
 }
 
+/**
+ * Raw variant — returns the entire response body untouched (could be a v2
+ * envelope { data, meta } OR a legacy v1 payload). Use with `useMasterRead`
+ * which parses both shapes.
+ *
+ * Throws on transport / auth errors so react-query can capture them.
+ */
+export async function callMasterApiRaw(
+  functionName: string,
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE' = 'GET',
+  pathSuffix?: string,
+  body?: unknown
+): Promise<unknown> {
+  const result = await callMasterApi<unknown>(functionName, method, pathSuffix, body);
+  if (result.error) throw new Error(result.error);
+  return result.data;
+}
+
 // Analytics API
 export const analyticsApi = {
   getOverview: () => callMasterApi<AnalyticsOverview>('master-analytics', 'GET', 'overview'),
