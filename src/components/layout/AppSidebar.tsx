@@ -87,14 +87,28 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
       <button
         onClick={() => { navigate(item.path); onMobileClose(); }}
         className={cn(
-          'group relative w-full flex items-center gap-3 h-9 transition-colors',
+          'group relative w-full flex items-center gap-3 h-9 transition-all duration-200',
           collapsed ? 'justify-center' : 'px-3',
-          active ? 'text-ink' : 'text-ink-2 hover:text-ink',
+          active ? 'text-ink' : 'text-ink-2 hover:text-ink hover:bg-surface-2/50',
         )}
       >
-        {active && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 bg-plasma" />}
-        <item.icon className={cn('h-[15px] w-[15px] shrink-0', active && 'text-plasma')} />
-        {!collapsed && <span className="text-[13px] truncate">{item.label}</span>}
+        {active && (
+          <>
+            <span
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 rounded-r-full"
+              style={{ background: 'var(--brand-gradient)' }}
+            />
+            <span
+              className="absolute inset-0 opacity-100 pointer-events-none"
+              style={{ background: 'linear-gradient(90deg, hsl(var(--brand-magenta) / 0.10), transparent 60%)' }}
+            />
+          </>
+        )}
+        <item.icon className={cn(
+          'h-[15px] w-[15px] shrink-0 transition-all relative',
+          active ? 'text-plasma' : 'group-hover:text-plasma',
+        )} />
+        {!collapsed && <span className="text-[13px] truncate relative">{item.label}</span>}
       </button>
     );
     if (collapsed) {
@@ -113,7 +127,10 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
       {/* Brand */}
       <div className={cn('h-14 flex items-center hairline-b px-4', collapsed && 'justify-center px-0')}>
         <div className="flex items-center gap-2.5">
-          <img src={uopaSymbol} alt="UÔPA" className="h-7 w-auto" />
+          <div className="relative">
+            <img src={uopaSymbol} alt="UÔPA" className="h-7 w-auto relative z-10" />
+            <div className="absolute inset-0 -m-1 rounded-full opacity-50 blur-md" style={{ background: 'var(--brand-gradient)' }} />
+          </div>
           {!collapsed && (
             <div className="leading-none">
               <div className="font-display text-[13px] font-semibold tracking-tight text-ink">UÔPA</div>

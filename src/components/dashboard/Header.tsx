@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Menu, Bell, Search, ChevronRight } from 'lucide-react';
+import { Menu, Bell, Search, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +7,8 @@ import { useMasterDashboard } from '@/hooks/useMasterDashboard';
 import { useOpsHealth } from '@/hooks/useOpsHealth';
 import { Ticker } from '@/components/ds/Feedback';
 import { StatusDot } from '@/components/ds/Atoms';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { usePrivacy } from '@/contexts/PrivacyContext';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -51,6 +52,7 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
   const navigate = useNavigate();
   const { overview, revenue } = useMasterDashboard();
   const { snapshot, snapshotMeta, alertCount } = useOpsHealth();
+  const { hidden, toggle } = usePrivacy();
 
   const initials = (() => {
     const n = masterUser?.full_name || user?.email || '';
@@ -63,7 +65,7 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
   const opsLabel = alertCount > 0 ? `${alertCount} alertas` : stale ? 'snapshot velho' : 'sistema ok';
 
   const tickerItems = [
-    revenue?.mrr ? { label: 'MRR', value: `R$ ${fmtCompact(revenue.mrr)}`, tone: 'plasma' as const } : null,
+    revenue?.mrr ? { label: 'MRR', value: hidden ? '••••' : `R$ ${fmtCompact(revenue.mrr)}`, tone: 'plasma' as const } : null,
     overview?.tenants?.active != null ? { label: 'Tenants', value: String(overview.tenants.active), tone: 'default' as const } : null,
     overview?.usage?.total_messages != null ? { label: 'MSG/30D', value: fmtCompact(overview.usage.total_messages) } : null,
     overview?.usage?.total_users != null ? { label: 'USERS', value: fmtCompact(overview.usage.total_users) } : null,
@@ -96,25 +98,34 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
         {/* CommandBar */}
         <button
           onClick={onCommandOpen}
-          className="ml-auto sm:ml-0 sm:flex-1 sm:max-w-[420px] h-9 hairline border bg-surface-1 hover:border-plasma/40 transition-colors flex items-center gap-2 px-3 rounded-sm group"
+          className="search-input ml-auto sm:ml-0 sm:flex-1 sm:max-w-[420px] h-9 hairline border bg-surface-1 flex items-center gap-2 px-3 rounded-md group"
         >
-          <Search className="h-3.5 w-3.5 text-ink-3" />
+          <Search className="h-3.5 w-3.5 text-ink-3 group-hover:text-plasma transition-colors" />
           <span className="text-[12px] text-ink-3 font-mono hidden sm:inline">buscar tenants, ações, ir para…</span>
           <span className="text-[12px] text-ink-3 font-mono sm:hidden">buscar</span>
           <kbd className="ml-auto font-mono text-[10px] text-ink-faint hairline border px-1.5 py-0.5 rounded-sm">⌘K</kbd>
         </button>
 
         {/* Status + bell + avatar */}
-        <div className="flex items-center gap-3 ml-auto sm:ml-3">
+        <div className="flex items-center gap-2 ml-auto sm:ml-2">
           <div className="hidden md:block">
             <StatusDot tone={opsTone} label={opsLabel} />
           </div>
-          <button onClick={() => navigate('/operations')} className="relative p-1.5 text-ink-2 hover:text-ink">
+          <button
+            onClick={toggle}
+            className="p-1.5 text-ink-2 hover:text-plasma transition-colors"
+            aria-label={hidden ? 'Mostrar valores financeiros' : 'Ocultar valores financeiros'}
+            title={hidden ? 'Mostrar financeiros' : 'Ocultar financeiros'}
+          >
+            {hidden ? <Eye className="h-[15px] w-[15px]" /> : <EyeOff className="h-[15px] w-[15px]" />}
+          </button>
+          <ThemeToggle />
+          <button onClick={() => navigate('/operations')} className="relative p-1.5 text-ink-2 hover:text-ink transition-colors">
             <Bell className="h-[15px] w-[15px]" />
-            {alertCount > 0 && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-coral" />}
+            {alertCount > 0 && <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-coral animate-pulse-ring" />}
           </button>
           <div className="hidden sm:flex items-center gap-2 pl-3 hairline-l h-8">
-            <div className="w-7 h-7 rounded-sm bg-plasma text-plasma-foreground font-mono text-[11px] font-semibold flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-brand-gradient text-white font-mono text-[11px] font-semibold flex items-center justify-center shadow-sm">
               {initials}
             </div>
           </div>
