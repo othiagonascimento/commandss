@@ -103,13 +103,15 @@ export default function ActivityLogs() {
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [entityFilter, setEntityFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('7d');
+  const [pageSize, setPageSize] = useState<number>(50);
 
   const { data: logs, isLoading, refetch } = useQuery({
-    queryKey: ['activity-logs', actionFilter, entityFilter, dateRange],
+    queryKey: ['activity-logs', actionFilter, entityFilter, dateRange, pageSize],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('master-analytics', {
-        body: { 
+        body: {
           endpoint: 'activity-logs',
+          limit: pageSize,
           filters: {
             action: actionFilter !== 'all' ? actionFilter : undefined,
             entity_type: entityFilter !== 'all' ? entityFilter : undefined,
@@ -118,7 +120,11 @@ export default function ActivityLogs() {
         }
       });
       if (error) throw error;
-      return safeArray<AuditLog>(data);
+      // Endpoint may return v2 envelope or raw array
+      const payload = (data && typeof data === 'object' && 'data' in (data as Record<string, unknown>))
+        ? (data as { data: unknown }).data
+        : data;
+      return safeArray<AuditLog>(payload);
     },
     staleTime: 60000,
   });
@@ -259,12 +265,25 @@ export default function ActivityLogs() {
       {/* Logs Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex items-center justify-between gap-3 flex-wrap">
             <span>Registros de Atividade</span>
-            <Badge variant="secondary">{filteredLogs.length} registros</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">Mostrando últimos {filteredLogs.length} de até {pageSize}</Badge>
+              <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger className="w-28 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="50">50 por página</SelectItem>
+                  <SelectItem value="100">100 por página</SelectItem>
+                  <SelectItem value="200">200 por página</SelectItem>
+                  <SelectItem value="500">500 por página</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardTitle>
           <CardDescription>
-            Histórico detalhado de todas as ações realizadas no sistema
+            Histórico detalhado de todas as ações realizadas no sistema. A consulta é limitada ao tamanho da página configurado acima — para investigação completa, use Exportar CSV ou aumente o limite.
           </CardDescription>
         </CardHeader>
         <CardContent>
