@@ -88,6 +88,26 @@ const limitConfig: LimitConfig[] = [
     presets: [1, 2, 5, 10],
     category: 'tenant',
   },
+  {
+    key: 'limit_ai_tokens_monthly',
+    label: 'Tokens IA / mês (legacy)',
+    description: 'Limite legado de tokens de IA mensais usado por integrações antigas e pelo edge check-limits. Mantenha alinhado com créditos para evitar alertas falsos. Use -1 para ilimitado.',
+    icon: Cpu,
+    unit: 'tokens',
+    presets: [100000, 500000, 1000000, 5000000, 10000000],
+    formatValue: (v: number) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : `${(v/1000).toFixed(0)}K`,
+    category: 'tenant',
+  },
+  {
+    key: 'limit_storage_mb',
+    label: 'Storage total (MB) — legacy',
+    description: 'Limite legado de armazenamento total do tenant (MB). Use -1 para ilimitado.',
+    icon: HardDrive,
+    unit: 'MB',
+    presets: [500, 1024, 5120, 10240, 51200],
+    formatValue: (v: number) => v >= 1024 ? `${(v/1024).toFixed(1)} GB` : `${v} MB`,
+    category: 'tenant',
+  },
   // Per-user limits (quota per user)
   {
     key: 'credits_per_user',
