@@ -42,19 +42,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen w-full bg-canvas relative">
       <AppSidebar
-        collapsed={sidebarCollapsed}
-        onCollapse={setSidebarCollapsed}
+        collapsed={false}
+        onCollapse={() => {}}
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}
       />
 
-      <div
-        className={cn(
-          'transition-[padding] duration-200 min-h-screen flex flex-col',
-          'lg:pl-[232px]',
-          sidebarCollapsed && 'lg:pl-[56px]',
-        )}
-      >
+      <div className="transition-[padding] duration-200 min-h-screen flex flex-col lg:pl-[232px]">
         <Header
           onMenuClick={() => setMobileMenuOpen(true)}
           onCommandOpen={() => setCmdkOpen(true)}
