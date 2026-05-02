@@ -330,9 +330,57 @@ export function HomeBrazilMap({ bare = false }: { bare?: boolean } = {}) {
             </div>
           </div>
         )}
-      </div>
+    </div>
+  );
 
-      {/* Footer / legenda */}
+  const sheet = (
+    <Sheet open={!!selected} onOpenChange={o => !o && setSelected(null)}>
+      <SheetContent side="right" className="bg-surface-1 border-l border-hairline w-full sm:max-w-md">
+        <SheetHeader>
+          <SheetTitle className="font-display tracking-tight text-ink flex items-baseline gap-2">
+            <span>{selected === '__none__' ? 'Sem geolocalização' : selected}</span>
+            <span className="font-mono text-xs text-ink-3 tabular">
+              {(selected === '__none__' ? tenants.filter(t => !t.state).length : selList.length)} tenants
+            </span>
+          </SheetTitle>
+        </SheetHeader>
+        <div className="mt-4 space-y-1.5 max-h-[80vh] overflow-y-auto custom-scrollbar pr-1">
+          {(selected === '__none__' ? tenants.filter(t => !t.state) : selList).map(t => (
+            <a
+              key={t.id} href={`/tenants/${t.id}`}
+              className="block px-3 py-2 bg-surface-2 hover:border-brand-magenta/50 border border-hairline rounded-sm transition-colors group"
+            >
+              <div className="text-sm text-ink group-hover:text-plasma transition-colors">{t.name}</div>
+              <div className="font-mono text-[10px] text-ink-3 uppercase tracking-wider mt-0.5">
+                {[t.city, t.state, t.plan_type].filter(Boolean).join(' · ') || '—'}
+              </div>
+            </a>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+
+  if (bare) {
+    return (<>{mapCanvas}{sheet}</>);
+  }
+
+  return (
+    <Surface className="p-4 sm:p-5 overflow-hidden" crosshairs>
+      <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <div className="editorial-label">/ CARTOGRAFIA OPERACIONAL</div>
+          <h3 className="font-display text-lg font-semibold text-ink mt-0.5">Distribuição nacional</h3>
+        </div>
+        <div className="flex items-center gap-3 font-mono text-[10px] text-ink-3 uppercase tracking-wider">
+          <span><span className="text-ink">{tenants.length}</span> tenants</span>
+          <span className="text-ink-faint">·</span>
+          <span><span className="text-ink">{byUF.size}</span> uf</span>
+          <span className="text-ink-faint">·</span>
+          <span><span className="text-ink">{cityClusters.length}</span> cidades</span>
+        </div>
+      </div>
+      {mapCanvas}
       <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 font-mono text-[10px] text-ink-3 uppercase tracking-wider flex-wrap">
           <span className="flex items-center gap-1.5">
@@ -356,32 +404,8 @@ export function HomeBrazilMap({ bare = false }: { bare?: boolean } = {}) {
           </button>
         )}
       </div>
-
-      <Sheet open={!!selected} onOpenChange={o => !o && setSelected(null)}>
-        <SheetContent side="right" className="bg-surface-1 border-l border-hairline w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="font-display tracking-tight text-ink flex items-baseline gap-2">
-              <span>{selected === '__none__' ? 'Sem geolocalização' : selected}</span>
-              <span className="font-mono text-xs text-ink-3 tabular">
-                {(selected === '__none__' ? tenants.filter(t => !t.state).length : selList.length)} tenants
-              </span>
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-4 space-y-1.5 max-h-[80vh] overflow-y-auto custom-scrollbar pr-1">
-            {(selected === '__none__' ? tenants.filter(t => !t.state) : selList).map(t => (
-              <a
-                key={t.id} href={`/tenants/${t.id}`}
-                className="block px-3 py-2 bg-surface-2 hover:border-brand-magenta/50 border border-hairline rounded-sm transition-colors group"
-              >
-                <div className="text-sm text-ink group-hover:text-plasma transition-colors">{t.name}</div>
-                <div className="font-mono text-[10px] text-ink-3 uppercase tracking-wider mt-0.5">
-                  {[t.city, t.state, t.plan_type].filter(Boolean).join(' · ') || '—'}
-                </div>
-              </a>
-            ))}
-          </div>
-        </SheetContent>
-      </Sheet>
+      {sheet}
     </Surface>
   );
 }
+
