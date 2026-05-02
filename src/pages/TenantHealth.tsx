@@ -245,8 +245,12 @@ export default function TenantHealth() {
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'health_score':
-          return a.health_score - b.health_score; // Lower first (needs attention)
+        case 'health_score': {
+          // Tenants with null score go to the end (no data → can't prioritize)
+          const av = a.health_score ?? Number.POSITIVE_INFINITY;
+          const bv = b.health_score ?? Number.POSITIVE_INFINITY;
+          return av - bv; // Lower first (needs attention)
+        }
         case 'name':
           return a.name.localeCompare(b.name);
         case 'activity':
@@ -274,7 +278,8 @@ export default function TenantHealth() {
         description="Monitore o status e performance de cada cliente"
         icon={HeartPulse}
         actions={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {healthRead.meta && <DataQualityBadge meta={healthRead.meta} />}
             <Button variant="outline" size="sm">
               <Bell className="h-4 w-4 mr-2" />
               Configurar Alertas
@@ -286,6 +291,16 @@ export default function TenantHealth() {
           </div>
         }
       />
+
+      {healthRead.schemaInvalid && (
+        <DataQualityNotice
+          variant="error"
+          message="A lista de saúde dos tenants veio em formato inesperado (schema v2 inválido). Os cards podem estar parciais."
+        />
+      )}
+      {healthRead.meta?.warnings && healthRead.meta.warnings.length > 0 && (
+        <DataQualityNotice variant="warning" message={healthRead.meta.warnings.join(' • ')} />
+      )}
 
       {/* Educational Banner */}
       <Card className="mb-6 border-primary/20 bg-primary/5">
