@@ -22,10 +22,11 @@ interface Props {
   onMobileClose: () => void;
 }
 
-export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }: Props) {
+export function AppSidebar({ mobileOpen, onMobileClose }: Props) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const permissions = usePermissions();
+  const collapsed = false; // sidebar sempre expandido — labels visíveis
 
   const zones: NavZone[] = useMemo(() => [
     {
