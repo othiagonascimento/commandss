@@ -52,6 +52,7 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
   const navigate = useNavigate();
   const { overview, revenue } = useMasterDashboard();
   const { snapshot, snapshotMeta, alertCount } = useOpsHealth();
+  const { hidden, toggle } = usePrivacy();
 
   const initials = (() => {
     const n = masterUser?.full_name || user?.email || '';
