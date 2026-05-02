@@ -187,29 +187,14 @@ export function HomeBrazilMap({ bare = false }: { bare?: boolean } = {}) {
     return `hsl(var(--brand-magenta) / ${alpha})`;
   };
 
-  const selList = selected && selected !== '__none__' ? (byUF.get(selected) ?? []) : [];
-
-  return (
-    <Surface className="p-4 sm:p-5 overflow-hidden" crosshairs>
-      <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
-        <div>
-          <div className="editorial-label">/ CARTOGRAFIA OPERACIONAL</div>
-          <h3 className="font-display text-lg font-semibold text-ink mt-0.5">Distribuição nacional</h3>
-        </div>
-        <div className="flex items-center gap-3 font-mono text-[10px] text-ink-3 uppercase tracking-wider">
-          <span><span className="text-ink">{tenants.length}</span> tenants</span>
-          <span className="text-ink-faint">·</span>
-          <span><span className="text-ink">{byUF.size}</span> uf</span>
-          <span className="text-ink-faint">·</span>
-          <span><span className="text-ink">{cityClusters.length}</span> cidades</span>
-        </div>
-      </div>
-
-      <div
-        ref={ref}
-        className="relative w-full grid-blueprint rounded-md overflow-hidden border border-hairline"
-        style={{ minHeight: 380, background: 'hsl(var(--surface-1))' }}
-      >
+  const mapCanvas = (
+    <div
+      ref={ref}
+      className={bare
+        ? "relative w-full h-full grid-blueprint overflow-hidden"
+        : "relative w-full grid-blueprint rounded-md overflow-hidden border border-hairline"}
+      style={bare ? { background: 'transparent' } : { minHeight: 380, background: 'hsl(var(--surface-1))' }}
+    >
         {/* Glow ambiente */}
         <div
           className="absolute inset-0 pointer-events-none opacity-40"
