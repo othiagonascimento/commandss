@@ -98,9 +98,9 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
         {/* CommandBar */}
         <button
           onClick={onCommandOpen}
-          className="ml-auto sm:ml-0 sm:flex-1 sm:max-w-[420px] h-9 hairline border bg-surface-1 hover:border-plasma/40 transition-colors flex items-center gap-2 px-3 rounded-sm group"
+          className="search-input ml-auto sm:ml-0 sm:flex-1 sm:max-w-[420px] h-9 hairline border bg-surface-1 flex items-center gap-2 px-3 rounded-md group"
         >
-          <Search className="h-3.5 w-3.5 text-ink-3" />
+          <Search className="h-3.5 w-3.5 text-ink-3 group-hover:text-plasma transition-colors" />
           <span className="text-[12px] text-ink-3 font-mono hidden sm:inline">buscar tenants, ações, ir para…</span>
           <span className="text-[12px] text-ink-3 font-mono sm:hidden">buscar</span>
           <kbd className="ml-auto font-mono text-[10px] text-ink-faint hairline border px-1.5 py-0.5 rounded-sm">⌘K</kbd>
