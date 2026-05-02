@@ -82,7 +82,7 @@ export default function Index() {
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none opacity-20"
             style={{ background: 'var(--brand-gradient)', filter: 'blur(80px)' }} />
 
-          <div className="relative">
+          <div className="relative min-w-0">
             <div className="flex items-center gap-2 mb-4">
               <StatusDot tone={systemTone} />
               <span className="font-mono text-[11px] uppercase tracking-wider text-ink-2">
@@ -123,7 +123,7 @@ export default function Index() {
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 relative">
+          <div className="grid grid-cols-3 gap-3 relative min-w-0">
             <MiniHero label="Tenants" value={overview ? fmtNum(overview.tenants.total) : '—'} sub={overview ? `${overview.recent_activity.new_tenants_7d} novos /7d` : ''} tone="plasma" big />
             <MiniHero label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} tone={overview && overview.subscriptions.trial > 3 ? 'ember' : 'default'} />
             <MiniHero label="Leads" value={overview ? fmtNum(overview.usage.total_leads) : '—'} />
@@ -340,10 +340,10 @@ export default function Index() {
 function MiniHero({ label, value, sub, tone = 'default', big = false }: { label: string; value: string; sub?: string; tone?: 'default' | 'plasma' | 'ember'; big?: boolean }) {
   const t = tone === 'plasma' ? 'text-brand-gradient' : tone === 'ember' ? 'text-ember' : 'text-ink';
   return (
-    <div className="hairline-l pl-3 transition-all hover:pl-4 hover:border-brand-magenta/50">
-      <div className="editorial-label">{label}</div>
-      <div className={cn('font-mono font-semibold tabular mt-1.5', big ? 'text-3xl' : 'text-2xl', t)}>{value}</div>
-      {sub && <div className="font-mono text-[10px] text-ink-faint uppercase tracking-wider mt-1">{sub}</div>}
+    <div className="hairline-l pl-3 min-w-0 transition-colors hover:border-brand-magenta/60">
+      <div className="editorial-label truncate">{label}</div>
+      <div className={cn('font-mono font-semibold tabular mt-1.5 truncate', big ? 'text-3xl' : 'text-2xl', t)}>{value}</div>
+      {sub && <div className="font-mono text-[10px] text-ink-faint uppercase tracking-wider mt-1 truncate">{sub}</div>}
     </div>
   );
 }

@@ -89,9 +89,9 @@ export function HomeBrazilMap() {
 
   const fillFor = (uf: string) => {
     const n = byUF.get(uf)?.length ?? 0;
-    if (n === 0) return 'hsl(var(--surface-2))';
+    if (n === 0) return 'hsl(var(--brand-purple) / 0.06)';
     const ratio = n / max;
-    const alpha = Math.max(0.12, Math.min(0.65, 0.18 + ratio * 0.5));
+    const alpha = Math.max(0.22, Math.min(0.78, 0.28 + ratio * 0.55));
     return `hsl(var(--brand-magenta) / ${alpha})`;
   };
 
@@ -164,8 +164,8 @@ export function HomeBrazilMap() {
                   key={uf}
                   d={pathGen(f as any) || ''}
                   fill={fillFor(uf)}
-                  stroke={isSel || isHover ? 'hsl(var(--brand-magenta))' : 'hsl(var(--hairline-strong))'}
-                  strokeWidth={isSel ? 1.4 : isHover ? 1 : 0.6}
+                  stroke={isSel || isHover ? 'hsl(var(--brand-magenta))' : 'hsl(var(--brand-purple) / 0.45)'}
+                  strokeWidth={isSel ? 1.6 : isHover ? 1.2 : 0.85}
                   className="cursor-pointer transition-all duration-200"
                   style={{ animation: `fade-in .4s cubic-bezier(.2,.7,.1,1) both`, animationDelay: `${i * 14}ms` }}
                   onMouseMove={e => setHover({ uf, x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY, n })}
