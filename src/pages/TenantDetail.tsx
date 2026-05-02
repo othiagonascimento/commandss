@@ -256,7 +256,7 @@ export default function TenantDetail() {
     // cruzar manualmente com features (evita comparar mensagens vs limit de tokens)
     if (usage) {
       const u = usage.usage;
-      const lim = usage.limits || {};
+      const lim = usage.limits;
       const checks: Array<[string, number | undefined, number | undefined]> = [
         ['créditos IA', u?.ai_credits, lim.ai_credits],
         ['leads', u?.leads, lim.leads],
