@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMasterRead } from '@/hooks/useMasterRead';
+import { callMasterApiRaw } from '@/services/masterApi';
+import { AIAdvancedDataSchema } from '@/lib/masterSchemas';
+import { DataQualityBadge } from '@/components/quality/DataQualityBadge';
+import { DataQualityNotice } from '@/components/quality/MetricValue';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,15 +95,21 @@ export default function AIDiagnostics() {
   const [activeTab, setActiveTab] = useState('motor-ia');
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
 
-  const { data: aiData, isLoading, refetch } = useQuery({
-    queryKey: ['ai-advanced-diagnostics', days, selectedTenantId],
-    queryFn: async () => {
-      const result = await aiAdvancedApi.get(days, selectedTenantId || undefined);
-      if (result.error) throw new Error(result.error);
-      return result.data;
+  const aiRead = useMasterRead({
+    widget: 'ai.advanced',
+    queryKey: ['ai-advanced-diagnostics-v2', days, selectedTenantId],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.set('days', String(days));
+      if (selectedTenantId) params.set('tenant_id', selectedTenantId);
+      return callMasterApiRaw('master-ai-advanced', 'GET', `?${params.toString()}`);
     },
-    staleTime: 60000,
+    dataSchema: AIAdvancedDataSchema,
+    options: { staleTime: 60_000 },
   });
+  const aiData = aiRead.data as AIAdvancedData | undefined;
+  const isLoading = aiRead.isLoading;
+  const refetch = aiRead.refetch;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -148,11 +158,13 @@ export default function AIDiagnostics() {
         icon={Brain}
         actions={
           <div className="flex items-center gap-2">
+            {aiRead.meta && <DataQualityBadge meta={aiRead.meta} />}
             <TenantSelector
               value={selectedTenantId}
               onChange={setSelectedTenantId}
               placeholder="Todas as Lojas"
             />
+            <span className="text-xs text-muted-foreground hidden md:inline">Período (todos os widgets):</span>
             <div className="flex gap-1">
               {[7, 14, 30].map(d => (
                 <Button
