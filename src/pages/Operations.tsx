@@ -191,9 +191,11 @@ export default function Operations() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Centro de Operações"
+        numeral="01 /"
+        label="Operação · Centro de Comando"
+        title="Centro de operações"
         description={snapAt
-          ? `Dados de ${formatDistanceToNow(new Date(snapAt), { addSuffix: true, locale: ptBR })}`
+          ? `Snapshot de ${formatDistanceToNow(new Date(snapAt), { addSuffix: true, locale: ptBR })}`
           : 'Aguardando primeiro snapshot'
         }
         icon={Radio}

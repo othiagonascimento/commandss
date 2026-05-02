@@ -228,8 +228,10 @@ export default function ScheduledTasks() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Tarefas Agendadas"
-        description="Agende ações automáticas para execução futura"
+        numeral="07 /"
+        label="Administração · Automação"
+        title="Tarefas agendadas"
+        description="Pipeline de execução automática de ações agendadas"
         icon={Clock}
         actions={
           <Button onClick={() => setIsCreateOpen(true)}>

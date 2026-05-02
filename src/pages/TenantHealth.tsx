@@ -272,8 +272,10 @@ export default function TenantHealth() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Saúde dos Tenants"
-        description="Monitore o status e performance de cada cliente"
+        numeral="02 /"
+        label="Operação · Saúde por Tenant"
+        title="Saúde dos tenants"
+        description="Score realtime, status operacional e performance individual de cada cliente"
         icon={HeartPulse}
         actions={
           <div className="flex items-center gap-2">

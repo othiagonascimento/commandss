@@ -163,8 +163,10 @@ export default function ActivityLogs() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Logs de Atividade"
-        description="Histórico completo de ações no sistema"
+        numeral="05 /"
+        label="Administração · Auditoria"
+        title="Logs de atividade"
+        description="Histórico completo e auditável de ações executadas no sistema"
         icon={ScrollText}
         actions={
           <div className="flex gap-2">

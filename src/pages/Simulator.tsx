@@ -210,8 +210,10 @@ export default function Simulator() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Simulador Financeiro"
-        description="Projeções, cenários e análise de unit economics"
+        numeral="03 /"
+        label="Financeiro · Projeções"
+        title="Simulador financeiro"
+        description="Projeções, cenários e análise de unit economics da plataforma"
         icon={Calculator}
         actions={
           <div className="flex gap-2">

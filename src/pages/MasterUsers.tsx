@@ -288,8 +288,11 @@ export default function MasterUsers() {
   return (
     <DashboardLayout>
       <PageHeader
+        numeral="01 /"
+        label="Administração · Acessos"
         title="Usuários do Master"
         description="Gerencie usuários, cargos e permissões de acesso ao painel administrativo"
+        icon={Users}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
