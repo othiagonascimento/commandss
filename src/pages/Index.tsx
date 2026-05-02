@@ -13,6 +13,8 @@ import { DataQualityBadge } from '@/components/quality/DataQualityBadge';
 import { MetricValue } from '@/components/quality/MetricValue';
 import { HomeBrazilMap } from '@/components/home/HomeBrazilMap';
 import { PrivateValue } from '@/components/ds/PrivateValue';
+import { usePrivacy } from '@/contexts/PrivacyContext';
+import { Eye, EyeOff } from 'lucide-react';
 import { AnimatedCounter } from '@/components/ds/AnimatedCounter';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -125,7 +127,10 @@ export default function Index() {
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mt-8 relative min-w-0">
+              {/* Inteligência Financeira — mesmo card, controlada pela privacidade */}
+              <FinancialBlock revenue={revenue} revenueMeta={revenueMeta} series={series} trialsCount={overview?.subscriptions.trial ?? 0} />
+
+              <div className="grid grid-cols-3 gap-3 mt-6 relative min-w-0">
                 <MiniHero label="Tenants" value={overview ? fmtNum(overview.tenants.total) : '—'} sub={overview ? `${overview.recent_activity.new_tenants_7d} novos /7d` : ''} tone="plasma" big />
                 <MiniHero label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} tone={overview && overview.subscriptions.trial > 3 ? 'ember' : 'default'} />
                 <MiniHero label="Leads" value={overview ? fmtNum(overview.usage.total_leads) : '—'} />
