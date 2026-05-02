@@ -908,9 +908,11 @@ serve(async (req) => {
         };
         break;
 
-      case 'activity-logs':
-        responseData = await getActivityLogs(50);
+      case 'activity-logs': {
+        const limit = Math.min(500, Math.max(1, parseInt(url.searchParams.get('limit') || '50', 10) || 50));
+        responseData = await getActivityLogs(limit);
         break;
+      }
 
       case 'tenant-health':
         responseData = await getTenantHealthData();
