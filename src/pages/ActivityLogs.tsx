@@ -108,19 +108,16 @@ export default function ActivityLogs() {
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ['activity-logs', actionFilter, entityFilter, dateRange, pageSize],
     queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set('limit', String(pageSize));
+      if (actionFilter !== 'all') params.set('action', actionFilter);
+      if (entityFilter !== 'all') params.set('entity_type', entityFilter);
+      if (dateRange) params.set('date_range', dateRange);
       const { data, error } = await supabase.functions.invoke('master-analytics', {
-        body: {
-          endpoint: 'activity-logs',
-          limit: pageSize,
-          filters: {
-            action: actionFilter !== 'all' ? actionFilter : undefined,
-            entity_type: entityFilter !== 'all' ? entityFilter : undefined,
-            date_range: dateRange,
-          }
-        }
+        method: 'GET',
+        headers: { 'x-path-suffix': `activity-logs?${params.toString()}` },
       });
       if (error) throw error;
-      // Endpoint may return v2 envelope or raw array
       const payload = (data && typeof data === 'object' && 'data' in (data as Record<string, unknown>))
         ? (data as { data: unknown }).data
         : data;
