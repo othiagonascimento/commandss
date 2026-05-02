@@ -580,6 +580,9 @@ export interface Tenant {
   config?: {
     promo?: PromoInfo;
   } | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
 }
 
 export interface TenantDetail extends Tenant {
@@ -621,6 +624,9 @@ export interface CreateTenantPayload {
   admin_email?: string;
   admin_name?: string;
   admin_password?: string;
+  city?: string;
+  state?: string;
+  country?: string;
 }
 
 export interface SubscriptionDetail {
