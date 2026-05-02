@@ -89,7 +89,42 @@ export function HomeBrazilMap() {
   const noLoc = tenants.filter(t => !t.state).length;
   const noCity = tenants.filter(t => t.state && !t.city).length;
 
-  const projection = useMemo(() => geo ? d3.geoMercator().fitSize([size.w, size.h], geo as any) : null, [geo, size]);
+  const projection = useMemo(() => {
+    if (!geo) return null;
+    // Compute bounds manually from raw coordinates (ignores polygon winding,
+    // which d3.geoMercator().fitSize honors and which inverts on this geojson,
+    // making Brazil project as a tiny dot).
+    let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
+    const walk = (g: any) => {
+      if (!g) return;
+      const eachRing = (ring: [number, number][]) => {
+        for (const [lon, lat] of ring) {
+          if (lon < minLon) minLon = lon;
+          if (lon > maxLon) maxLon = lon;
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+        }
+      };
+      if (g.type === 'Polygon') g.coordinates.forEach(eachRing);
+      else if (g.type === 'MultiPolygon') g.coordinates.forEach((p: any) => p.forEach(eachRing));
+    };
+    for (const f of geo.features) walk((f as any).geometry);
+    if (!isFinite(minLon)) return null;
+
+    const proj = d3.geoMercator();
+    // Initial scale=1, translate=0 → measure projected bounds, then fit.
+    proj.scale(1).translate([0, 0]);
+    const [x0, y0] = proj([minLon, maxLat]) as [number, number];
+    const [x1, y1] = proj([maxLon, minLat]) as [number, number];
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const pad = 16;
+    const scale = Math.min((size.w - pad * 2) / dx, (size.h - pad * 2) / dy);
+    const tx = (size.w - scale * (x0 + x1)) / 2;
+    const ty = (size.h - scale * (y0 + y1)) / 2;
+    proj.scale(scale).translate([tx, ty]);
+    return proj;
+  }, [geo, size]);
 
   // Build path d-strings manually from coordinates to avoid d3-geo polygon winding issues
   // (some BR geojson files have rings wound opposite to RFC 7946, which makes geoPath fill the exterior)
