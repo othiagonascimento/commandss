@@ -1,621 +1,314 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useMasterDashboard } from '@/hooks/useMasterDashboard';
 import { useOpsHealth } from '@/hooks/useOpsHealth';
-import { useAlerts, type AlertRecord } from '@/hooks/useAlerts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
 import { useNavigate } from 'react-router-dom';
-import {
-  Building2, DollarSign, TrendingUp, TrendingDown, RefreshCw, AlertCircle,
-  Activity, Target, Wifi, WifiOff, ChevronRight, ShieldAlert, Users,
-  CreditCard, CheckCircle2, Cpu, Brain, LayoutDashboard, Crown, Zap,
-  BarChart3, Clock, ArrowUpRight,
-} from 'lucide-react';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-} from 'recharts';
-import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { RefreshCw, ArrowUpRight, Plus, Building2, Activity, Brain, BarChart3, Radio, Wifi, WifiOff, Cpu } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { DataQualityBadge, DataQualityNotice } from '@/components/quality/DataQualityBadge';
+import { Surface, SectionHeader } from '@/components/ds/Surface';
+import { MetricCard } from '@/components/ds/MetricCard';
+import { AlertRow, StatusDot, TrendDelta, Tag } from '@/components/ds/Atoms';
+import { EmptyState } from '@/components/ds/Feedback';
+import { DataQualityBadge } from '@/components/quality/DataQualityBadge';
 import { MetricValue } from '@/components/quality/MetricValue';
-import { isUntrustedRead, shouldHideMetric } from '@/lib/masterContract';
+import { HomeBrazilMap } from '@/components/home/HomeBrazilMap';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer } from 'recharts';
+import { cn } from '@/lib/utils';
 
-// ─── Formatters ───────────────────────────────────────────────────────────────
-
-function fmtCurrency(v: number) {
+function fmtBRL(v: number, compact = false) {
+  if (compact && v >= 1000) return `R$ ${(v / 1000).toFixed(1)}k`;
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v);
 }
 function fmtNum(v: number) {
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
   return new Intl.NumberFormat('pt-BR').format(v);
 }
-
-// ─── Status Dot ───────────────────────────────────────────────────────────────
-
-function StatusDot({ ok }: { ok: boolean }) {
-  return <div className={cn('h-2 w-2 rounded-full shrink-0', ok ? 'bg-emerald-500' : 'bg-destructive animate-pulse')} />;
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Index() {
   const navigate = useNavigate();
   const {
     overview, revenue, timeSeries,
     overviewMeta, revenueMeta, timeSeriesMeta,
-    overviewSchemaInvalid, revenueSchemaInvalid, timeSeriesSchemaInvalid,
-    isLoading, error, refetch,
+    isLoading, refetch,
   } = useMasterDashboard();
   const { snapshot, snapshotMeta, alerts: opsAlerts, alertCount } = useOpsHealth();
 
-  const snap = snapshot?.snapshot_data as Record<string, unknown> | undefined;
+  const snap = snapshot?.snapshot_data as Record<string, any> | undefined;
   const snapAt = snapshot?.created_at;
-  const snapStale = snapshotMeta?.freshness.status === 'stale';
-  const snapMissing = snapshotMeta?.freshness.status === 'missing' || !snap;
-  const channels = snap?.channels as Record<string, unknown[]> | undefined;
-  const whatsappChannels = (channels?.whatsapp ?? []) as Array<Record<string, unknown>>;
-  const metaChannels = (channels?.meta ?? []) as Array<Record<string, unknown>>;
-  const connectedWA = whatsappChannels.filter(w => w.status === 'connected').length;
-  const disconnectedWA = whatsappChannels.filter(w => w.status !== 'connected');
-  const cronJobs = ((snap?.cron_health as Record<string, unknown>)?.jobs ?? []) as Array<Record<string, unknown>>;
-  const failedCrons = cronJobs.filter(j => ((j.consecutive_failures as number) ?? 0) >= 2);
-  const conversations = snap?.conversations as Record<string, unknown> | undefined;
+  const stale = snapshotMeta?.freshness.status === 'stale';
+  const missing = snapshotMeta?.freshness.status === 'missing' || !snap;
+  const channels = snap?.channels as Record<string, any[]> | undefined;
+  const wa = (channels?.whatsapp ?? []) as any[];
+  const meta = (channels?.meta ?? []) as any[];
+  const waOnline = wa.filter(w => w.status === 'connected').length;
+  const waOffline = wa.filter(w => w.status !== 'connected');
+  const cron = ((snap?.cron_health as any)?.jobs ?? []) as any[];
+  const cronFails = cron.filter(j => (j.consecutive_failures ?? 0) >= 2);
 
-  const chartData = timeSeries?.data || [];
-  // CRITICAL: never show "system OK" when snapshot is stale/missing
-  const systemOk = !snapStale && !snapMissing
-    && alertCount === 0 && disconnectedWA.length === 0 && failedCrons.length === 0;
+  const systemTone: 'success' | 'warning' | 'error' =
+    alertCount > 0 || cronFails.length > 0 ? 'error'
+    : stale || missing || waOffline.length > 0 ? 'warning'
+    : 'success';
 
-  // Subscription breakdown
-  const subscriptionBreakdown = overview ? [
-    { label: 'Ativos', value: overview.tenants.active, color: 'text-emerald-600 dark:text-emerald-400' },
-    { label: 'Trial', value: overview.subscriptions.trial, color: 'text-amber-600 dark:text-amber-400' },
-    { label: 'Cancelados', value: overview.subscriptions.cancelled, color: 'text-destructive' },
-  ].filter(s => s.value > 0) : [];
-
-  // Header status text follows snapshot freshness, not generation time
-  const headerStatusText = (() => {
-    if (!snapAt) return 'Sem snapshot recente';
-    if (snapStale) return `Snapshot desatualizado (${formatDistanceToNow(new Date(snapAt), { addSuffix: true, locale: ptBR })})`;
-    return `Atualizado ${formatDistanceToNow(new Date(snapAt), { addSuffix: true, locale: ptBR })}`;
-  })();
+  const series = timeSeries?.data || [];
 
   return (
     <DashboardLayout>
-      {/* ─── Header ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Painel Master</h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className={cn(
-              'text-sm',
-              snapStale || snapMissing ? 'text-destructive' : 'text-muted-foreground'
-            )}>
-              {headerStatusText}
-            </p>
+      {/* ─── 01 HERO ────────────────────────────────────────────────── */}
+      <section className="mb-8 sm:mb-12 animate-rise">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div className="flex items-baseline gap-3">
+            <span className="editorial-numeral">01 /</span>
+            <span className="editorial-label">Visão Executiva</span>
+            <span className="editorial-label text-ink-faint hidden sm:inline">·</span>
+            <span className="editorial-label text-ink-faint hidden sm:inline">
+              {snapAt ? formatDistanceToNow(new Date(snapAt), { addSuffix: true, locale: ptBR }) : 'sem snapshot'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
             <DataQualityBadge meta={snapshotMeta} />
+            <button onClick={refetch} disabled={isLoading}
+              className="h-8 px-3 hairline border bg-surface-1 hover:border-plasma/40 inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-ink-2 hover:text-ink rounded-sm">
+              <RefreshCw className={cn('h-3 w-3', isLoading && 'animate-spin')} /> atualizar
+            </button>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={refetch} disabled={isLoading}>
-          <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} /> Atualizar
-        </Button>
-      </div>
 
-      {error && (
-        <Card className="mb-6 border-destructive/50 bg-destructive/5">
-          <CardContent className="flex items-center gap-3 py-4">
-            <AlertCircle className="h-5 w-5 text-destructive" />
-            <p className="text-sm text-destructive">{error}</p>
-            <Button variant="outline" size="sm" className="ml-auto" onClick={refetch}>Retry</Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {(overviewSchemaInvalid || revenueSchemaInvalid || timeSeriesSchemaInvalid) && (
-        <Card className="mb-6 border-destructive/50 bg-destructive/5">
-          <CardContent className="py-3 text-sm text-destructive">
-            <strong>Contrato quebrado:</strong> a resposta do CRM não bate com o esquema esperado.
-            Os widgets afetados estão em estado de erro. Veja o console para detalhes.
-          </CardContent>
-        </Card>
-      )}
-
-      {snapshotMeta && (snapStale || snapMissing) && (
-        <DataQualityNotice meta={snapshotMeta} className="mb-6" />
-      )}
-
-
-      {/* ─── Hero: Usuários + Mensagens + MRR ─────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Users - Primary hero */}
-        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <CardContent className="p-6">
-            {isLoading ? (
-              <div className="space-y-3"><Skeleton className="h-12 w-32" /><Skeleton className="h-4 w-48" /></div>
-            ) : overviewSchemaInvalid ? (
-              <div className="text-sm text-destructive">⚠ Contrato inválido</div>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 mb-1">
-                  <Users className="h-5 w-5 text-primary" />
-                  <span className="text-sm font-medium text-primary">Usuários</span>
-                  <DataQualityBadge meta={overviewMeta} className="ml-auto" />
-                </div>
-                <p className="text-5xl font-black tracking-tight text-foreground">
-                  <MetricValue meta={overviewMeta}>
-                    {overview ? fmtNum(overview.usage.total_users) : '—'}
-                  </MetricValue>
-                </p>
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-3">
-                  <Building2 className="h-3.5 w-3.5" />
-                  <span>{overview ? `em ${fmtNum(overview.tenants.total)} tenants` : '—'}</span>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Messages - Highlighted hero */}
-        <Card className="bg-gradient-to-br from-violet-500/5 to-violet-500/10 border-violet-500/20">
-          <CardContent className="p-6">
-            {isLoading ? (
-              <div className="space-y-3"><Skeleton className="h-12 w-32" /><Skeleton className="h-4 w-48" /></div>
-            ) : overviewSchemaInvalid ? (
-              <div className="text-sm text-destructive">⚠ Contrato inválido</div>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 mb-1">
-                  <Activity className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                  <span className="text-sm font-medium text-violet-600 dark:text-violet-400">Mensagens</span>
-                  <DataQualityBadge meta={overviewMeta} className="ml-auto" />
-                </div>
-                <p className="text-5xl font-black tracking-tight text-foreground">
-                  <MetricValue meta={overviewMeta}>
-                    {overview ? fmtNum(overview.usage.total_messages) : '—'}
-                  </MetricValue>
-                </p>
-                <div className="flex items-center gap-1.5 text-sm mt-3">
-                  {snapMissing ? (
-                    <span className="text-muted-foreground italic">canais sem leitura recente</span>
-                  ) : (
-                    <>
-                      <Wifi className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className={cn(snapStale ? 'text-destructive' : 'text-muted-foreground')}>
-                        {connectedWA > 0 ? `${connectedWA} canal${connectedWA > 1 ? 'is' : ''} online` : 'sem canais'}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* MRR */}
-        <Card className="bg-gradient-to-br from-emerald-500/5 to-emerald-500/10 border-emerald-500/20">
-          <CardContent className="p-6">
-            {isLoading ? (
-              <div className="space-y-3"><Skeleton className="h-12 w-32" /><Skeleton className="h-4 w-48" /></div>
-            ) : revenueSchemaInvalid ? (
-              <div className="text-sm text-destructive">⚠ Contrato inválido</div>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 mb-1">
-                  <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">MRR</span>
-                  {revenue?.growth_percentage !== undefined && !isUntrustedRead(revenueMeta) && (
-                    <Badge variant="secondary" className={cn('text-[10px] gap-0.5', revenue.growth_percentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
-                      {revenue.growth_percentage >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
-                      {Math.abs(revenue.growth_percentage)}%
-                    </Badge>
-                  )}
-                  <DataQualityBadge meta={revenueMeta} className="ml-auto" />
-                </div>
-                <p className="text-5xl font-black tracking-tight text-foreground">
-                  <MetricValue meta={revenueMeta}>
-                    {revenue ? fmtCurrency(revenue.mrr) : '—'}
-                  </MetricValue>
-                </p>
-                <div className="flex items-center gap-4 mt-3">
-                  <div className="text-sm text-muted-foreground">
-                    ARR <span className="font-semibold text-foreground">
-                      <MetricValue meta={revenueMeta}>{revenue ? fmtCurrency(revenue.arr) : '—'}</MetricValue>
-                    </span>
-                  </div>
-                  {revenue?.breakdown && !shouldHideMetric(revenueMeta) && (
-                    <div className="text-sm text-muted-foreground">
-                      {revenue.breakdown.paying_tenants} pagante{revenue.breakdown.paying_tenants !== 1 ? 's' : ''}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-
-      {/* ─── Secondary Metrics Row ────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <MiniMetric
-          label="Tenants Ativos"
-          value={overview ? String(overview.tenants.active) : '—'}
-          sub={overview ? `de ${overview.tenants.total} total` : undefined}
-          icon={Building2}
-          loading={isLoading}
-        />
-        <MiniMetric
-          label="Trials"
-          value={overview ? String(overview.subscriptions.trial) : '—'}
-          sub="conversão pendente"
-          icon={Clock}
-          loading={isLoading}
-          warn={overview ? overview.subscriptions.trial > 3 : false}
-        />
-        <MiniMetric
-          label="Leads"
-          value={overview ? fmtNum(overview.usage.total_leads) : '—'}
-          sub={overview?.recent_activity.new_leads_7d ? `+${fmtNum(overview.recent_activity.new_leads_7d)} (7d)` : 'sem dados CRM'}
-          icon={Target}
-          loading={isLoading}
-        />
-        <MiniMetric
-          label="Novos Tenants (7d)"
-          value={overview ? String(overview.recent_activity.new_tenants_7d) : '—'}
-          icon={Zap}
-          loading={isLoading}
-        />
-      </div>
-
-      {/* ─── Atenção Necessária ───────────────────────────────────── */}
-      {!systemOk && (
-        <div className="mb-6 space-y-2">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <ShieldAlert className="h-3.5 w-3.5 text-destructive" /> Requer Atenção
-          </h2>
-
-          {opsAlerts.map(alert => (
-            <AttentionItem
-              key={alert.id}
-              icon={ShieldAlert}
-              severity={alert.severity as 'critical' | 'warning' | 'info'}
-              title={alert.title}
-              detail={alert.description}
-              action={() => navigate('/operations')}
-              actionLabel="Operações"
-            />
-          ))}
-
-          {disconnectedWA.map((ch, i) => (
-            <AttentionItem
-              key={`wa-${i}`}
-              icon={WifiOff}
-              severity="warning"
-              title={`WhatsApp offline: ${(ch.tenant_name as string) || 'Sem nome'}`}
-              detail={ch.last_heartbeat ? `Último heartbeat ${formatDistanceToNow(new Date(ch.last_heartbeat as string), { addSuffix: true, locale: ptBR })}` : 'Sem heartbeat'}
-              action={ch.tenant_id ? () => navigate(`/tenants/${ch.tenant_id}`) : undefined}
-              actionLabel="Ver Tenant"
-            />
-          ))}
-
-          {failedCrons.map((job, i) => (
-            <AttentionItem
-              key={`cron-${i}`}
-              icon={Cpu}
-              severity="error"
-              title={`Cron falhando: ${job.name as string}`}
-              detail={`${(job.consecutive_failures as number)} falhas consecutivas`}
-              action={() => navigate('/operations')}
-              actionLabel="Operações"
-            />
-          ))}
-        </div>
-      )}
-
-      {/* ─── Chart + Revenue Details ─────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {/* Chart */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" /> Evolução MRR
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[220px] w-full" />
-            ) : chartData.length === 0 ? (
-              <div className="h-[220px] flex items-center justify-center text-muted-foreground text-sm">Sem dados de série temporal</div>
-            ) : (
-              <div className="h-[220px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted/50" />
-                    <XAxis dataKey="month" className="text-[10px] fill-muted-foreground" tickLine={false} axisLine={false} />
-                    <YAxis className="text-[10px] fill-muted-foreground" tickLine={false} axisLine={false} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
-                    <RechartsTooltip
-                      contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
-                      formatter={(value: number) => [`R$ ${fmtNum(value)}`, 'MRR']}
-                    />
-                    <Area type="monotone" dataKey="mrr" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#mrrGrad)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Revenue Breakdown */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center justify-between">
-              <span className="flex items-center gap-2"><CreditCard className="h-4 w-4" /> Receita</span>
-              <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => navigate('/analytics')}>
-                Detalhes <ArrowUpRight className="h-3 w-3 ml-0.5" />
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isLoading ? (
-              <div className="space-y-2"><Skeleton className="h-12" /><Skeleton className="h-12" /></div>
-            ) : revenue ? (
-              <>
-                {/* Revenue streams */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">MRR</span>
-                    <span className="font-semibold">{fmtCurrency(revenue.mrr)}</span>
-                  </div>
-                  {revenue.credits_revenue !== undefined && revenue.credits_revenue > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Créditos</span>
-                      <span className="font-medium">{fmtCurrency(revenue.credits_revenue)}</span>
-                    </div>
-                  )}
-                  {revenue.implementation_revenue !== undefined && revenue.implementation_revenue > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Implantação</span>
-                      <span className="font-medium">{fmtCurrency(revenue.implementation_revenue)}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Plan distribution */}
-                {overview && (
-                  <div className="border-t border-border pt-3 space-y-1.5">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Por Plano</p>
-                    {[
-                      { label: 'Enterprise', count: overview.tenants.enterprise },
-                      { label: 'Pro', count: overview.tenants.pro },
-                      { label: 'Basic', count: overview.tenants.basic },
-                    ].filter(p => p.count > 0).map(p => (
-                      <div key={p.label} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{p.label}</span>
-                        <span className="font-medium">{p.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Subscription breakdown */}
-                {subscriptionBreakdown.length > 0 && (
-                  <div className="border-t border-border pt-3">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Status de Assinatura</p>
-                    <div className="flex gap-3">
-                      {subscriptionBreakdown.map(s => (
-                        <div key={s.label} className="text-center">
-                          <p className={cn('text-lg font-bold', s.color)}>{s.value}</p>
-                          <p className="text-[10px] text-muted-foreground">{s.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">Sem dados</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ─── Pulso Operacional ────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {/* Canais */}
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Wifi className="h-4 w-4" /> Canais
-            </CardTitle>
-            <Badge variant={disconnectedWA.length > 0 ? 'destructive' : 'secondary'} className="text-[10px]">
-              {connectedWA + metaChannels.filter(m => (m.status as string) === 'active').length}/{whatsappChannels.length + metaChannels.length} online
-            </Badge>
-          </CardHeader>
-          <CardContent>
-            {!snap ? (
-              <p className="text-sm text-muted-foreground">Aguardando telemetria do CRM</p>
-            ) : whatsappChannels.length === 0 && metaChannels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem canais configurados</p>
-            ) : (
-              <div className="space-y-1">
-                {whatsappChannels.map((ch, i) => (
-                  <div key={`wa-${i}`} className="flex items-center justify-between py-1.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <StatusDot ok={ch.status === 'connected'} />
-                      <span className="text-sm truncate">{(ch.tenant_name as string) || 'Sem nome'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {ch.status !== 'connected' && ch.last_heartbeat && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatDistanceToNow(new Date(ch.last_heartbeat as string), { locale: ptBR })}
-                        </span>
-                      )}
-                      {ch.tenant_id && (
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => navigate(`/tenants/${ch.tenant_id}`)}>
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {metaChannels.map((ch, i) => (
-                  <div key={`meta-${i}`} className="flex items-center justify-between py-1.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <StatusDot ok={(ch.status as string) === 'active'} />
-                      <span className="text-sm truncate">{(ch.tenant_name as string) || 'Sem nome'}</span>
-                      <Badge variant="outline" className="text-[9px]">Meta</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pulso */}
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Activity className="h-4 w-4" /> Pulso Operacional
-            </CardTitle>
-            <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={() => navigate('/operations')}>
-              Centro de Ops <ArrowUpRight className="h-3 w-3 ml-0.5" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2.5">
-              {overview && (
-                <>
-                  <PulseRow label="Usuários ativos" value={fmtNum(overview.usage.total_users)} icon={Users} />
-                  <PulseRow label="Mensagens enviadas" value={fmtNum(overview.usage.total_messages)} icon={Activity} />
-                </>
-              )}
-              {conversations && (
-                <>
-                  <PulseRow label="Conversas ativas" value={fmtNum((conversations.active as number) ?? 0)} icon={Activity} />
-                  <PulseRow label="Sem atendente" value={fmtNum((conversations.unassigned as number) ?? 0)} icon={Users} warn={((conversations.unassigned as number) ?? 0) > 100} />
-                </>
-              )}
-              {cronJobs.length > 0 && (
-                <PulseRow
-                  label="Cron Jobs"
-                  value={`${cronJobs.filter(j => j.last_success).length}/${cronJobs.length} ativos`}
-                  icon={Cpu}
-                  warn={failedCrons.length > 0}
-                />
-              )}
-              {!snap && !overview && (
-                <p className="text-sm text-muted-foreground py-2">Aguardando dados</p>
-              )}
+        <Surface variant="raised" crosshairs className="p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8 lg:gap-12 items-end">
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <StatusDot tone={systemTone} />
+              <span className="font-mono text-[11px] uppercase tracking-wider text-ink-2">
+                {systemTone === 'success' ? 'Operação saudável'
+                 : systemTone === 'warning' ? 'Sinais de atenção'
+                 : `${alertCount + cronFails.length + waOffline.length} incidentes ativos`}
+              </span>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div className="editorial-label mb-2">RECEITA RECORRENTE / MRR</div>
+            <div className="font-display font-bold text-ink leading-[0.9] tracking-tighter"
+              style={{ fontSize: 'clamp(3rem, 9vw, 7rem)' }}>
+              <MetricValue meta={revenueMeta}>
+                {revenue ? <span className="text-plasma">{fmtBRL(revenue.mrr, false)}</span> : '—'}
+              </MetricValue>
+            </div>
+            {revenue && (
+              <div className="mt-3 flex items-center gap-4 flex-wrap font-mono text-xs text-ink-2 tabular">
+                <span>ARR <span className="text-ink">{fmtBRL(revenue.arr)}</span></span>
+                {revenue.growth_percentage !== undefined && (
+                  <span>30D <TrendDelta value={revenue.growth_percentage} /></span>
+                )}
+                {revenue.breakdown && (
+                  <span>{revenue.breakdown.paying_tenants} pagantes</span>
+                )}
+              </div>
+            )}
+          </div>
 
-      {/* ─── System Status ───────────────────────────────────────── */}
-      {systemOk && (
-        <Card className="bg-emerald-500/5 border-emerald-500/20">
-          <CardContent className="flex items-center gap-3 py-3">
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            <span className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">Sistema operacional — nenhuma ação necessária</span>
-          </CardContent>
-        </Card>
-      )}
+          <div className="grid grid-cols-3 gap-3">
+            <MiniHero label="Tenants ativos" value={overview ? String(overview.tenants.active) : '—'} sub={overview ? `de ${overview.tenants.total}` : ''} />
+            <MiniHero label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} tone={overview && overview.subscriptions.trial > 3 ? 'ember' : 'default'} />
+            <MiniHero label="Novos 7d" value={overview ? String(overview.recent_activity.new_tenants_7d) : '—'} tone="plasma" />
+          </div>
+        </Surface>
+      </section>
 
-      {/* ─── Quick Navigation ────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
-        <QuickNav label="Tenants" icon={Building2} onClick={() => navigate('/tenants')} />
-        <QuickNav label="Inteligência de Receita" icon={BarChart3} onClick={() => navigate('/analytics')} />
-        <QuickNav label="Saúde dos Tenants" icon={Activity} onClick={() => navigate('/tenant-health')} />
-        <QuickNav label="Diagnóstico IA" icon={Brain} onClick={() => navigate('/ai-diagnostics')} />
-      </div>
+      {/* ─── 02 PULSO ───────────────────────────────────────────────── */}
+      <section className="mb-8 sm:mb-12">
+        <SectionHeader numeral="02 /" label="Pulso Operacional" title="Métricas-chave do período" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <MetricCard
+            label="Usuários" unit="total"
+            value={overview ? <MetricValue meta={overviewMeta}>{fmtNum(overview.usage.total_users)}</MetricValue> : '—'}
+            badge={<DataQualityBadge meta={overviewMeta} />}
+            loading={isLoading && !overview}
+          />
+          <MetricCard
+            label="Mensagens" unit="30d"
+            value={overview ? <MetricValue meta={overviewMeta}>{fmtNum(overview.usage.total_messages)}</MetricValue> : '—'}
+            sub={missing ? 'sem leitura' : `${waOnline} canal${waOnline !== 1 ? 'is' : ''} online`}
+            loading={isLoading && !overview}
+          />
+          <MetricCard
+            label="Leads" unit="crm"
+            value={overview ? fmtNum(overview.usage.total_leads) : '—'}
+            sub={overview?.recent_activity.new_leads_7d ? `+${fmtNum(overview.recent_activity.new_leads_7d)} (7d)` : undefined}
+            loading={isLoading && !overview}
+          />
+          <MetricCard
+            label="Saúde Op." unit="canais"
+            value={`${waOnline}/${wa.length + meta.length}`}
+            tone={waOffline.length > 0 ? 'ember' : 'jade'}
+            sub={waOffline.length > 0 ? `${waOffline.length} offline` : 'todos online'}
+            loading={isLoading && !snap}
+          />
+        </div>
+      </section>
+
+      {/* ─── 03 + 04 MAPA + RADAR ──────────────────────────────────── */}
+      <section className="mb-8 sm:mb-12 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-5">
+        <div>
+          <SectionHeader numeral="03 /" label="Distribuição Nacional" title="Onde estão os tenants" />
+          <HomeBrazilMap />
+        </div>
+        <div>
+          <SectionHeader numeral="04 /" label="Radar de Atenção"
+            title="Requer ação"
+            actions={<button onClick={() => navigate('/operations')} className="font-mono text-[10px] uppercase tracking-wider text-ink-3 hover:text-plasma inline-flex items-center gap-1">centro de ops <ArrowUpRight className="h-3 w-3" /></button>}
+          />
+          <div className="space-y-2">
+            {opsAlerts.length === 0 && waOffline.length === 0 && cronFails.length === 0 ? (
+              <EmptyState numeral="00" title="Tudo em ordem"
+                description="Nenhum sinal crítico no momento. O sistema seguirá monitorando." />
+            ) : (
+              <>
+                {opsAlerts.slice(0, 6).map(a => (
+                  <AlertRow key={a.id}
+                    severity={(a.severity as any) || 'warning'}
+                    title={a.title}
+                    detail={a.description}
+                    onClick={() => navigate('/operations')} />
+                ))}
+                {waOffline.slice(0, 3).map((c, i) => (
+                  <AlertRow key={`wa-${i}`} severity="warning"
+                    title={`WhatsApp offline: ${c.tenant_name || 'Sem nome'}`}
+                    detail={c.last_heartbeat ? `Heartbeat ${formatDistanceToNow(new Date(c.last_heartbeat), { addSuffix: true, locale: ptBR })}` : 'sem heartbeat'}
+                    meta={<Tag tone="ember">WA</Tag>}
+                    onClick={c.tenant_id ? () => navigate(`/tenants/${c.tenant_id}`) : undefined} />
+                ))}
+                {cronFails.slice(0, 3).map((j, i) => (
+                  <AlertRow key={`c-${i}`} severity="critical"
+                    title={`Cron falhando: ${j.name}`}
+                    detail={`${j.consecutive_failures} falhas consecutivas`}
+                    meta={<Tag tone="coral">CRON</Tag>}
+                    onClick={() => navigate('/operations')} />
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 05 RECEITA & CRESCIMENTO ──────────────────────────────── */}
+      <section className="mb-8 sm:mb-12">
+        <SectionHeader numeral="05 /" label="Receita & Crescimento"
+          title="Evolução do MRR"
+          actions={<button onClick={() => navigate('/analytics')} className="font-mono text-[10px] uppercase tracking-wider text-ink-3 hover:text-plasma inline-flex items-center gap-1">inteligência completa <ArrowUpRight className="h-3 w-3" /></button>}
+        />
+        <Surface className="p-5">
+          <div className="h-[280px]">
+            {series.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-sm text-ink-3 font-mono">sem série temporal</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={series} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--plasma))" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="hsl(var(--plasma))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="hsl(var(--hairline))" strokeDasharray="2 4" vertical={false} />
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} stroke="hsl(var(--ink-muted))" style={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} />
+                  <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--ink-muted))" style={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} tickFormatter={v => fmtBRL(v, true)} />
+                  <RTooltip contentStyle={{ background: 'hsl(var(--surface-3))', border: '1px solid hsl(var(--hairline-strong))', borderRadius: '4px', fontSize: 11, fontFamily: 'JetBrains Mono' }}
+                    formatter={(v: number) => [fmtBRL(v), 'MRR']} />
+                  <Area type="monotone" dataKey="mrr" stroke="hsl(var(--plasma))" strokeWidth={1.5} fill="url(#mrrGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </Surface>
+      </section>
+
+      {/* ─── 06 + 07 IA + SAÚDE ────────────────────────────────────── */}
+      <section className="mb-8 sm:mb-12 grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div>
+          <SectionHeader numeral="06 /" label="Motor de IA" title="Consumo & operação"
+            actions={<button onClick={() => navigate('/ai-diagnostics')} className="font-mono text-[10px] uppercase tracking-wider text-ink-3 hover:text-plasma inline-flex items-center gap-1">diagnóstico <ArrowUpRight className="h-3 w-3" /></button>} />
+          <Surface className="p-5">
+            <div className="grid grid-cols-2 gap-4">
+              <Stat label="Mensagens" value={overview ? fmtNum(overview.usage.total_messages) : '—'} />
+              <Stat label="Tenants ativos" value={overview ? String(overview.tenants.active) : '—'} />
+              <Stat label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} />
+              <Stat label="Conversões 7d" value={overview ? String(overview.recent_activity.new_tenants_7d) : '—'} />
+            </div>
+            <div className="hairline-t mt-4 pt-3 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+              fonte: master-analytics · {overviewMeta?.method ?? '—'}
+            </div>
+          </Surface>
+        </div>
+        <div>
+          <SectionHeader numeral="07 /" label="Saúde da Operação" title="Canais & jobs"
+            actions={<button onClick={() => navigate('/operations')} className="font-mono text-[10px] uppercase tracking-wider text-ink-3 hover:text-plasma inline-flex items-center gap-1">monitorar <ArrowUpRight className="h-3 w-3" /></button>} />
+          <Surface className="p-5">
+            <div className="space-y-2.5">
+              <PulseRow icon={Wifi} label="WhatsApp online" value={`${waOnline}/${wa.length}`} tone={waOffline.length > 0 ? 'ember' : 'jade'} />
+              <PulseRow icon={WifiOff} label="WhatsApp offline" value={String(waOffline.length)} tone={waOffline.length > 0 ? 'ember' : 'default'} />
+              <PulseRow icon={Cpu} label="Cron jobs" value={`${cron.filter(j => j.last_success).length}/${cron.length}`} tone={cronFails.length > 0 ? 'coral' : 'default'} />
+              <PulseRow icon={Radio} label="Alertas ativos" value={String(alertCount)} tone={alertCount > 0 ? 'coral' : 'jade'} />
+            </div>
+          </Surface>
+        </div>
+      </section>
+
+      {/* ─── 08 AÇÕES RÁPIDAS ──────────────────────────────────────── */}
+      <section className="mb-6">
+        <SectionHeader numeral="08 /" label="Ações Rápidas" title="Atalhos do operador" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <QuickAction icon={Plus} label="Novo tenant" onClick={() => navigate('/tenants/new')} />
+          <QuickAction icon={Building2} label="Tenants" onClick={() => navigate('/tenants')} />
+          <QuickAction icon={Activity} label="Saúde" onClick={() => navigate('/tenant-health')} />
+          <QuickAction icon={BarChart3} label="Receita" onClick={() => navigate('/analytics')} />
+        </div>
+      </section>
     </DashboardLayout>
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ── helpers ─────────────────────────────────────────────────────────
 
-function MiniMetric({ label, value, sub, icon: Icon, loading, warn }: {
-  label: string; value: string; sub?: string; icon: React.ElementType; loading?: boolean; warn?: boolean;
-}) {
-  if (loading) return <Card><CardContent className="p-3"><Skeleton className="h-3 w-16 mb-1.5" /><Skeleton className="h-6 w-20" /></CardContent></Card>;
+function MiniHero({ label, value, sub, tone = 'default' }: { label: string; value: string; sub?: string; tone?: 'default' | 'plasma' | 'ember' }) {
+  const t = tone === 'plasma' ? 'text-plasma' : tone === 'ember' ? 'text-ember' : 'text-ink';
   return (
-    <Card>
-      <CardContent className="p-3">
-        <div className="flex items-center justify-between mb-0.5">
-          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{label}</span>
-          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        </div>
-        <p className={cn('text-xl font-bold', warn && 'text-amber-600 dark:text-amber-400')}>{value}</p>
-        {sub && <span className="text-[10px] text-muted-foreground">{sub}</span>}
-      </CardContent>
-    </Card>
-  );
-}
-
-function AttentionItem({ icon: Icon, severity, title, detail, action, actionLabel }: {
-  icon: React.ElementType; severity: 'critical' | 'warning' | 'error' | 'info';
-  title: string; detail: string; action?: () => void; actionLabel?: string;
-}) {
-  const colors = {
-    critical: 'border-destructive/50 bg-destructive/5',
-    error: 'border-destructive/50 bg-destructive/5',
-    warning: 'border-amber-500/40 bg-amber-500/5',
-    info: 'border-border bg-muted/30',
-  };
-  const iconColors = {
-    critical: 'text-destructive', error: 'text-destructive',
-    warning: 'text-amber-600 dark:text-amber-400', info: 'text-muted-foreground',
-  };
-  return (
-    <div className={cn('flex items-center gap-3 px-4 py-2.5 rounded-lg border', colors[severity])}>
-      <Icon className={cn('h-4 w-4 shrink-0', iconColors[severity])} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground truncate">{detail}</p>
-      </div>
-      {action && (
-        <Button variant="ghost" size="sm" className="h-7 text-xs shrink-0" onClick={action}>
-          {actionLabel} <ChevronRight className="h-3 w-3 ml-0.5" />
-        </Button>
-      )}
+    <div className="hairline-l pl-3">
+      <div className="editorial-label">{label}</div>
+      <div className={cn('font-mono font-semibold tabular text-2xl mt-1.5', t)}>{value}</div>
+      {sub && <div className="font-mono text-[10px] text-ink-faint uppercase tracking-wider mt-1">{sub}</div>}
     </div>
   );
 }
 
-function PulseRow({ label, value, icon: Icon, warn }: {
-  label: string; value: string | number; icon: React.ElementType; warn?: boolean;
-}) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between py-1">
-      <div className="flex items-center gap-2">
-        <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">{label}</span>
-      </div>
-      <span className={cn('text-sm font-medium', warn && 'text-amber-600 dark:text-amber-400')}>{value}</span>
+    <div>
+      <div className="editorial-label">{label}</div>
+      <div className="font-mono font-semibold tabular text-2xl text-ink mt-1">{value}</div>
     </div>
   );
 }
 
-function QuickNav({ label, icon: Icon, onClick }: { label: string; icon: React.ElementType; onClick: () => void }) {
+function PulseRow({ icon: Icon, label, value, tone = 'default' }: { icon: any; label: string; value: string; tone?: 'default' | 'jade' | 'ember' | 'coral' }) {
+  const t = tone === 'jade' ? 'text-jade' : tone === 'ember' ? 'text-ember' : tone === 'coral' ? 'text-coral' : 'text-ink';
   return (
-    <Button
-      variant="outline"
-      className="h-auto py-3 px-4 flex flex-col items-start gap-1 justify-start text-left"
-      onClick={onClick}
-    >
-      <Icon className="h-4 w-4 text-muted-foreground" />
-      <span className="text-xs font-medium">{label}</span>
-    </Button>
+    <div className="flex items-center justify-between py-1.5 hairline-b last:border-0">
+      <div className="flex items-center gap-2.5">
+        <Icon className="h-3.5 w-3.5 text-ink-3" />
+        <span className="text-sm text-ink-2">{label}</span>
+      </div>
+      <span className={cn('font-mono font-semibold tabular text-sm', t)}>{value}</span>
+    </div>
+  );
+}
+
+function QuickAction({ icon: Icon, label, onClick }: { icon: any; label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className="group relative bg-surface-1 hairline border p-4 rounded-sm text-left lift-hover">
+      <Icon className="h-4 w-4 text-ink-3 group-hover:text-plasma transition-colors" />
+      <div className="mt-3 font-display text-sm font-medium text-ink">{label}</div>
+      <ArrowUpRight className="absolute top-3 right-3 h-3 w-3 text-ink-faint group-hover:text-plasma transition-colors" />
+    </button>
   );
 }
