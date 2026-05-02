@@ -21,6 +21,9 @@ import {
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { DataQualityBadge, DataQualityNotice } from '@/components/quality/DataQualityBadge';
+import { MetricValue } from '@/components/quality/MetricValue';
+import { isUntrustedRead, shouldHideMetric } from '@/lib/masterContract';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -41,11 +44,18 @@ function StatusDot({ ok }: { ok: boolean }) {
 
 export default function Index() {
   const navigate = useNavigate();
-  const { overview, revenue, timeSeries, isLoading, error, refetch } = useMasterDashboard();
-  const { snapshot, alerts: opsAlerts, alertCount } = useOpsHealth();
+  const {
+    overview, revenue, timeSeries,
+    overviewMeta, revenueMeta, timeSeriesMeta,
+    overviewSchemaInvalid, revenueSchemaInvalid, timeSeriesSchemaInvalid,
+    isLoading, error, refetch,
+  } = useMasterDashboard();
+  const { snapshot, snapshotMeta, alerts: opsAlerts, alertCount } = useOpsHealth();
 
-  const snap = (snapshot as Record<string, unknown>)?.snapshot_data as Record<string, unknown> | undefined;
-  const snapAt = (snapshot as Record<string, unknown>)?.created_at as string | undefined;
+  const snap = snapshot?.snapshot_data as Record<string, unknown> | undefined;
+  const snapAt = snapshot?.created_at;
+  const snapStale = snapshotMeta?.freshness.status === 'stale';
+  const snapMissing = snapshotMeta?.freshness.status === 'missing' || !snap;
   const channels = snap?.channels as Record<string, unknown[]> | undefined;
   const whatsappChannels = (channels?.whatsapp ?? []) as Array<Record<string, unknown>>;
   const metaChannels = (channels?.meta ?? []) as Array<Record<string, unknown>>;
@@ -56,7 +66,9 @@ export default function Index() {
   const conversations = snap?.conversations as Record<string, unknown> | undefined;
 
   const chartData = timeSeries?.data || [];
-  const systemOk = alertCount === 0 && disconnectedWA.length === 0 && failedCrons.length === 0;
+  // CRITICAL: never show "system OK" when snapshot is stale/missing
+  const systemOk = !snapStale && !snapMissing
+    && alertCount === 0 && disconnectedWA.length === 0 && failedCrons.length === 0;
 
   // Subscription breakdown
   const subscriptionBreakdown = overview ? [
@@ -65,15 +77,28 @@ export default function Index() {
     { label: 'Cancelados', value: overview.subscriptions.cancelled, color: 'text-destructive' },
   ].filter(s => s.value > 0) : [];
 
+  // Header status text follows snapshot freshness, not generation time
+  const headerStatusText = (() => {
+    if (!snapAt) return 'Sem snapshot recente';
+    if (snapStale) return `Snapshot desatualizado (${formatDistanceToNow(new Date(snapAt), { addSuffix: true, locale: ptBR })})`;
+    return `Atualizado ${formatDistanceToNow(new Date(snapAt), { addSuffix: true, locale: ptBR })}`;
+  })();
+
   return (
     <DashboardLayout>
       {/* ─── Header ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+        <div className="space-y-1">
           <h1 className="text-2xl font-bold tracking-tight">Painel Master</h1>
-          <p className="text-sm text-muted-foreground">
-            {snapAt ? `Atualizado ${formatDistanceToNow(new Date(snapAt), { addSuffix: true, locale: ptBR })}` : 'Visão geral do negócio'}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className={cn(
+              'text-sm',
+              snapStale || snapMissing ? 'text-destructive' : 'text-muted-foreground'
+            )}>
+              {headerStatusText}
+            </p>
+            <DataQualityBadge meta={snapshotMeta} />
+          </div>
         </div>
         <Button variant="outline" size="sm" onClick={refetch} disabled={isLoading}>
           <RefreshCw className={cn('h-4 w-4 mr-2', isLoading && 'animate-spin')} /> Atualizar
@@ -89,6 +114,20 @@ export default function Index() {
           </CardContent>
         </Card>
       )}
+
+      {(overviewSchemaInvalid || revenueSchemaInvalid || timeSeriesSchemaInvalid) && (
+        <Card className="mb-6 border-destructive/50 bg-destructive/5">
+          <CardContent className="py-3 text-sm text-destructive">
+            <strong>Contrato quebrado:</strong> a resposta do CRM não bate com o esquema esperado.
+            Os widgets afetados estão em estado de erro. Veja o console para detalhes.
+          </CardContent>
+        </Card>
+      )}
+
+      {snapshotMeta && (snapStale || snapMissing) && (
+        <DataQualityNotice meta={snapshotMeta} className="mb-6" />
+      )}
+
 
       {/* ─── Hero: Usuários + Mensagens + MRR ─────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
