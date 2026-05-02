@@ -252,13 +252,17 @@ export default function TenantDetail() {
     if (!tenant.is_active) {
       out.push({ id: 'inactive', severity: 'warning', label: 'Tenant inativo', hint: 'Usuários sem acesso.' });
     }
-    // Usage thresholds
-    if (usage && features) {
+    // Usage thresholds — usa usage.limits (fonte canônica do edge) ao invés de
+    // cruzar manualmente com features (evita comparar mensagens vs limit de tokens)
+    if (usage) {
       const u = usage.usage;
+      const lim = usage.limits || {};
       const checks: Array<[string, number | undefined, number | undefined]> = [
-        ['mensagens', u?.messages, features.limit_ai_tokens_monthly],
-        ['leads', u?.leads, features.limit_leads],
-        ['usuários', u?.users, features.limit_users],
+        ['créditos IA', u?.ai_credits, lim.ai_credits],
+        ['leads', u?.leads, lim.leads],
+        ['usuários', u?.users, lim.users],
+        ['storage (MB)', u?.storage_mb, lim.storage_mb],
+        ['instâncias WhatsApp', u?.whatsapp_instances, lim.whatsapp_instances],
       ];
       checks.forEach(([label, used, limit]) => {
         if (used && limit && limit > 0 && used / limit >= 0.9) {
