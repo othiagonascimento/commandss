@@ -81,8 +81,21 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 bg-canvas/85 backdrop-blur hairline-b">
       <div className="h-14 flex items-center gap-3 px-3 sm:px-5">
-        <button onClick={onMenuClick} className="lg:hidden -ml-1 p-2 text-ink-2 hover:text-ink">
+        <button onClick={onMenuClick} className="lg:hidden -ml-1 p-2 text-ink-2 hover:text-ink" aria-label="Abrir menu">
           <Menu className="h-5 w-5" />
+        </button>
+
+        {/* Mobile logo — atalho para Home */}
+        <button
+          onClick={() => navigate('/')}
+          className="lg:hidden flex items-center gap-2 group"
+          aria-label="Ir para o Dashboard"
+        >
+          <div className="relative">
+            <img src={uopaSymbol} alt="UÔPA" className="h-6 w-auto relative z-10" />
+            <div className="absolute inset-0 -m-1 rounded-full opacity-40 blur-md group-hover:opacity-60 transition-opacity" style={{ background: 'var(--brand-gradient)' }} />
+          </div>
+          <span className="font-display text-[12px] font-semibold tracking-tight text-ink">UÔPA</span>
         </button>
 
         {/* Breadcrumb */}
