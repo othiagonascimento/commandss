@@ -1,13 +1,14 @@
 import { ReactNode } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CloudOff, ExternalLink } from 'lucide-react';
 import { PeriodFilterAdvanced } from './PeriodFilterAdvanced';
 import { MasterOnlyGuard } from './MasterOnlyGuard';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useFinOpsAnomaliesCount } from '@/hooks/finops/useFinOps';
+import { useFinOpsAnomaliesCount, useFinOpsOverview } from '@/hooks/finops/useFinOps';
+import { useFinOpsPeriod } from '@/hooks/finops/useFinOpsPeriod';
 
 interface Props {
   title: string;
@@ -27,6 +28,81 @@ const tabs = [
   { to: '/finops/investor', label: 'Investidor' },
   { to: '/finops/anomalies', label: 'Anomalias', anomalies: true },
 ];
+
+const PROJECT_REF = 'btoyclznuuwvxbsacemw';
+
+function DataConfidenceBanners() {
+  const { filters } = useFinOpsPeriod();
+  // This hook now shares its cache across all FinOps pages thanks to the
+  // period-only query key, so no extra request is fired.
+  const { data } = useFinOpsOverview(filters);
+
+  if (!data) return null;
+
+  const apiLogs = data.data_health?.logs_count ?? 0;
+  const aiBilling = data.cost_ai_brl?.value ?? 0;
+  const infra = data.cost_infra_brl?.value ?? 0;
+  const media = data.cost_media_brl?.value ?? 0;
+  const noBilling = aiBilling === 0 && infra === 0 && media === 0;
+  const lowTelemetry = apiLogs < 10;
+
+  if (!noBilling && !lowTelemetry) return null;
+
+  return (
+    <div className="space-y-2">
+      {noBilling && (
+        <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
+          <CloudOff className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-1">
+            <p className="font-medium text-foreground">
+              Faturas de cloud do período ainda não importadas
+            </p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              A tabela <code className="font-mono">platform_cost_allocations</code> está vazia para este período.
+              Custos de infra, mídia e billing oficial de IA aparecerão como R$ 0 até a próxima ingestão mensal de faturas GCP.
+              O custo logado por chamada (<code className="font-mono">api_usage_logs.cost_brl</code>) continua sendo computado normalmente.
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="gap-1.5 flex-shrink-0">
+            <a
+              href={`https://supabase.com/dashboard/project/${PROJECT_REF}/editor`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              SQL Editor
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </Button>
+        </div>
+      )}
+      {lowTelemetry && (
+        <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
+          <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-1">
+            <p className="font-medium text-foreground">
+              Telemetria de IA com volume muito baixo ({apiLogs} {apiLogs === 1 ? 'chamada' : 'chamadas'} no período)
+            </p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              Esperado para uma plataforma em operação seria centenas a milhares por dia. Verifique se{' '}
+              <code className="font-mono">_shared/ai-telemetry.ts</code> no CRM está sendo invocado em todas as chamadas e se{' '}
+              <code className="font-mono">api_usage_logs.cost_brl</code> está sendo populado.
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm" className="gap-1.5 flex-shrink-0">
+            <a
+              href={`https://supabase.com/dashboard/project/${PROJECT_REF}/functions/master-analytics/logs`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Logs
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function FinOpsShell({ title, description, actions, showPeriod = true, children }: Props) {
   const qc = useQueryClient();
@@ -120,6 +196,9 @@ export function FinOpsShell({ title, description, actions, showPeriod = true, ch
               </Link>
             </div>
           </div>
+
+          {/* Honest data-confidence banners (only for analytics pages, not settings) */}
+          {showPeriod && <DataConfidenceBanners />}
 
           {/* Content */}
           <div className="space-y-4">{children}</div>

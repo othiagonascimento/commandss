@@ -1,195 +1,82 @@
 
-## Plano v2: FinOps Command Center — Observabilidade Nível Bigtech
+## Plano final — FinOps funcional + honesto
 
-### Filosofia de UX (inspiração: Datadog, Stripe Sigma, Vercel, Linear)
+### Diagnóstico confirmado por SQL
 
-1. **Drill-down universal** — toda métrica/linha clica e abre painel lateral (sheet) com breakdown, série temporal e amostras de logs reais (`api_usage_logs`).
-2. **Time-travel global** — period filter no header se aplica a todas as páginas FinOps via `URLSearchParams` (compartilhável, bookmarkable). Suporta presets (Hoje, 7d, 30d, MTD, mês anterior, custom).
-3. **Densidade > decoração** — tabelas estilo Linear/Stripe (sticky header, sort por qualquer coluna, column visibility toggle, pin de colunas, virtual scroll para listas grandes).
-4. **Sparklines inline** — toda KPI tem mini-chart de 30d ao lado do número.
-5. **Comparação automática** — toda métrica mostra delta vs período anterior (mesma duração) com indicador de tendência e cor semântica (margem ↑ verde, custo ↑ vermelho).
-6. **Anomaly-first** — banner persistente no topo se houver anomalias high/critical não reconhecidas. Counter de anomalias no menu lateral.
-7. **Cmd+K** — command palette global ("Ir para tenant X", "Ver custo do modelo Y", "Mudar para abril/2026", "Exportar overview CSV").
-8. **Saved views** — usuário Master pode salvar combinação de filtros (ex: "Tenants deficitários jan/2026") em `localStorage`.
-9. **Live mode** (opcional) — toggle que faz refetch a cada 30s com indicador pulsante.
-10. **Acessibilidade & dark-first** — alta densidade de info exige contraste WCAG AA, tabular-nums em números, monospace em IDs.
+- `master-analytics` no CRM **não implementa** `finops-pricing-list/create` nem `finops-budgets-list/update` → 400 "Unknown endpoint".
+- RLS de `ai_model_pricing_history` e `ai_output_token_budgets` libera `SELECT` para `is_master_tenant()` autenticado → dá pra ler direto do front com `supabase-js`.
+- `platform_cost_allocations` tem dados só até abril/2026 (5 linhas, último `billing_month = 2026-04-01`). Maio = vazio. Por isso `official_gcp_total_brl`, `infra_overhead_brl`, `media_billing_brl`, `ai_billing_brl` retornam 0 do `finops-overview`.
+- `api_usage_logs` tem **1 linha no mês** (R$ 0,0014). A telemetria de IA quase não está sendo emitida pelo CRM — não é cache nem RLS, é ingestão.
+- A lentidão tem 2 causas: cada página chama um endpoint diferente que executa o mesmo `loadFinOpsDataset` pesado; e `useFinOpsAnomaliesCount` faz polling em todo navegação fora de `/finops`.
 
-### Arquitetura de informação
+### Mudanças neste projeto (Master)
 
-```text
-FinOps (novo grupo no sidebar, ícone DollarSign, badge contador anomalias críticas)
-├── /finops                        Command Center (overview executivo)
-├── /finops/explorer               Explorer (query builder visual sobre api_usage_logs)
-├── /finops/tenants                Tenants P&L
-│   └── /finops/tenants/:id        Tenant deep-dive (drawer ou rota)
-├── /finops/users                  Usuários CRM P&L
-│   └── /finops/users/:id          User deep-dive
-├── /finops/ai                     AI Economics (tabs: Modelos / Layers / Operações / Fallbacks / Tokens / Erros)
-├── /finops/media                  Mídia & Storage
-├── /finops/infra                  Infra & Overhead (Load Balancer, CDN, GCS)
-├── /finops/investor               Investor View
-├── /finops/anomalies              Anomalias & Alertas (inbox style)
-└── /finops/settings
-    ├── /finops/settings/pricing   Pricing IA (histórico + nova versão)
-    └── /finops/settings/budgets   Output Token Budgets
-```
+**1. Pricing/Budgets — leitura direta da DB externa**
 
-Rotas Master-only via guard. URL params compartilhados: `?period=2026-04` ou `?from=...&to=...&compare=prev`.
+`src/services/finopsApi.ts`
+- Trocar `pricingList`/`budgetsList` por `supabase.from('ai_model_pricing_history').select('*').order('effective_from',{ascending:false})` e `supabase.from('ai_output_token_budgets').select('*').order('layer',{nullsFirst:false}).order('operation')`.
+- Manter `pricingCreate`/`budgetsUpdate` na API mas marcar `unsupported: true` no retorno (UI mostra aviso em vez de tentar gravar).
 
-### Detalhes por tela
+`src/pages/finops/FinOpsPricingSettingsPage.tsx` e `FinOpsBudgetSettingsPage.tsx`
+- Renderizar tabela com os dados reais (17 e 9 linhas hoje).
+- Remover formulários de edição; substituir por banner: "Edição via API ainda não disponível. Configure por SQL no CRM" + link ao SQL Editor.
 
-#### 1. Command Center (`/finops`)
-Layout grid 12-col denso:
-- **Linha 1 — Hero KPIs (6 cards)** com sparkline 30d, delta vs período anterior, badge de confiança:
-  Receita estimada • Custo total • Margem BRL • Margem % • Custo/mensagem • Custo/usuário ativo
-- **Linha 2 — Decomposição de custo** (donut + legenda interativa):
-  IA / Mídia / Infra / Outros — clicar segmento filtra páginas filhas.
-- **Linha 3 — Time series** (área empilhada): custo IA vs custo mídia vs receita estimada, com brush para zoom temporal.
-- **Linha 4 — Top 5 tenants deficitários** (mini-tabela com link "Ver todos →") + **Top 5 modelos por custo** + **Anomalias recentes** (3 cards lado a lado).
-- **Footer**: badge de saúde dos dados (ex: "12.4M logs analisados • última ingestão há 2min • confiança média Alta").
+**2. Cache compartilhado + parar polling global**
 
-#### 2. Explorer (`/finops/explorer`) — diferencial bigtech
-Query builder visual sobre `api_usage_logs`:
-- Linhas: GROUP BY (tenant / user / model / layer / operation / channel / day / hour)
-- Métricas: SUM(cost_brl), SUM(credits_consumed), AVG(latency_ms), COUNT, error_rate, fallback_rate
-- Filtros: provider, model, layer, operation, channel, mode, success, tenant, date range
-- Visualizações: tabela / time series / heatmap / breakdown bars
-- "Salvar como saved view" + "Exportar CSV" + "Copiar link compartilhável"
-- Backend: usa `finops-explorer` action (se backend não tiver, fallback para combinação de `finops-ai-models`/`finops-ai-operations` com filtros — listar como follow-up).
+`src/hooks/finops/useFinOps.ts`
+- `queryKey` de `useFinOpsOverview` baseado só em `month` (não no objeto inteiro de filtros) → Overview, Investor, AIPage reutilizam.
+- `staleTime: 120_000`, `refetchOnWindowFocus: false` em todas as queries pesadas.
+- `useFinOpsAnomaliesCount`: `enabled` controlado por `pathname.startsWith('/finops')`.
 
-#### 3. Tenants P&L (`/finops/tenants`)
-Tabela densa com colunas configuráveis:
-Tenant • Status • Receita • Custo IA • Custo mídia • Infra rateada • Custo total • Créditos • Mensagens • Usuários ativos • Custo/msg • Custo/usuário • Margem BRL • Margem % • Risco (badge color-coded)
-- Filtro rápido: "Somente deficitários", "Top 20 por custo", "Por plano"
-- Ordenação multi-coluna
-- Heatmap de margem na coluna lateral
-- Click → drawer com breakdown completo: histórico mensal de custo/receita/margem, top usuários do tenant, top modelos do tenant, eventos de mídia, anomalias específicas
-- Bulk action: "Exportar selecionados"
+`src/components/layout/AppSidebar.tsx`
+- Mover badge de anomalias pra dentro do escopo `/finops` (não polla em `/dashboard`, `/tenants` etc).
 
-#### 4. Usuários (`/finops/users`)
-Mesma estrutura, agregando usuário CRM. Drawer mostra: timeline de eventos IA, custo por operação, comparação vs média do tenant, sample de últimas 20 chamadas.
+**3. UI honesta sobre dado faltante**
 
-#### 5. AI Economics (`/finops/ai`)
-Tabs com nav sticky:
-- **Modelos**: tabela + mini bar chart custo/chamada inline, coluna "Tendência 7d" sparkline
-- **Layers**: 3 cards Layer 1/2/3 com KPIs próprios + tabela detalhada
-- **Operações**: matriz operation × channel (heatmap de custo)
-- **Fallbacks**: Sankey provider/model origem → destino com custo associado
-- **Tokens**: distribuição output/input ratio (histograma) + lista outliers
-- **Erros**: timeline error_rate por modelo + tabela com `usage_missing_reason` agrupado
+`src/components/finops/FinOpsShell.tsx`
+- Banner âmbar quando `totals.official_gcp_total_brl === 0` e mês atual: "Faturas de cloud do mês ainda não importadas para `platform_cost_allocations` (última: abril/2026). Custos de infra, mídia e billing de IA aparecerão como R$ 0 até a próxima ingestão."
+- Banner vermelho quando `totals.api_logs < 10`: "Telemetria de IA com baixíssimo volume (X chamadas no período). Verifique se `_shared/ai-telemetry.ts` no CRM está logando em `api_usage_logs.cost_brl`."
 
-#### 6. Mídia (`/finops/media`)
-- KPIs: bytes uploaded, deleted, storage atual, custo estimado
-- Treemap por folder/strategy
-- Tabela tenant × folder
-- Seção "Vídeo Commerce": funil status (uploading → processing → completed → failed_recoverable) com counts e tempo médio em cada fase
-- Lista "Jobs presos" (>1h em uploading/processing) — actionable
+`src/components/finops/KPICard.tsx`
+- Quando `value === 0` e `confidence === 'low'`, renderizar "—" em texto secundário com tooltip "Sem dados ingeridos" em vez de "R$ 0,00".
 
-#### 7. Infra (`/finops/infra`)
-- Cards: Load Balancer (badge "overhead" ou "investimento" baseado em heurística — Cloud CDN ativo? Armor? domínio público?), Cloud CDN, GCS/Video, Outros
-- Tabela `platform_cost_allocations` filtrada por mês
-- Bloco "Análise estratégica do Load Balancer" com diagnóstico textual baseado em metadata
-- Rateio simulado por tenant ativo / usuário / mensagem (3 visões)
+`src/components/finops/EmptyFinOpsState.tsx`
+- Variantes: `no-telemetry`, `no-billing`, `error`, com CTA específico (link para Supabase SQL Editor / Edge Logs).
 
-#### 8. Investor View (`/finops/investor`)
-Modo "apresentação" — full-width, fonte maior, sem chrome:
-- 4 KPIs gigantes (Receita / Custo / Margem / Tenants ativos) com delta MoM
-- Gráfico "Margem de contribuição ao longo do tempo"
-- "Cost stack" empilhado por categoria
-- Bloco "Perguntas que este painel responde" (lista do brief)
-- Bloco "Riscos & Oportunidades" (top 3 cada, gerados a partir das anomalias)
-- Botão "Exportar como PDF" (print stylesheet)
+**4. Resiliência da chamada**
 
-#### 9. Anomalias (`/finops/anomalies`)
-Inbox style (Linear-like):
-- Lista lateral com filtros (severidade, tipo, status: aberta/reconhecida/resolvida)
-- Painel direito com detalhe da anomalia selecionada: descrição, entidade afetada, valor observado vs esperado, recomendação, link para tela relacionada, botão "Marcar como reconhecida" (persistir em localStorage por enquanto, ou tabela futura)
-- Counter de não-reconhecidas no badge do menu
+`src/services/finopsApi.ts`
+- `AbortController` com timeout 30s, mensagem "Tempo esgotado — backend lento" em vez de spinner infinito.
 
-#### 10. Pricing Settings (`/finops/settings/pricing`)
-- Tabela: provider × model com preço atual destacado e timeline horizontal de versões
-- Click no modelo → drawer com histórico completo + form "Criar nova versão" (`effective_from` no futuro)
-- Aviso vermelho em modelos sem pricing ativo (referenciados em logs mas sem linha em `ai_model_pricing_history`)
-- Cota USD/BRL em destaque (e quem alterou por último)
+**5. Warning React do DataTable**
 
-#### 11. Budgets Settings (`/finops/settings/budgets`)
-- Tabela editável inline: layer × operation × channel × max_output_tokens × is_active
-- Toggle "modo simulação" — mostra impacto estimado no custo se aplicar (baseado nos últimos 30d)
-- Banner: "alterações podem levar até ~60s para propagar"
+`src/components/finops/DataTable.tsx`
+- Converter wrapper externo para `React.forwardRef<HTMLDivElement, Props<T>>`.
 
-### Componentes compartilhados (novos)
+### Para você levar ao Antigravity (CRM, fora deste projeto)
 
-```
-src/components/finops/
-├── FinOpsShell.tsx              wrapper com header global + period filter URL-synced
-├── PeriodFilterAdvanced.tsx     presets + custom range + comparação ON/OFF
-├── KPICard.tsx                  número grande + sparkline + delta + confiança + tooltip
-├── Sparkline.tsx                SVG inline (sem lib pesada)
-├── DeltaBadge.tsx               variação % com cor semântica
-├── ConfidenceBadge.tsx          Alta/Média/Baixa com tooltip explicativo
-├── DataTable.tsx                tanstack-table: sort, pin, visibility, virtual scroll, CSV export
-├── DrillDownDrawer.tsx          sheet lateral universal
-├── MoneyCell.tsx                BRL com tabular-nums
-├── TrendCell.tsx                sparkline pequeno em célula
-├── HealthFooter.tsx             contador de logs + última ingestão + confiança média
-├── AnomalyBanner.tsx            banner topo se houver crítica não reconhecida
-├── CommandPalette.tsx           Cmd+K com ações FinOps
-├── SavedViewsMenu.tsx           dropdown salvar/carregar filtros
-├── ExportMenu.tsx               CSV / clipboard / link compartilhável
-├── EmptyFinOpsState.tsx
-└── MasterOnlyGuard.tsx
-```
+Sem isso, "Custos GCP" continua zero e Settings continua read-only:
 
-### Camada de dados
+1. Adicionar 4 `case` no `master-analytics`: `finops-pricing-list/create`, `finops-budgets-list/update` (prompt completo já enviado em mensagem anterior).
+2. Implementar/agendar ingestão mensal em `platform_cost_allocations` — última linha é de abril, estamos em maio.
+3. Auditar por que `api_usage_logs` só recebeu 1 linha o mês inteiro. Provavelmente `_shared/ai-telemetry.ts` não está sendo invocado em todas as chamadas de IA do CRM ou está falhando silenciosamente.
 
-- `src/services/finopsApi.ts` — wrappers tipados; usa `body.action`; reaproveita retry 401/refresh.
-- `src/types/finops.ts` — interfaces de todas as respostas.
-- `src/hooks/finops/` — hooks react-query com:
-  - `staleTime` 30s no overview, 60s nas listas, 5min no pricing
-  - `keepPreviousData` para troca de filtros suave
-  - `useFinOpsPeriod()` — hook que lê/escreve URL params
-  - `useFinOpsAnomaliesCount()` — global, alimenta badge do sidebar
-- Persistência local: `src/lib/finops/savedViews.ts`, `src/lib/finops/acknowledgedAnomalies.ts`.
+### Arquivos alterados neste projeto
 
-### Modificações em arquivos existentes
+- `src/services/finopsApi.ts`
+- `src/hooks/finops/useFinOps.ts`
+- `src/pages/finops/FinOpsPricingSettingsPage.tsx`
+- `src/pages/finops/FinOpsBudgetSettingsPage.tsx`
+- `src/components/finops/FinOpsShell.tsx`
+- `src/components/finops/EmptyFinOpsState.tsx`
+- `src/components/finops/KPICard.tsx`
+- `src/components/finops/DataTable.tsx`
+- `src/components/layout/AppSidebar.tsx`
 
-- `src/App.tsx` — registrar 11 rotas lazy-loaded sob `<ProtectedRoute>`.
-- `src/components/layout/AppSidebar.tsx`:
-  - Novo grupo `finops` (ícone `DollarSign`), Master-only via `permissions.isSuperAdmin()`
-  - Badge dinâmico no item raiz com count de anomalias críticas (via `useFinOpsAnomaliesCount`)
-  - 2 itens em "Sistema": Pricing IA, Budgets IA
-- `src/services/masterApi.ts` — extrair retry 401 em helper interno; exportar `callMasterAction(fn, action, body)`.
-- `src/pages/APICosts.tsx` — banner: "Substituída por FinOps Pricing →" (manter rota legada por compat, sem remover ainda).
-- `src/pages/Analytics.tsx` — card link "Visão de investidor →".
-- `src/pages/AIDiagnostics.tsx` — link "Ver custo por modelo →".
-- `src/pages/TenantHealth.tsx` — coluna nova "Margem" (lazy fetch via `finops-tenants`) + link drill-down.
-- `src/components/ErrorBoundary.tsx` — sem mudança, só garantir compatibilidade.
+### Resultado esperado
 
-### Segurança
-
-- Toda página passa por `MasterOnlyGuard` (verifica `isSuperAdmin()`); `<ProtectedRoute>` já valida `isMaster`.
-- Itens de menu filtrados antes de renderizar (não vazam para tenants).
-- Custo real **nunca** consumido em telas de tenant. Nada novo é exposto em `/tenants/:id` que mostre `cost_brl`.
-- Todas as chamadas via edge function (sem query direta a `api_usage_logs` no client).
-
-### Dependências novas
-
-- `@tanstack/react-table` — tabela com pin/sort/visibility/virtual (essencial para densidade bigtech).
-- Já temos: `recharts` (gráficos), `cmdk` via shadcn `Command` (palette), `date-fns`.
-- Sparkline: SVG manual (evita peso extra).
-
-### Aceite
-
-- Super Admin abre `/finops` e vê Command Center denso com drill-down em tudo.
-- Period filter no header propaga via URL para todas as páginas FinOps.
-- Tabelas suportam sort/pin/visibility/CSV; Explorer permite query ad-hoc.
-- Cmd+K funciona; saved views persistem; anomalias aparecem no badge do menu.
-- Custo real nunca visível para tenants; nenhuma mudança quebra páginas existentes.
-- Nenhuma migração SQL; nenhuma edge function nova (tudo consome `master-analytics` no Supabase externo).
-- Investor view exportável em PDF via print.
-
-### Follow-ups (não bloqueiam)
-
-- Action `finops-explorer` no backend (se ainda não existir) para queries ad-hoc parametrizadas.
-- Tabela `master_acknowledged_anomalies` futura (hoje persistido em localStorage).
-- Action de mutação para criar versão de pricing e atualizar budgets (se ainda não houver).
+- Acaba o erro 400 "Unknown endpoint".
+- Pricing (17 linhas) e Budgets (9 linhas) carregam normalmente, read-only.
+- FinOps fica visivelmente mais rápido (uma chamada de overview serve várias páginas; sem polling fora de `/finops`).
+- Onde os dados não foram ingeridos, a UI explica em vez de mentir R$ 0,00.
+- Warning do DataTable sumido.
