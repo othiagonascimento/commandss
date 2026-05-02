@@ -431,59 +431,40 @@ export default function Settings() {
 
               {/* Config Sub-Tab */}
               <TabsContent value="config" className="space-y-6 mt-0">
-                {/* Header with Save Button */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Brain className="w-5 h-5 text-primary" />
-                      Motor de IA Global
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Configure os modelos e instruções de IA que afetam todos os tenants
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => saveAiEngineMutation.mutate()}
-                      disabled={isSavingAiEngine}
-                    >
-                      {isSavingAiEngine ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Save className="w-4 h-4 mr-2" />
-                      )}
-                      Salvar Configurações
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={async () => {
-                        setIsSyncingToCRM(true);
-                        try {
-                          const result = await settingsApi.syncAISettingsToCRM();
-                          if (result.error) {
-                            toast.error(`Erro ao sincronizar: ${result.error}`);
-                          } else if (result.data?.success) {
-                            toast.success('Configurações sincronizadas com o CRM!');
-                          } else {
-                            toast.error(result.data?.message || 'Erro desconhecido');
+                <SectionHeader
+                  numeral="01 /"
+                  label="Camadas globais"
+                  title="Motor de IA"
+                  description="Modelos e instruções aplicados a todos os tenants"
+                  actions={
+                    <>
+                      <Button onClick={() => saveAiEngineMutation.mutate()} disabled={isSavingAiEngine}>
+                        {isSavingAiEngine ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                        Salvar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          setIsSyncingToCRM(true);
+                          try {
+                            const result = await settingsApi.syncAISettingsToCRM();
+                            if (result.error) toast.error(`Erro ao sincronizar: ${result.error}`);
+                            else if (result.data?.success) toast.success('Configurações sincronizadas com o CRM!');
+                            else toast.error(result.data?.message || 'Erro desconhecido');
+                          } catch (err) {
+                            toast.error(`Erro: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
+                          } finally {
+                            setIsSyncingToCRM(false);
                           }
-                        } catch (err) {
-                          toast.error(`Erro: ${err instanceof Error ? err.message : 'Erro desconhecido'}`);
-                        } finally {
-                          setIsSyncingToCRM(false);
-                        }
-                      }}
-                      disabled={isSyncingToCRM}
-                    >
-                      {isSyncingToCRM ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                      )}
-                      Sincronizar com CRM
-                    </Button>
-                  </div>
-                </div>
+                        }}
+                        disabled={isSyncingToCRM}
+                      >
+                        {isSyncingToCRM ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                        Sincronizar CRM
+                      </Button>
+                    </>
+                  }
+                />
 
                 {isLoadingAiSettings ? (
                   <div className="flex items-center justify-center py-12">
