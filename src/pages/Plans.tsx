@@ -152,16 +152,19 @@ export default function Plans() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Planos</h1>
-          <p className="text-muted-foreground">Defina quais módulos cada plano inclui</p>
-        </div>
-        <Button onClick={handleCreate}>
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Plano
-        </Button>
-      </div>
+      <PageHeader
+        numeral="03 /"
+        label="Financeiro · Catálogo"
+        title="Planos"
+        description="Definição dos módulos e capacidades incluídos em cada plano comercial"
+        icon={Layers}
+        actions={
+          <Button onClick={handleCreate}>
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Plano
+          </Button>
+        }
+      />
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
