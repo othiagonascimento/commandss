@@ -69,8 +69,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        hideClose
-        className="overflow-hidden p-0 max-w-xl bg-surface-3 border border-hairline-strong rounded-md shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]"
+        className="overflow-hidden p-0 max-w-xl bg-surface-3 border border-hairline-strong rounded-md shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] [&>button]:hidden"
       >
         <CommandPrimitive className="flex flex-col" shouldFilter={true} filter={(value, search) => {
           // tenants are appended already; for routes use simple includes
