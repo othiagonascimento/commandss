@@ -59,7 +59,7 @@ export const TimeSeriesPointSchema = z.object({
   messages: z.number().optional(),
 }).passthrough();
 
-export const TimeSeriesPointSchema_unused = TimeSeriesPointSchema;
+
 
 export const TimeSeriesResponseSchema = z.object({
   period: z.string(),
