@@ -190,6 +190,16 @@ export default function AIDiagnostics() {
         }
       />
 
+      {aiRead.schemaInvalid && (
+        <DataQualityNotice
+          variant="error"
+          message="A resposta de IA Avançado veio em formato inesperado (schema v2 inválido). Os widgets podem estar parciais."
+        />
+      )}
+      {aiRead.meta?.warnings && aiRead.meta.warnings.length > 0 && (
+        <DataQualityNotice variant="warning" message={aiRead.meta.warnings.join(' • ')} />
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
         <TabsList>
           <TabsTrigger value="motor-ia" className="gap-2">
