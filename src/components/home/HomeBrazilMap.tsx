@@ -47,7 +47,12 @@ export function HomeBrazilMap() {
       const node = ref.current;
       if (!node) return;
       const r = node.getBoundingClientRect();
-      if (r.width > 0) setSize({ w: r.width, h: Math.max(420, r.width * 0.95) });
+      if (r.width > 0) {
+        // Brazil aspect ratio ~ 1.06 (slightly taller than wide). Make it sovereign.
+        const isMobile = r.width < 640;
+        const h = isMobile ? Math.max(520, r.width * 1.1) : Math.max(640, Math.min(820, r.width * 1.05));
+        setSize({ w: r.width, h });
+      }
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -85,13 +90,59 @@ export function HomeBrazilMap() {
   const noCity = tenants.filter(t => t.state && !t.city).length;
 
   const projection = useMemo(() => geo ? d3.geoMercator().fitSize([size.w, size.h], geo as any) : null, [geo, size]);
-  const pathGen = useMemo(() => projection ? d3.geoPath(projection as any) : null, [projection]);
+
+  // Build path d-strings manually from coordinates to avoid d3-geo polygon winding issues
+  // (some BR geojson files have rings wound opposite to RFC 7946, which makes geoPath fill the exterior)
+  const buildPath = useMemo(() => {
+    if (!projection) return (_: any) => '';
+    const project = (c: [number, number]) => {
+      const p = projection(c);
+      return p ? `${p[0].toFixed(2)},${p[1].toFixed(2)}` : '';
+    };
+    const ringToPath = (ring: [number, number][]) => {
+      if (!ring.length) return '';
+      return 'M' + ring.map(project).filter(Boolean).join('L') + 'Z';
+    };
+    return (geom: any): string => {
+      if (!geom) return '';
+      if (geom.type === 'Polygon') {
+        return (geom.coordinates as [number, number][][]).map(ringToPath).join(' ');
+      }
+      if (geom.type === 'MultiPolygon') {
+        return (geom.coordinates as [number, number][][][])
+          .map(poly => poly.map(ringToPath).join(' '))
+          .join(' ');
+      }
+      return '';
+    };
+  }, [projection]);
+
+  // Centroid via simple average of outer ring (good enough for label placement)
+  const centroidFor = (geom: any): [number, number] | null => {
+    if (!projection || !geom) return null;
+    let ring: [number, number][] = [];
+    if (geom.type === 'Polygon') ring = geom.coordinates[0];
+    else if (geom.type === 'MultiPolygon') {
+      // pick largest ring
+      let best: [number, number][] = [];
+      for (const poly of geom.coordinates) if (poly[0].length > best.length) best = poly[0];
+      ring = best;
+    }
+    if (!ring.length) return null;
+    let sx = 0, sy = 0, n = 0;
+    for (const c of ring) {
+      const p = projection(c);
+      if (p) { sx += p[0]; sy += p[1]; n++; }
+    }
+    return n ? [sx / n, sy / n] : null;
+  };
 
   const fillFor = (uf: string) => {
     const n = byUF.get(uf)?.length ?? 0;
-    if (n === 0) return 'hsl(var(--brand-purple) / 0.06)';
+    if (n === 0) return 'hsl(var(--surface-2))';
     const ratio = n / max;
-    const alpha = Math.max(0.22, Math.min(0.78, 0.28 + ratio * 0.55));
+    // Stronger, more saturated active fill so active states truly stand out
+    const alpha = Math.max(0.45, Math.min(0.95, 0.55 + ratio * 0.40));
     return `hsl(var(--brand-magenta) / ${alpha})`;
   };
 
@@ -126,7 +177,7 @@ export function HomeBrazilMap() {
           }}
         />
 
-        {!geo || !pathGen ? (
+        {!geo || !projection ? (
           <div className="absolute inset-0 flex items-center justify-center p-8">
             {loading ? (
               <div className="skeleton-sweep w-full h-full max-w-[480px] max-h-[420px] rounded-md" />
@@ -162,10 +213,10 @@ export function HomeBrazilMap() {
               return (
                 <path
                   key={uf}
-                  d={pathGen(f as any) || ''}
+                  d={buildPath((f as any).geometry)}
                   fill={fillFor(uf)}
-                  stroke={isSel || isHover ? 'hsl(var(--brand-magenta))' : 'hsl(var(--brand-purple) / 0.45)'}
-                  strokeWidth={isSel ? 1.6 : isHover ? 1.2 : 0.85}
+                  stroke={isSel || isHover ? 'hsl(var(--brand-magenta))' : 'hsl(var(--ink-primary) / 0.25)'}
+                  strokeWidth={isSel ? 2 : isHover ? 1.4 : 0.9}
                   className="cursor-pointer transition-all duration-200"
                   style={{ animation: `fade-in .4s cubic-bezier(.2,.7,.1,1) both`, animationDelay: `${i * 14}ms` }}
                   onMouseMove={e => setHover({ uf, x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY, n })}
@@ -179,15 +230,14 @@ export function HomeBrazilMap() {
             {geo.features.map(f => {
               const uf = f.properties.uf;
               const n = byUF.get(uf)?.length ?? 0;
-              if (!projection) return null;
-              const c = (d3.geoPath(projection as any) as any).centroid(f);
-              if (!isFinite(c[0])) return null;
+              const c = centroidFor((f as any).geometry);
+              if (!c || !isFinite(c[0])) return null;
               return (
                 <text
                   key={`l-${uf}`} x={c[0]} y={c[1]}
                   textAnchor="middle" dominantBaseline="middle"
                   className={`pointer-events-none font-mono ${n > 0 ? 'fill-ink' : 'fill-ink-3'}`}
-                  style={{ fontSize: 9, letterSpacing: '0.08em', fontWeight: n > 0 ? 600 : 400 }}
+                  style={{ fontSize: 10, letterSpacing: '0.08em', fontWeight: n > 0 ? 700 : 400 }}
                 >
                   {uf}
                 </text>
