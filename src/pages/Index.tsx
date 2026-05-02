@@ -141,9 +141,8 @@ export default function Index() {
           <SectionHeader numeral="03 /" label="Pulso Operacional" title="Métricas-chave do período" />
           <div className="grid grid-cols-2 gap-3">
             <MetricCard
-              label="Tenants" unit="total"
-              value={overview ? <MetricValue meta={overviewMeta}><AnimatedCounter value={overview.tenants.total} /></MetricValue> : '—'}
-              sub={overview ? <><span className="text-jade font-semibold">{overview.tenants.active}</span> ativos</> : undefined}
+              label="Mensagens" unit="30d"
+              value={overview ? <MetricValue meta={overviewMeta}><AnimatedCounter value={overview.usage.total_messages} format={(n) => fmtNum(n)} /></MetricValue> : '—'}
               variant="standard"
               badge={<DataQualityBadge meta={overviewMeta} />}
               loading={isLoading && !overview}
