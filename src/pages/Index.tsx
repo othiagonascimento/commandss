@@ -140,7 +140,6 @@ export default function Index() {
       {/* ─── 03 PULSO OPERACIONAL ────── */}
       <section className="mb-10 sm:mb-14">
         <div>
-        <div>
           <SectionHeader numeral="03 /" label="Pulso Operacional" title="Métricas-chave do período" />
           <div className="grid grid-cols-2 gap-3">
             <MetricCard
