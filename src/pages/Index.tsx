@@ -82,7 +82,7 @@ export default function Index() {
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none opacity-20"
             style={{ background: 'var(--brand-gradient)', filter: 'blur(80px)' }} />
 
-          <div className="relative">
+          <div className="relative min-w-0">
             <div className="flex items-center gap-2 mb-4">
               <StatusDot tone={systemTone} />
               <span className="font-mono text-[11px] uppercase tracking-wider text-ink-2">
