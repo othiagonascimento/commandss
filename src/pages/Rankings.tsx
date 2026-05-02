@@ -215,6 +215,8 @@ export default function Rankings() {
   return (
     <DashboardLayout>
       <PageHeader
+        numeral="04 /"
+        label="Administração · Engajamento"
         title="Rankings & Engajamento"
         description="Ranking real dos tenants mais ativos baseado em dados de uso"
         icon={Trophy}

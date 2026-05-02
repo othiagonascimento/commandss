@@ -118,8 +118,10 @@ export default function FeatureFlags() {
   return (
     <DashboardLayout>
       <PageHeader
+        numeral="02 /"
+        label="Administração · Plataforma"
         title="Feature Flags"
-        description="Controle de funcionalidades por tenant"
+        description="Controle granular de funcionalidades, releases e experimentos por tenant"
         icon={Flag}
         actions={
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>

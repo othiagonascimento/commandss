@@ -304,8 +304,10 @@ export default function Settings() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Configurações"
-        description="Gerencie as configurações do sistema master"
+        numeral="03 /"
+        label="Administração · Sistema"
+        title="Configurações globais"
+        description="Parâmetros, motor de IA, prompts base e integrações da plataforma"
         icon={SettingsIcon}
         actions={
           <Button onClick={handleSave}>
