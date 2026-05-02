@@ -41,14 +41,19 @@ export function HomeBrazilMap() {
   }, []);
 
   useEffect(() => {
-    if (!ref.current) return;
-    const ro = new ResizeObserver(() => {
-      const r = ref.current!.getBoundingClientRect();
-      setSize({ w: r.width, h: Math.max(380, r.width * 0.9) });
-    });
-    ro.observe(ref.current);
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const node = ref.current;
+      if (!node) return;
+      const r = node.getBoundingClientRect();
+      if (r.width > 0) setSize({ w: r.width, h: Math.max(420, r.width * 0.95) });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [geo]);
 
   const byUF = useMemo(() => {
     const m = new Map<string, Tenant[]>();

@@ -45,6 +45,10 @@ interface TenantFormData {
   plan_type: string;
   trial_enabled: boolean;
   trial_days: number;
+  // Localização
+  city: string;
+  state: string;
+  country: string;
   // Pricing fields
   price_per_user: number;
   contracted_users: number;
@@ -60,6 +64,8 @@ interface TenantFormData {
   has_monthly_fee: boolean;
 }
 
+const BR_UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+
 export default function EditTenant() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -71,6 +77,9 @@ export default function EditTenant() {
     plan_type: 'basic',
     trial_enabled: false,
     trial_days: 7,
+    city: '',
+    state: '',
+    country: 'BR',
     // Pricing defaults
     price_per_user: 69.90,
     contracted_users: 1,
@@ -121,6 +130,9 @@ export default function EditTenant() {
         implementation_status?: string;
         implementation_paid_externally?: boolean;
         has_monthly_fee?: boolean;
+        city?: string | null;
+        state?: string | null;
+        country?: string | null;
       };
       
       setFormData({
@@ -129,6 +141,9 @@ export default function EditTenant() {
         plan_type: tenantData.plan_type || 'basic',
         trial_enabled: tenantData.trial_enabled || false,
         trial_days: tenantData.trial_days || 7,
+        city: tenantData.city || '',
+        state: tenantData.state || '',
+        country: tenantData.country || 'BR',
         // Pricing
         price_per_user: tenantData.price_per_user ?? 69.90,
         contracted_users: tenantData.contracted_users ?? 1,
@@ -188,6 +203,10 @@ export default function EditTenant() {
       plan_type: formData.plan_type,
       trial_enabled: formData.trial_enabled,
       trial_days: formData.trial_days,
+      // Localização
+      city: formData.city || null,
+      state: formData.state || null,
+      country: formData.country || 'BR',
       // Pricing
       price_per_user: formData.price_per_user,
       contracted_users: formData.contracted_users,
@@ -282,6 +301,39 @@ export default function EditTenant() {
                   />
                   <span className="text-muted-foreground ml-2">.uopa.com.br</span>
                 </div>
+              </div>
+            </div>
+
+            {/* Localização — alimenta o mapa do dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">Cidade</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="Ex: São Paulo"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Estado (UF)</Label>
+                <Select value={formData.state || 'none'} onValueChange={(v) => setFormData({ ...formData, state: v === 'none' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="none">—</SelectItem>
+                    {BR_UFS.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country">País</Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value.toUpperCase().slice(0, 2) })}
+                  placeholder="BR"
+                  maxLength={2}
+                />
               </div>
             </div>
           </CardContent>

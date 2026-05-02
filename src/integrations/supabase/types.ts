@@ -12901,9 +12901,11 @@ export type Database = {
           blocked_at: string | null
           blocked_reason: string | null
           channel_price: number | null
+          city: string | null
           config: Json | null
           contact_email: string | null
           contracted_users: number | null
+          country: string | null
           created_at: string | null
           current_period_end: string | null
           custom_domain: string | null
@@ -12933,6 +12935,7 @@ export type Database = {
           price_per_user: number | null
           sales_rep_id: string | null
           settings: Json | null
+          state: string | null
           status: string | null
           storage_limit_gb: number | null
           stripe_customer_id: string | null
@@ -12951,9 +12954,11 @@ export type Database = {
           blocked_at?: string | null
           blocked_reason?: string | null
           channel_price?: number | null
+          city?: string | null
           config?: Json | null
           contact_email?: string | null
           contracted_users?: number | null
+          country?: string | null
           created_at?: string | null
           current_period_end?: string | null
           custom_domain?: string | null
@@ -12983,6 +12988,7 @@ export type Database = {
           price_per_user?: number | null
           sales_rep_id?: string | null
           settings?: Json | null
+          state?: string | null
           status?: string | null
           storage_limit_gb?: number | null
           stripe_customer_id?: string | null
@@ -13001,9 +13007,11 @@ export type Database = {
           blocked_at?: string | null
           blocked_reason?: string | null
           channel_price?: number | null
+          city?: string | null
           config?: Json | null
           contact_email?: string | null
           contracted_users?: number | null
+          country?: string | null
           created_at?: string | null
           current_period_end?: string | null
           custom_domain?: string | null
@@ -13033,6 +13041,7 @@ export type Database = {
           price_per_user?: number | null
           sales_rep_id?: string | null
           settings?: Json | null
+          state?: string | null
           status?: string | null
           storage_limit_gb?: number | null
           stripe_customer_id?: string | null

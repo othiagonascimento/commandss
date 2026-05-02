@@ -106,13 +106,13 @@ export default function Index() {
             {overview && (
               <div className="mt-4 flex items-center gap-5 flex-wrap font-mono text-xs text-ink-2 tabular">
                 <span className="flex items-center gap-1.5">
-                  <Users className="h-3 w-3 text-plasma" />
-                  <span className="text-ink font-semibold">{fmtNum(overview.usage.total_users)}</span> usuários
+                  <Building2 className="h-3 w-3 text-plasma" />
+                  <span className="text-ink font-semibold">{fmtNum(overview.tenants.total)}</span> tenants
                 </span>
                 <span className="text-ink-faint">/</span>
                 <span className="flex items-center gap-1.5">
-                  <Building2 className="h-3 w-3 text-plasma" />
-                  <span className="text-ink font-semibold">{overview.tenants.active}</span> tenants ativos
+                  <Users className="h-3 w-3 text-plasma" />
+                  <span className="text-ink font-semibold">{fmtNum(overview.usage.total_users)}</span> usuários
                 </span>
                 <span className="text-ink-faint">/</span>
                 <span className="flex items-center gap-1.5">
@@ -124,9 +124,9 @@ export default function Index() {
           </div>
 
           <div className="grid grid-cols-3 gap-3 relative">
-            <MiniHero label="Tenants total" value={overview ? fmtNum(overview.tenants.total) : '—'} sub={overview ? `${overview.tenants.active} ativos` : ''} tone="plasma" big />
+            <MiniHero label="Tenants" value={overview ? fmtNum(overview.tenants.total) : '—'} sub={overview ? `${overview.recent_activity.new_tenants_7d} novos /7d` : ''} tone="plasma" big />
             <MiniHero label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} tone={overview && overview.subscriptions.trial > 3 ? 'ember' : 'default'} />
-            <MiniHero label="Novos 7d" value={overview ? String(overview.recent_activity.new_tenants_7d) : '—'} />
+            <MiniHero label="Leads" value={overview ? fmtNum(overview.usage.total_leads) : '—'} />
           </div>
         </Surface>
       </section>
@@ -141,9 +141,8 @@ export default function Index() {
           <SectionHeader numeral="03 /" label="Pulso Operacional" title="Métricas-chave do período" />
           <div className="grid grid-cols-2 gap-3">
             <MetricCard
-              label="Tenants" unit="total"
-              value={overview ? <MetricValue meta={overviewMeta}><AnimatedCounter value={overview.tenants.total} /></MetricValue> : '—'}
-              sub={overview ? <><span className="text-jade font-semibold">{overview.tenants.active}</span> ativos</> : undefined}
+              label="Mensagens" unit="30d"
+              value={overview ? <MetricValue meta={overviewMeta}><AnimatedCounter value={overview.usage.total_messages} format={(n) => fmtNum(n)} /></MetricValue> : '—'}
               variant="standard"
               badge={<DataQualityBadge meta={overviewMeta} />}
               loading={isLoading && !overview}
@@ -300,10 +299,8 @@ export default function Index() {
             actions={<button onClick={() => navigate('/ai-diagnostics')} className="font-mono text-[10px] uppercase tracking-wider text-ink-3 hover:text-plasma inline-flex items-center gap-1 transition-colors">diagnóstico <ArrowUpRight className="h-3 w-3" /></button>} />
           <Surface className="p-5">
             <div className="grid grid-cols-2 gap-5">
-              <Stat label="Mensagens" value={overview ? fmtNum(overview.usage.total_messages) : '—'} highlight />
-              <Stat label="Tenants ativos" value={overview ? String(overview.tenants.active) : '—'} />
-              <Stat label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} />
-              <Stat label="Conversões 7d" value={overview ? String(overview.recent_activity.new_tenants_7d) : '—'} />
+              <Stat label="Mensagens 30d" value={overview ? fmtNum(overview.usage.total_messages) : '—'} highlight />
+              <Stat label="Média / tenant" value={overview && overview.tenants.total > 0 ? fmtNum(Math.round(overview.usage.total_messages / overview.tenants.total)) : '—'} />
             </div>
             <div className="hairline-t mt-4 pt-3 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
               fonte: master-analytics · {overviewMeta?.method ?? '—'}
