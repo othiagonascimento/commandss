@@ -124,7 +124,7 @@ function RankingCard({
 export default function Rankings() {
   const [activeTab, setActiveTab] = useState('tenants');
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
-  const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
+  
 
   // Fetch tenant rankings from tenant_usage + ai_events aggregation
   const { data: tenantUsage, isLoading, dataUpdatedAt, refetch } = useQuery({
@@ -234,7 +234,7 @@ export default function Rankings() {
               placeholder="Todas as Lojas"
             />
             <button
-              onClick={() => { refetch(); setLastFetchedAt(new Date()); }}
+              onClick={() => { refetch(); }}
               className="text-xs underline text-muted-foreground hover:text-foreground"
               type="button"
             >
