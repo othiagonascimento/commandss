@@ -132,53 +132,6 @@ export function TenantIdentityForm({ tenantId, tenant }: TenantIdentityFormProps
         </CardContent>
       </Card>
 
-      {/* Plano */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CreditCard className="w-4 h-4" />Plano e trial
-          </CardTitle>
-          <CardDescription>Define os módulos disponíveis e período de teste</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Tipo de plano</Label>
-              <Select value={form.plan_type} onValueChange={(v) => setForm({ ...form, plan_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="basic">Basic</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Trial habilitado</Label>
-              <p className="text-sm text-muted-foreground">Permitir período de teste gratuito</p>
-            </div>
-            <Switch checked={form.trial_enabled} onCheckedChange={(v) => setForm({ ...form, trial_enabled: v })} />
-          </div>
-
-          {form.trial_enabled && (
-            <div className="space-y-2 pl-4 border-l-2 border-primary/20">
-              <Label htmlFor="trial_days">Dias de trial</Label>
-              <Input
-                id="trial_days" type="number" min={1} max={90}
-                value={form.trial_days}
-                onChange={(e) => setForm({ ...form, trial_days: parseInt(e.target.value) || 7 })}
-                className="w-32"
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       <div className="flex items-center justify-end gap-3">
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
