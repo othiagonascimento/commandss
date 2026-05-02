@@ -125,20 +125,25 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
 
   const content = (
     <>
-      {/* Brand */}
-      <div className={cn('h-14 flex items-center hairline-b px-4', collapsed && 'justify-center px-0')}>
-        <div className="flex items-center gap-2.5">
-          <div className="relative">
-            <img src={uopaSymbol} alt="UÔPA" className="h-7 w-auto relative z-10" />
-            <div className="absolute inset-0 -m-1 rounded-full opacity-50 blur-md" style={{ background: 'var(--brand-gradient)' }} />
-          </div>
-          {!collapsed && (
-            <div className="leading-none">
-              <div className="font-display text-[13px] font-semibold tracking-tight text-ink">UÔPA</div>
-              <div className="editorial-label mt-0.5">Master Console</div>
+      {/* Brand — clickable, leva à home */}
+      <div className={cn('h-14 flex items-center hairline-b', collapsed ? 'justify-center px-0' : 'px-4')}>
+        <button
+          onClick={() => { navigate('/'); onMobileClose(); }}
+          className="flex items-center gap-2.5 group focus:outline-none"
+          aria-label="Ir para o Dashboard"
+        >
+          {collapsed ? (
+            <div className="relative">
+              <img src={uopaSymbol} alt="UÔPA" className="h-7 w-auto relative z-10 transition-transform group-hover:scale-105" />
+              <div className="absolute inset-0 -m-1 rounded-full opacity-50 blur-md group-hover:opacity-70 transition-opacity" style={{ background: 'var(--brand-gradient)' }} />
             </div>
+          ) : (
+            <>
+              <img src={uopaLogoWhite} alt="UÔPA Master Console" className="h-6 w-auto transition-opacity group-hover:opacity-90" />
+              <span className="editorial-label text-ink-faint group-hover:text-plasma transition-colors">Master</span>
+            </>
           )}
-        </div>
+        </button>
       </div>
 
       {/* Zones */}
