@@ -127,7 +127,10 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
       {/* Brand */}
       <div className={cn('h-14 flex items-center hairline-b px-4', collapsed && 'justify-center px-0')}>
         <div className="flex items-center gap-2.5">
-          <img src={uopaSymbol} alt="UÔPA" className="h-7 w-auto" />
+          <div className="relative">
+            <img src={uopaSymbol} alt="UÔPA" className="h-7 w-auto relative z-10" />
+            <div className="absolute inset-0 -m-1 rounded-full opacity-50 blur-md" style={{ background: 'var(--brand-gradient)' }} />
+          </div>
           {!collapsed && (
             <div className="leading-none">
               <div className="font-display text-[13px] font-semibold tracking-tight text-ink">UÔPA</div>
