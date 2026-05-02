@@ -131,12 +131,15 @@ export default function Index() {
         </Surface>
       </section>
 
-      {/* ─── 02 PULSO + MAPA (lado a lado, mapa fixo permanente) ────── */}
-      <section className="mb-10 sm:mb-14 grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-5">
+      {/* ─── 02 MAPA SOBERANO ────── */}
+      <section className="mb-10 sm:mb-14">
+        <SectionHeader numeral="02 /" label="Distribuição Nacional" title="Cartografia operacional" />
+        <HomeBrazilMap />
+      </section>
+
+      {/* ─── 03 PULSO OPERACIONAL ────── */}
+      <section className="mb-10 sm:mb-14">
         <div>
-          <SectionHeader numeral="02 /" label="Distribuição Nacional" title="Cartografia operacional" />
-          <HomeBrazilMap />
-        </div>
         <div>
           <SectionHeader numeral="03 /" label="Pulso Operacional" title="Métricas-chave do período" />
           <div className="grid grid-cols-2 gap-3">
