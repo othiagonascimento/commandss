@@ -254,10 +254,11 @@ export default function TenantDetail() {
     }
     // Usage thresholds
     if (usage && features) {
+      const u = usage.usage;
       const checks: Array<[string, number | undefined, number | undefined]> = [
-        ['mensagens', usage.messages, features.limit_ai_tokens_monthly],
-        ['leads', usage.leads, features.limit_leads],
-        ['usuários', usage.users, features.limit_users],
+        ['mensagens', u?.messages, features.limit_ai_tokens_monthly],
+        ['leads', u?.leads, features.limit_leads],
+        ['usuários', u?.users, features.limit_users],
       ];
       checks.forEach(([label, used, limit]) => {
         if (used && limit && limit > 0 && used / limit >= 0.9) {
