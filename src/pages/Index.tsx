@@ -106,13 +106,13 @@ export default function Index() {
             {overview && (
               <div className="mt-4 flex items-center gap-5 flex-wrap font-mono text-xs text-ink-2 tabular">
                 <span className="flex items-center gap-1.5">
-                  <Users className="h-3 w-3 text-plasma" />
-                  <span className="text-ink font-semibold">{fmtNum(overview.usage.total_users)}</span> usuários
+                  <Building2 className="h-3 w-3 text-plasma" />
+                  <span className="text-ink font-semibold">{fmtNum(overview.tenants.total)}</span> tenants
                 </span>
                 <span className="text-ink-faint">/</span>
                 <span className="flex items-center gap-1.5">
-                  <Building2 className="h-3 w-3 text-plasma" />
-                  <span className="text-ink font-semibold">{overview.tenants.active}</span> tenants ativos
+                  <Users className="h-3 w-3 text-plasma" />
+                  <span className="text-ink font-semibold">{fmtNum(overview.usage.total_users)}</span> usuários
                 </span>
                 <span className="text-ink-faint">/</span>
                 <span className="flex items-center gap-1.5">
@@ -124,9 +124,9 @@ export default function Index() {
           </div>
 
           <div className="grid grid-cols-3 gap-3 relative">
-            <MiniHero label="Tenants total" value={overview ? fmtNum(overview.tenants.total) : '—'} sub={overview ? `${overview.tenants.active} ativos` : ''} tone="plasma" big />
+            <MiniHero label="Tenants" value={overview ? fmtNum(overview.tenants.total) : '—'} sub={overview ? `${overview.recent_activity.new_tenants_7d} novos /7d` : ''} tone="plasma" big />
             <MiniHero label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} tone={overview && overview.subscriptions.trial > 3 ? 'ember' : 'default'} />
-            <MiniHero label="Novos 7d" value={overview ? String(overview.recent_activity.new_tenants_7d) : '—'} />
+            <MiniHero label="Leads" value={overview ? fmtNum(overview.usage.total_leads) : '—'} />
           </div>
         </Surface>
       </section>
