@@ -303,6 +303,39 @@ export default function EditTenant() {
                 </div>
               </div>
             </div>
+
+            {/* Localização — alimenta o mapa do dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">Cidade</Label>
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  placeholder="Ex: São Paulo"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Estado (UF)</Label>
+                <Select value={formData.state || 'none'} onValueChange={(v) => setFormData({ ...formData, state: v === 'none' ? '' : v })}>
+                  <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="none">—</SelectItem>
+                    {BR_UFS.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country">País</Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value.toUpperCase().slice(0, 2) })}
+                  placeholder="BR"
+                  maxLength={2}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
