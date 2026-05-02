@@ -19,7 +19,7 @@ interface CityCluster {
   tenants: Tenant[];
 }
 
-export function HomeBrazilMap() {
+export function HomeBrazilMap({ bare = false }: { bare?: boolean } = {}) {
   const [geo, setGeo] = useState<FC | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [hover, setHover] = useState<{ uf: string; x: number; y: number; n: number } | null>(null);
@@ -47,20 +47,24 @@ export function HomeBrazilMap() {
       const node = ref.current;
       if (!node) return;
       const r = node.getBoundingClientRect();
-      if (r.width > 0) {
-        // Brazil aspect ratio ~ 1.06. Fit to container width with sensible bounds.
-        const isMobile = r.width < 640;
-        const h = isMobile
-          ? Math.max(420, r.width * 1.05)
-          : Math.max(440, Math.min(720, r.width * 1.05));
-        setSize({ w: r.width, h });
+      if (r.width > 0 && r.height > 0) {
+        if (bare) {
+          // Fill the parent's available height when embedded in another card
+          setSize({ w: r.width, h: r.height });
+        } else {
+          const isMobile = r.width < 640;
+          const h = isMobile
+            ? Math.max(420, r.width * 1.05)
+            : Math.max(440, Math.min(720, r.width * 1.05));
+          setSize({ w: r.width, h });
+        }
       }
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [geo]);
+  }, [geo, bare]);
 
   const byUF = useMemo(() => {
     const m = new Map<string, Tenant[]>();
@@ -185,27 +189,14 @@ export function HomeBrazilMap() {
 
   const selList = selected && selected !== '__none__' ? (byUF.get(selected) ?? []) : [];
 
-  return (
-    <Surface className="p-4 sm:p-5 overflow-hidden" crosshairs>
-      <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
-        <div>
-          <div className="editorial-label">/ CARTOGRAFIA OPERACIONAL</div>
-          <h3 className="font-display text-lg font-semibold text-ink mt-0.5">Distribuição nacional</h3>
-        </div>
-        <div className="flex items-center gap-3 font-mono text-[10px] text-ink-3 uppercase tracking-wider">
-          <span><span className="text-ink">{tenants.length}</span> tenants</span>
-          <span className="text-ink-faint">·</span>
-          <span><span className="text-ink">{byUF.size}</span> uf</span>
-          <span className="text-ink-faint">·</span>
-          <span><span className="text-ink">{cityClusters.length}</span> cidades</span>
-        </div>
-      </div>
-
-      <div
-        ref={ref}
-        className="relative w-full grid-blueprint rounded-md overflow-hidden border border-hairline"
-        style={{ minHeight: 380, background: 'hsl(var(--surface-1))' }}
-      >
+  const mapCanvas = (
+    <div
+      ref={ref}
+      className={bare
+        ? "relative w-full h-full grid-blueprint overflow-hidden"
+        : "relative w-full grid-blueprint rounded-md overflow-hidden border border-hairline"}
+      style={bare ? { background: 'transparent' } : { minHeight: 380, background: 'hsl(var(--surface-1))' }}
+    >
         {/* Glow ambiente */}
         <div
           className="absolute inset-0 pointer-events-none opacity-40"
@@ -341,9 +332,57 @@ export function HomeBrazilMap() {
             </div>
           </div>
         )}
-      </div>
+    </div>
+  );
 
-      {/* Footer / legenda */}
+  const sheet = (
+    <Sheet open={!!selected} onOpenChange={o => !o && setSelected(null)}>
+      <SheetContent side="right" className="bg-surface-1 border-l border-hairline w-full sm:max-w-md">
+        <SheetHeader>
+          <SheetTitle className="font-display tracking-tight text-ink flex items-baseline gap-2">
+            <span>{selected === '__none__' ? 'Sem geolocalização' : selected}</span>
+            <span className="font-mono text-xs text-ink-3 tabular">
+              {(selected === '__none__' ? tenants.filter(t => !t.state).length : selList.length)} tenants
+            </span>
+          </SheetTitle>
+        </SheetHeader>
+        <div className="mt-4 space-y-1.5 max-h-[80vh] overflow-y-auto custom-scrollbar pr-1">
+          {(selected === '__none__' ? tenants.filter(t => !t.state) : selList).map(t => (
+            <a
+              key={t.id} href={`/tenants/${t.id}`}
+              className="block px-3 py-2 bg-surface-2 hover:border-brand-magenta/50 border border-hairline rounded-sm transition-colors group"
+            >
+              <div className="text-sm text-ink group-hover:text-plasma transition-colors">{t.name}</div>
+              <div className="font-mono text-[10px] text-ink-3 uppercase tracking-wider mt-0.5">
+                {[t.city, t.state, t.plan_type].filter(Boolean).join(' · ') || '—'}
+              </div>
+            </a>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+
+  if (bare) {
+    return (<>{mapCanvas}{sheet}</>);
+  }
+
+  return (
+    <Surface className="p-4 sm:p-5 overflow-hidden" crosshairs>
+      <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+        <div>
+          <div className="editorial-label">/ CARTOGRAFIA OPERACIONAL</div>
+          <h3 className="font-display text-lg font-semibold text-ink mt-0.5">Distribuição nacional</h3>
+        </div>
+        <div className="flex items-center gap-3 font-mono text-[10px] text-ink-3 uppercase tracking-wider">
+          <span><span className="text-ink">{tenants.length}</span> tenants</span>
+          <span className="text-ink-faint">·</span>
+          <span><span className="text-ink">{byUF.size}</span> uf</span>
+          <span className="text-ink-faint">·</span>
+          <span><span className="text-ink">{cityClusters.length}</span> cidades</span>
+        </div>
+      </div>
+      {mapCanvas}
       <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 font-mono text-[10px] text-ink-3 uppercase tracking-wider flex-wrap">
           <span className="flex items-center gap-1.5">
@@ -367,32 +406,8 @@ export function HomeBrazilMap() {
           </button>
         )}
       </div>
-
-      <Sheet open={!!selected} onOpenChange={o => !o && setSelected(null)}>
-        <SheetContent side="right" className="bg-surface-1 border-l border-hairline w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle className="font-display tracking-tight text-ink flex items-baseline gap-2">
-              <span>{selected === '__none__' ? 'Sem geolocalização' : selected}</span>
-              <span className="font-mono text-xs text-ink-3 tabular">
-                {(selected === '__none__' ? tenants.filter(t => !t.state).length : selList.length)} tenants
-              </span>
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-4 space-y-1.5 max-h-[80vh] overflow-y-auto custom-scrollbar pr-1">
-            {(selected === '__none__' ? tenants.filter(t => !t.state) : selList).map(t => (
-              <a
-                key={t.id} href={`/tenants/${t.id}`}
-                className="block px-3 py-2 bg-surface-2 hover:border-brand-magenta/50 border border-hairline rounded-sm transition-colors group"
-              >
-                <div className="text-sm text-ink group-hover:text-plasma transition-colors">{t.name}</div>
-                <div className="font-mono text-[10px] text-ink-3 uppercase tracking-wider mt-0.5">
-                  {[t.city, t.state, t.plan_type].filter(Boolean).join(' · ') || '—'}
-                </div>
-              </a>
-            ))}
-          </div>
-        </SheetContent>
-      </Sheet>
+      {sheet}
     </Surface>
   );
 }
+
