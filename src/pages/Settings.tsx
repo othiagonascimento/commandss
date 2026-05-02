@@ -686,29 +686,18 @@ export default function Settings() {
           {/* Base Prompts Tab */}
           <TabsContent value="base-prompts">
             <div className="space-y-6">
-              {/* Header with Save Button */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-primary" />
-                    Prompts Base Globais
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Estes prompts servem como fundação para todos os templates. Templates podem complementar ou substituir partes específicas.
-                  </p>
-                </div>
-                <Button 
-                  onClick={() => saveBasePromptsMutation.mutate()}
-                  disabled={isSavingBasePrompts}
-                >
-                  {isSavingBasePrompts ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="w-4 h-4 mr-2" />
-                  )}
-                  Salvar Prompts Base
-                </Button>
-              </div>
+              <SectionHeader
+                numeral="01 /"
+                label="Fundação editorial"
+                title="Prompts Base Globais"
+                description="Templates herdam ou estendem estes prompts — substituem apenas partes específicas"
+                actions={
+                  <Button onClick={() => saveBasePromptsMutation.mutate()} disabled={isSavingBasePrompts}>
+                    {isSavingBasePrompts ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    Salvar Prompts
+                  </Button>
+                }
+              />
 
               {isLoadingBasePrompts ? (
                 <div className="flex items-center justify-center py-12">
