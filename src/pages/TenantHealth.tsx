@@ -7,6 +7,7 @@ import { DataQualityBadge } from '@/components/quality/DataQualityBadge';
 import { DataQualityNotice } from '@/components/quality/MetricValue';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { Surface, SectionHeader } from '@/components/ds/Surface';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
