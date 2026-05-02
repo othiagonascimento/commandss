@@ -34,6 +34,18 @@ export const RevenueSchema = z.object({
   arr: z.number(),
   total: z.number(),
   growth_percentage: z.number(),
+  by_plan: z.record(z.string(), z.number()).optional(),
+  breakdown: z.object({
+    paying_tenants: z.number(),
+    free_tenants: z.number(),
+    trial_tenants: z.number(),
+    lifetime_tenants: z.number(),
+    pending_tenants: z.number(),
+    average_mrr: z.number(),
+  }).partial().passthrough().optional(),
+  implementation_revenue: z.number().optional(),
+  credits_revenue: z.number().optional(),
+  total_revenue_month: z.number().optional(),
 }).passthrough();
 
 export const TimeSeriesPointSchema = z.object({
@@ -42,7 +54,12 @@ export const TimeSeriesPointSchema = z.object({
   revenue: z.number().optional(),
   users: z.number().optional(),
   tenants: z.number().optional(),
+  new_tenants: z.number().optional(),
+  active_users: z.number().optional(),
+  messages: z.number().optional(),
 }).passthrough();
+
+export const TimeSeriesPointSchema_unused = TimeSeriesPointSchema;
 
 export const TimeSeriesResponseSchema = z.object({
   period: z.string(),
