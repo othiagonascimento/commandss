@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { makeV2Envelope } from "../_shared/v2Envelope.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,9 +77,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // If CRM returned valid data, use it
+    // If CRM returned valid data, use it (CRM is source of truth)
     if (crmData) {
-      return new Response(JSON.stringify(crmData), {
+      const newest = (crmData as { timeline?: Array<{ date?: string }> })?.timeline?.slice(-1)[0]?.date ?? null;
+      const envelope = makeV2Envelope(crmData, {
+        method: 'live',
+        observedAt: newest ? `${newest}T23:59:59Z` : new Date().toISOString(),
+        staleAfterSeconds: 3600,
+      });
+      return new Response(JSON.stringify(envelope), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -302,7 +309,21 @@ Deno.serve(async (req) => {
       layers: layers.length,
     });
 
-    return new Response(JSON.stringify(result), {
+    const newestLocal = timeline.length > 0 ? timeline[timeline.length - 1].date : null;
+    const totalEvents = events.length;
+    const envelope = makeV2Envelope(result, {
+      method: totalEvents === 0 ? 'unavailable' : 'fallback',
+      confidence: totalEvents < 50 ? 'low' : 'medium',
+      observedAt: newestLocal ? `${newestLocal}T23:59:59Z` : new Date().toISOString(),
+      staleAfterSeconds: 3600,
+      warnings: totalEvents === 0
+        ? ['Sem eventos AI nos últimos ' + days + ' dias.']
+        : totalEvents < 50
+          ? [`Volume baixo (${totalEvents} eventos) — métricas podem ser pouco representativas.`]
+          : [`CRM indisponível — agregação local de ${totalEvents} eventos.`],
+    });
+
+    return new Response(JSON.stringify(envelope), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

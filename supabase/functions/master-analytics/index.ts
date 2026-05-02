@@ -1,5 +1,49 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { makeV2Envelope } from "../_shared/v2Envelope.ts";
+
+// Endpoints that MUST return v2 envelope (Master Panel critical widgets).
+// All other endpoints stay v1 — frontend wraps them automatically.
+const V2_ENDPOINTS = new Set([
+  'overview', 'revenue', 'timeseries', 'tenant-health',
+]);
+
+function envelopeForEndpoint(endpoint: string, payload: unknown): unknown {
+  if (!V2_ENDPOINTS.has(endpoint)) return payload;
+
+  // Heuristics for observed_at + method per endpoint.
+  if (endpoint === 'tenant-health') {
+    // Source includes ops_health_snapshots; the freshest item we surface inside.
+    const arr = Array.isArray(payload) ? payload : [];
+    const newest = arr
+      .map((t) => (t as { last_activity?: string })?.last_activity)
+      .filter(Boolean)
+      .sort()
+      .pop() as string | undefined;
+    return makeV2Envelope(arr, {
+      method: arr.length > 0 ? 'live' : 'unavailable',
+      observedAt: newest ?? new Date().toISOString(),
+      staleAfterSeconds: 600,
+    });
+  }
+  if (endpoint === 'overview' || endpoint === 'revenue') {
+    return makeV2Envelope(payload, {
+      method: 'live',
+      observedAt: new Date().toISOString(),
+      staleAfterSeconds: 300,
+    });
+  }
+  if (endpoint === 'timeseries') {
+    const arr = (payload as { data?: unknown[] })?.data;
+    return makeV2Envelope(payload, {
+      method: Array.isArray(arr) && arr.length > 0 ? 'live' : 'fallback',
+      observedAt: new Date().toISOString(),
+      staleAfterSeconds: 3600,
+      warnings: Array.isArray(arr) && arr.length === 0 ? ['Sem datapoints na série temporal.'] : [],
+    });
+  }
+  return payload;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -909,8 +953,10 @@ serve(async (req) => {
       }
     }
 
+    const finalPayload = envelopeForEndpoint(endpoint, responseData);
+
     return new Response(
-      JSON.stringify(responseData),
+      JSON.stringify(finalPayload),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
