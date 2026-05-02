@@ -226,12 +226,20 @@ export default function Operations() {
       )}
 
       {/* ─── Status Strip ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatusCard label="Alertas" value={filteredAlertCount === 0 ? 'OK' : `${filteredAlertCount}`} status={alertStatus} detail={filteredAlertCount > 0 ? `${filteredAlerts.filter(a => a.severity === 'critical').length} crítico` : 'Tudo limpo'} />
-        <StatusCard label="Filas" value={noData ? '—' : `${eqPending + mqPending}`} status={noData ? 'off' as any : queueStatus} detail={noData ? '' : `${eqFailed} falhados`} />
-        <StatusCard label="Canais" value={noData ? '—' : `${connectedWA + activeMeta}/${whatsappChannels.length + metaChannels.length}`} status={channelStatus} detail={noData ? '' : `${whatsappChannels.length - connectedWA} offline`} />
-        <StatusCard label="Cron Jobs" value={noData ? '—' : `${activeCrons}/${cronJobs.length}`} status={cronStatus} detail={noData ? '' : failedCrons > 0 ? `${failedCrons} falhando` : 'Todos OK'} />
-      </div>
+      <section className="mb-8 space-y-4">
+        <SectionHeader
+          numeral="01 /"
+          label="Sinais vitais"
+          title="Status agregado"
+          description="Snapshot resumido — alertas, filas, canais e crons"
+        />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatusCard label="Alertas" value={filteredAlertCount === 0 ? 'OK' : `${filteredAlertCount}`} status={alertStatus} detail={filteredAlertCount > 0 ? `${filteredAlerts.filter(a => a.severity === 'critical').length} crítico` : 'Tudo limpo'} />
+          <StatusCard label="Filas" value={noData ? '—' : `${eqPending + mqPending}`} status={noData ? 'off' as any : queueStatus} detail={noData ? '' : `${eqFailed} falhados`} />
+          <StatusCard label="Canais" value={noData ? '—' : `${connectedWA + activeMeta}/${whatsappChannels.length + metaChannels.length}`} status={channelStatus} detail={noData ? '' : `${whatsappChannels.length - connectedWA} offline`} />
+          <StatusCard label="Cron Jobs" value={noData ? '—' : `${activeCrons}/${cronJobs.length}`} status={cronStatus} detail={noData ? '' : failedCrons > 0 ? `${failedCrons} falhando` : 'Todos OK'} />
+        </div>
+      </section>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
@@ -242,15 +250,18 @@ export default function Operations() {
         </TabsList>
 
         {/* ─── PAINEL ──────────────────────────────────────────────────── */}
-        <TabsContent value="painel" className="space-y-6">
+        <TabsContent value="painel" className="space-y-8">
 
           {/* Alertas Ativos */}
           {filteredAlerts.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-destructive" />
-                {filteredAlerts.length} Alerta{filteredAlerts.length > 1 ? 's' : ''} Ativo{filteredAlerts.length > 1 ? 's' : ''}
-              </h3>
+            <section className="space-y-3">
+              <SectionHeader
+                numeral="02 /"
+                label="Radar de incidentes"
+                title={`${filteredAlerts.length} alerta${filteredAlerts.length > 1 ? 's' : ''} ativo${filteredAlerts.length > 1 ? 's' : ''}`}
+                description="Requerem ação manual ou automática"
+              />
+
               {filteredAlerts.map(alert => {
                 const cfg = severityConfig[alert.severity] || severityConfig.info;
                 const Icon = cfg.icon;
