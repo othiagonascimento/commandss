@@ -1,9 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { makeV2Envelope, makeUnavailableEnvelope, computeFreshness } from '../_shared/v2Envelope.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-path-suffix, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+const STALE_AFTER_SEC = 600; // 10 min — Operations/Tenant Health rule
+
+function jsonResponse(payload: unknown, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,47 +34,61 @@ Deno.serve(async (req) => {
     const tenantId = params.get('tenant_id') || null;
 
     if (action === 'latest') {
-      const { data, error } = await supabase.rpc('get_latest_ops_snapshot', {
-        p_tenant_id: tenantId,
-      });
+      const { data, error } = await supabase.rpc('get_latest_ops_snapshot', { p_tenant_id: tenantId });
       if (error) throw error;
-      return new Response(JSON.stringify(data || {}), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+      if (!data || (Array.isArray(data) && data.length === 0) || (typeof data === 'object' && Object.keys(data as object).length === 0)) {
+        return jsonResponse(makeUnavailableEnvelope({}, 'Nenhum snapshot ops_health encontrado'));
+      }
+
+      const observedAt = (data as { created_at?: string })?.created_at ?? null;
+      return jsonResponse(makeV2Envelope(data, {
+        method: 'snapshot',
+        observedAt,
+        staleAfterSeconds: STALE_AFTER_SEC,
+      }));
     }
 
     if (action === 'history') {
       const hours = parseInt(params.get('hours') || '24');
-      const { data, error } = await supabase.rpc('get_ops_snapshot_history', {
-        p_tenant_id: tenantId,
-        p_hours: hours,
-      });
+      const { data, error } = await supabase.rpc('get_ops_snapshot_history', { p_tenant_id: tenantId, p_hours: hours });
       if (error) throw error;
-      return new Response(JSON.stringify(data || []), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+      const arr = Array.isArray(data) ? data : [];
+      if (arr.length === 0) {
+        return jsonResponse(makeUnavailableEnvelope([], `Sem histórico nas últimas ${hours}h`));
+      }
+      const newest = (arr[0] as { hour?: string; created_at?: string })?.hour
+        ?? (arr[0] as { created_at?: string })?.created_at ?? null;
+      return jsonResponse(makeV2Envelope(arr, {
+        method: 'snapshot',
+        observedAt: newest,
+        staleAfterSeconds: STALE_AFTER_SEC * 6, // history tolerates older
+      }));
     }
 
     if (action === 'alerts') {
       const severity = params.get('severity') || null;
       const limit = parseInt(params.get('limit') || '50');
-      const { data, error } = await supabase.rpc('get_active_alerts', {
-        p_tenant_id: tenantId,
-        p_severity: severity,
-        p_limit: limit,
-      });
+      const { data, error } = await supabase.rpc('get_active_alerts', { p_tenant_id: tenantId, p_severity: severity, p_limit: limit });
       if (error) throw error;
-      return new Response(JSON.stringify(data || []), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      const arr = Array.isArray(data) ? data : [];
+      const newest = arr.length > 0 ? (arr[0] as { created_at?: string }).created_at ?? null : null;
+      return jsonResponse(makeV2Envelope(arr, {
+        method: 'live',
+        observedAt: newest ?? new Date().toISOString(),
+        staleAfterSeconds: 300,
+      }));
     }
 
     if (action === 'alert-stats') {
       const { data, error } = await supabase.rpc('get_alert_stats');
       if (error) throw error;
-      return new Response(JSON.stringify(data || {}), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(makeV2Envelope(data || {}, {
+        method: 'live',
+        observedAt: new Date().toISOString(),
+        staleAfterSeconds: 300,
+      }));
     }
 
     if (action === 'resolve' && req.method === 'POST') {
@@ -76,9 +100,8 @@ Deno.serve(async (req) => {
         p_reason: body.reason || null,
       });
       if (error) throw error;
-      return new Response(JSON.stringify({ success: data }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Mutation: keep legacy v1 shape so callers don't break
+      return jsonResponse({ success: data });
     }
 
     if (action === 'resolved-alerts') {
@@ -86,72 +109,72 @@ Deno.serve(async (req) => {
       const offset = parseInt(params.get('offset') || '0');
       const alertType = params.get('alert_type') || null;
       const { data, error } = await supabase.rpc('get_resolved_alerts', {
-        p_limit: limit,
-        p_offset: offset,
-        p_tenant_id: tenantId,
-        p_alert_type: alertType,
+        p_limit: limit, p_offset: offset, p_tenant_id: tenantId, p_alert_type: alertType,
       });
       if (error) throw error;
-      return new Response(JSON.stringify(data || []), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      const arr = Array.isArray(data) ? data : [];
+      const newest = arr.length > 0 ? (arr[0] as { resolved_at?: string }).resolved_at ?? null : null;
+      return jsonResponse(makeV2Envelope(arr, {
+        method: 'live',
+        observedAt: newest ?? new Date().toISOString(),
+        staleAfterSeconds: 3600,
+      }));
     }
 
     if (action === 'tenant-ops') {
       if (!tenantId) {
-        return new Response(JSON.stringify({ error: 'tenant_id required' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ error: 'tenant_id required' }, 400);
       }
-
       const [snapshotRes, alertsRes] = await Promise.all([
         supabase.rpc('get_latest_ops_snapshot', { p_tenant_id: tenantId }),
         supabase.rpc('get_active_alerts', { p_tenant_id: tenantId, p_severity: null, p_limit: 20 }),
       ]);
 
-      return new Response(JSON.stringify({
-        snapshot: snapshotRes.data || {},
-        alerts: alertsRes.data || [],
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      const snap = snapshotRes.data;
+      const hasSnap = snap && typeof snap === 'object' && Object.keys(snap as object).length > 0;
+      const observedAt = hasSnap ? (snap as { created_at?: string })?.created_at ?? null : null;
+
+      return jsonResponse(makeV2Envelope({
+        snapshot: snap || {},
+        alerts: Array.isArray(alertsRes.data) ? alertsRes.data : [],
+      }, {
+        method: hasSnap ? 'snapshot' : 'unavailable',
+        observedAt,
+        staleAfterSeconds: STALE_AFTER_SEC,
+        warnings: hasSnap ? [] : [`Sem snapshot recente para tenant ${tenantId}`],
+      }));
     }
 
     if (action === 'user-ops') {
       const userId = params.get('user_id');
       if (!tenantId || !userId) {
-        return new Response(JSON.stringify({ error: 'tenant_id and user_id required' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ error: 'tenant_id and user_id required' }, 400);
       }
-
       const [usageRes, limitsRes, alertsRes] = await Promise.all([
         supabase.from('user_usage').select('*').eq('user_id', userId).eq('tenant_id', tenantId).maybeSingle(),
         supabase.from('user_limits').select('*').eq('user_id', userId).eq('tenant_id', tenantId).maybeSingle(),
         supabase.from('master_alerts').select('*').eq('user_id', userId).eq('is_resolved', false).order('created_at', { ascending: false }).limit(10),
       ]);
 
-      return new Response(JSON.stringify({
+      const observedAt = (usageRes.data as { updated_at?: string })?.updated_at
+        ?? (usageRes.data as { created_at?: string })?.created_at
+        ?? null;
+
+      return jsonResponse(makeV2Envelope({
         usage: usageRes.data || null,
         limits: limitsRes.data || null,
-        alerts: alertsRes.data || [],
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        alerts: Array.isArray(alertsRes.data) ? alertsRes.data : [],
+      }, {
+        method: usageRes.data ? 'live' : 'fallback',
+        observedAt,
+        staleAfterSeconds: 3600,
+      }));
     }
 
-    return new Response(JSON.stringify({ error: `Unknown action: ${action}` }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error) {
     console.error('[OPS-HEALTH-QUERY] Error:', error);
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: (error as Error).message }, 500);
   }
 });
