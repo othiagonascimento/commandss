@@ -223,94 +223,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ─── 05 RECEITA (financeiro com olho) ───────────────────────── */}
-      <section className="mb-10 sm:mb-14">
-        <SectionHeader numeral="05 /" label="Receita & Crescimento" title="Inteligência financeira"
-          actions={<button onClick={() => navigate('/analytics')} className="font-mono text-[10px] uppercase tracking-wider text-ink-3 hover:text-plasma inline-flex items-center gap-1 transition-colors">inteligência completa <ArrowUpRight className="h-3 w-3" /></button>}
-        />
-        <Surface className="p-5 sm:p-6 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 rounded-full pointer-events-none opacity-10"
-            style={{ background: 'var(--brand-gradient)', filter: 'blur(60px)' }} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6 relative">
-            {/* MRR/ARR financeiros — ocultáveis */}
-            <div className="space-y-4 lg:border-r lg:border-hairline lg:pr-6">
-              <div>
-                <div className="editorial-label mb-1.5">MRR ATUAL</div>
-                <div className="font-display font-bold tracking-tighter text-ink leading-none" style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>
-                  <PrivateValue mask="••••••" showToggle>
-                    <span className="text-brand-gradient">
-                      {revenue ? <MetricValue meta={revenueMeta}>{fmtBRL(revenue.mrr)}</MetricValue> : '—'}
-                    </span>
-                  </PrivateValue>
-                </div>
-                {revenue?.growth_percentage !== undefined && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <TrendDelta value={revenue.growth_percentage} />
-                    <span className="font-mono text-[10px] uppercase tracking-wider text-ink-3">vs 30d</span>
-                  </div>
-                )}
-              </div>
-              <div className="hairline-t pt-3">
-                <div className="editorial-label mb-1">ARR PROJETADO</div>
-                <div className="font-mono font-semibold text-xl tabular text-ink">
-                  <PrivateValue mask="••••••">
-                    {revenue ? fmtBRL(revenue.arr) : '—'}
-                  </PrivateValue>
-                </div>
-              </div>
-              {revenue?.breakdown && (
-                <div className="hairline-t pt-3 grid grid-cols-2 gap-3">
-                  <div>
-                    <div className="editorial-label">Pagantes</div>
-                    <div className="font-mono font-semibold text-base tabular text-ink mt-0.5">{revenue.breakdown.paying_tenants}</div>
-                  </div>
-                  <div>
-                    <div className="editorial-label">Trials</div>
-                    <div className="font-mono font-semibold text-base tabular text-ember mt-0.5">{overview?.subscriptions.trial ?? 0}</div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Gráfico evolução */}
-            <div>
-              <div className="flex items-baseline justify-between mb-3">
-                <div className="editorial-label">EVOLUÇÃO MRR · 12 MESES</div>
-                <span className="font-mono text-[10px] text-ink-3 uppercase tracking-wider">{series.length} pontos</span>
-              </div>
-              <div className="h-[240px]">
-                {series.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-sm text-ink-3 font-mono">sem série temporal</div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={series} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(var(--brand-magenta))" stopOpacity={0.4} />
-                          <stop offset="100%" stopColor="hsl(var(--brand-magenta))" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="mrrLine" x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor="hsl(var(--brand-purple))" />
-                          <stop offset="50%" stopColor="hsl(var(--brand-magenta))" />
-                          <stop offset="100%" stopColor="hsl(var(--brand-azure))" />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid stroke="hsl(var(--hairline))" strokeDasharray="2 4" vertical={false} />
-                      <XAxis dataKey="month" tickLine={false} axisLine={false} stroke="hsl(var(--ink-muted))" style={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} />
-                      <YAxis tickLine={false} axisLine={false} stroke="hsl(var(--ink-muted))" style={{ fontSize: 10, fontFamily: 'JetBrains Mono' }} tickFormatter={v => fmtBRL(v, true)} />
-                      <RTooltip contentStyle={{ background: 'hsl(var(--surface-3))', border: '1px solid hsl(var(--hairline-strong))', borderRadius: '6px', fontSize: 11, fontFamily: 'JetBrains Mono' }}
-                        formatter={(v: number) => [fmtBRL(v), 'MRR']} />
-                      <Area type="monotone" dataKey="mrr" stroke="url(#mrrLine)" strokeWidth={2} fill="url(#mrrGrad)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-          </div>
-        </Surface>
-      </section>
-
+      {/* (Receita removida — agora integrada no banner executivo) */}
       {/* ─── 06 + 07 IA + SAÚDE ────────────────────────────────────── */}
       <section className="mb-10 sm:mb-14 grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div>
@@ -363,6 +276,108 @@ function MiniHero({ label, value, sub, tone = 'default', big = false }: { label:
       <div className="editorial-label truncate">{label}</div>
       <div className={cn('font-mono font-semibold tabular mt-1.5 truncate', big ? 'text-3xl' : 'text-2xl', t)}>{value}</div>
       {sub && <div className="font-mono text-[10px] text-ink-faint uppercase tracking-wider mt-1 truncate">{sub}</div>}
+    </div>
+  );
+}
+
+function FinancialBlock({ revenue, revenueMeta, series, trialsCount }: { revenue: any; revenueMeta: any; series: any[]; trialsCount: number }) {
+  const { hidden, toggle } = usePrivacy();
+  return (
+    <div className="mt-6 pt-5 hairline-t">
+      <div className="flex items-baseline justify-between mb-3 gap-3">
+        <div className="flex items-baseline gap-2">
+          <span className="editorial-label">/ INTELIGÊNCIA FINANCEIRA</span>
+        </div>
+        <button
+          type="button"
+          onClick={toggle}
+          className="font-mono text-[10px] uppercase tracking-wider text-ink-3 hover:text-plasma transition-colors inline-flex items-center gap-1.5"
+          aria-label={hidden ? 'Mostrar dados financeiros' : 'Ocultar dados financeiros'}
+        >
+          {hidden ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+          {hidden ? 'mostrar' : 'ocultar'}
+        </button>
+      </div>
+
+      {hidden ? (
+        <div className="grid grid-cols-3 gap-4 items-end">
+          <div>
+            <div className="editorial-label mb-1">MRR</div>
+            <div className="font-display font-bold tracking-tighter text-ink-3 leading-none select-none" style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.5rem)' }}>••••••</div>
+          </div>
+          <div>
+            <div className="editorial-label mb-1">ARR</div>
+            <div className="font-mono font-semibold text-lg tabular text-ink-3 select-none">••••••</div>
+          </div>
+          <div>
+            <div className="editorial-label mb-1">12M</div>
+            <div className="font-mono text-[10px] text-ink-faint uppercase tracking-wider">série oculta</div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1.4fr] gap-5 items-stretch">
+          <div className="space-y-3 min-w-0">
+            <div>
+              <div className="editorial-label mb-1">MRR ATUAL</div>
+              <div className="font-display font-bold tracking-tighter leading-none text-brand-gradient" style={{ fontSize: 'clamp(1.5rem, 3.6vw, 2.5rem)' }}>
+                {revenue ? <MetricValue meta={revenueMeta}>{fmtBRL(revenue.mrr)}</MetricValue> : '—'}
+              </div>
+              {revenue?.growth_percentage !== undefined && (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <TrendDelta value={revenue.growth_percentage} />
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-ink-3">vs 30d</span>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-3 hairline-t pt-2.5">
+              <div>
+                <div className="editorial-label">ARR</div>
+                <div className="font-mono font-semibold text-sm tabular text-ink mt-0.5 truncate">{revenue ? fmtBRL(revenue.arr, true) : '—'}</div>
+              </div>
+              <div>
+                <div className="editorial-label">Pagantes</div>
+                <div className="font-mono font-semibold text-sm tabular text-ink mt-0.5">{revenue?.breakdown?.paying_tenants ?? '—'}</div>
+              </div>
+              <div>
+                <div className="editorial-label">Trials</div>
+                <div className="font-mono font-semibold text-sm tabular text-ember mt-0.5">{trialsCount}</div>
+              </div>
+            </div>
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-baseline justify-between mb-1.5">
+              <div className="editorial-label">EVOLUÇÃO MRR · 12M</div>
+              <span className="font-mono text-[10px] text-ink-3 uppercase tracking-wider">{series.length}pt</span>
+            </div>
+            <div className="h-[120px]">
+              {series.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-xs text-ink-3 font-mono">sem série</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={series} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="mrrGradHero" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--brand-magenta))" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="hsl(var(--brand-magenta))" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="mrrLineHero" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="hsl(var(--brand-purple))" />
+                        <stop offset="50%" stopColor="hsl(var(--brand-magenta))" />
+                        <stop offset="100%" stopColor="hsl(var(--brand-azure))" />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="month" tickLine={false} axisLine={false} stroke="hsl(var(--ink-muted))" style={{ fontSize: 9, fontFamily: 'JetBrains Mono' }} />
+                    <YAxis hide />
+                    <RTooltip contentStyle={{ background: 'hsl(var(--surface-3))', border: '1px solid hsl(var(--hairline-strong))', borderRadius: '6px', fontSize: 11, fontFamily: 'JetBrains Mono' }}
+                      formatter={(v: number) => [fmtBRL(v), 'MRR']} />
+                    <Area type="monotone" dataKey="mrr" stroke="url(#mrrLineHero)" strokeWidth={2} fill="url(#mrrGradHero)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
