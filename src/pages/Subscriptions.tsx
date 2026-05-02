@@ -201,8 +201,10 @@ export default function Subscriptions() {
   return (
     <DashboardLayout>
       <PageHeader
+        numeral="01 /"
+        label="Financeiro · Receita Recorrente"
         title="Assinaturas"
-        description="Gerencie planos e cobranças das empresas"
+        description="Planos ativos, cobranças e ciclo de vida comercial dos tenants"
         icon={CreditCard}
       />
 

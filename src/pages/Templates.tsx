@@ -65,8 +65,10 @@ export default function Templates() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Templates de Nicho"
-        description="Gerencie templates para treinamento de IA por segmento"
+        numeral="01 /"
+        label="Motor de IA · Catálogo"
+        title="Templates de nicho"
+        description="Curadoria estratégica de templates para treinamento de IA por segmento de mercado"
         icon={Brain}
         actions={
           <Button onClick={() => navigate('/admin/templates/new')}>

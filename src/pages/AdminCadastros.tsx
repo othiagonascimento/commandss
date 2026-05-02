@@ -216,8 +216,10 @@ export default function AdminCadastros() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Cadastros de Lojas"
-        description="Gerencie os cadastros de novos clientes"
+        numeral="08 /"
+        label="Administração · Onboarding"
+        title="Cadastros de lojas"
+        description="Pipeline de novos clientes vindos do onboarding público"
         icon={FileText}
       />
 

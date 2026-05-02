@@ -153,8 +153,10 @@ export default function AIDiagnostics() {
   return (
     <DashboardLayout>
       <PageHeader
+        numeral="02 /"
+        label="Motor de IA · Observabilidade"
         title="Diagnóstico de IA"
-        description="Monitoramento em tempo real do motor de inteligência artificial"
+        description="Monitoramento realtime de modelos, custos, latência e qualidade do motor"
         icon={Brain}
         actions={
           <div className="flex items-center gap-2">

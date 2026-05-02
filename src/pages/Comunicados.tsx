@@ -156,8 +156,10 @@ export default function Comunicados() {
   return (
     <DashboardLayout>
       <PageHeader
+        numeral="06 /"
+        label="Administração · Comunicação"
         title="Comunicados"
-        description="Envie avisos e atualizações para administradores de tenants"
+        description="Avisos, atualizações e mensagens broadcast para admins de tenants"
         icon={Bell}
         actions={
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>

@@ -207,8 +207,10 @@ export default function APICosts() {
   return (
     <DashboardLayout>
       <PageHeader
+        numeral="02 /"
+        label="Financeiro · Custos"
         title="Custos de API"
-        description="Configure os custos por modelo de IA e taxa de conversão"
+        description="Tabela de custos por modelo de IA e taxa de conversão para precificação"
         icon={DollarSign}
         actions={
           <Button onClick={() => setIsAddDialogOpen(true)}>

@@ -273,8 +273,10 @@ export default function Analytics() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Inteligência de Receita"
-        description="Análise avançada de cohort, LTV, churn e receita"
+        numeral="04 /"
+        label="Financeiro · Inteligência"
+        title="Inteligência de receita"
+        description="Cohort, LTV, churn e dinâmica financeira da base de tenants"
         icon={BarChart3}
         actions={
           <div className="flex gap-2">

@@ -145,8 +145,10 @@ export default function InviteLinks() {
   return (
     <DashboardLayout>
       <PageHeader
-        title="Links de Convite"
-        description="Gere links comerciais para trials e descontos"
+        numeral="05 /"
+        label="Financeiro · Aquisição"
+        title="Links de convite"
+        description="Geração de links comerciais para trials, descontos e parcerias"
         icon={Link2}
         actions={
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
