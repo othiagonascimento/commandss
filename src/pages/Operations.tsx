@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { SectionHeader } from '@/components/ds/Surface';
 import { useOpsHealth } from '@/hooks/useOpsHealth';
 import { useAlerts, useResolvedAlerts, type AlertRecord } from '@/hooks/useAlerts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -225,12 +226,20 @@ export default function Operations() {
       )}
 
       {/* ─── Status Strip ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatusCard label="Alertas" value={filteredAlertCount === 0 ? 'OK' : `${filteredAlertCount}`} status={alertStatus} detail={filteredAlertCount > 0 ? `${filteredAlerts.filter(a => a.severity === 'critical').length} crítico` : 'Tudo limpo'} />
-        <StatusCard label="Filas" value={noData ? '—' : `${eqPending + mqPending}`} status={noData ? 'off' as any : queueStatus} detail={noData ? '' : `${eqFailed} falhados`} />
-        <StatusCard label="Canais" value={noData ? '—' : `${connectedWA + activeMeta}/${whatsappChannels.length + metaChannels.length}`} status={channelStatus} detail={noData ? '' : `${whatsappChannels.length - connectedWA} offline`} />
-        <StatusCard label="Cron Jobs" value={noData ? '—' : `${activeCrons}/${cronJobs.length}`} status={cronStatus} detail={noData ? '' : failedCrons > 0 ? `${failedCrons} falhando` : 'Todos OK'} />
-      </div>
+      <section className="mb-8 space-y-4">
+        <SectionHeader
+          numeral="01 /"
+          label="Sinais vitais"
+          title="Status agregado"
+          description="Snapshot resumido — alertas, filas, canais e crons"
+        />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatusCard label="Alertas" value={filteredAlertCount === 0 ? 'OK' : `${filteredAlertCount}`} status={alertStatus} detail={filteredAlertCount > 0 ? `${filteredAlerts.filter(a => a.severity === 'critical').length} crítico` : 'Tudo limpo'} />
+          <StatusCard label="Filas" value={noData ? '—' : `${eqPending + mqPending}`} status={noData ? 'off' as any : queueStatus} detail={noData ? '' : `${eqFailed} falhados`} />
+          <StatusCard label="Canais" value={noData ? '—' : `${connectedWA + activeMeta}/${whatsappChannels.length + metaChannels.length}`} status={channelStatus} detail={noData ? '' : `${whatsappChannels.length - connectedWA} offline`} />
+          <StatusCard label="Cron Jobs" value={noData ? '—' : `${activeCrons}/${cronJobs.length}`} status={cronStatus} detail={noData ? '' : failedCrons > 0 ? `${failedCrons} falhando` : 'Todos OK'} />
+        </div>
+      </section>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
@@ -241,15 +250,18 @@ export default function Operations() {
         </TabsList>
 
         {/* ─── PAINEL ──────────────────────────────────────────────────── */}
-        <TabsContent value="painel" className="space-y-6">
+        <TabsContent value="painel" className="space-y-8">
 
           {/* Alertas Ativos */}
           {filteredAlerts.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-destructive" />
-                {filteredAlerts.length} Alerta{filteredAlerts.length > 1 ? 's' : ''} Ativo{filteredAlerts.length > 1 ? 's' : ''}
-              </h3>
+            <section className="space-y-3">
+              <SectionHeader
+                numeral="02 /"
+                label="Radar de incidentes"
+                title={`${filteredAlerts.length} alerta${filteredAlerts.length > 1 ? 's' : ''} ativo${filteredAlerts.length > 1 ? 's' : ''}`}
+                description="Requerem ação manual ou automática"
+              />
+
               {filteredAlerts.map(alert => {
                 const cfg = severityConfig[alert.severity] || severityConfig.info;
                 const Icon = cfg.icon;
@@ -303,19 +315,34 @@ export default function Operations() {
                   </Card>
                 );
               })}
-            </div>
+            </section>
           )}
 
           {filteredAlerts.length === 0 && (
-            <Card>
-              <CardContent className="flex items-center justify-center gap-3 py-8">
-                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                <span className="text-muted-foreground">Nenhum alerta ativo — sistema operacional</span>
-              </CardContent>
-            </Card>
+            <section className="space-y-3">
+              <SectionHeader
+                numeral="02 /"
+                label="Radar de incidentes"
+                title="Sistema operacional"
+                description="Nenhum alerta ativo no momento"
+              />
+              <Card>
+                <CardContent className="flex items-center justify-center gap-3 py-8">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  <span className="text-muted-foreground">Tudo limpo — nenhum alerta ativo</span>
+                </CardContent>
+              </Card>
+            </section>
           )}
 
           {/* ─── Saúde do Sistema ────────────────────────────────────────── */}
+          <section className="space-y-4">
+            <SectionHeader
+              numeral="03 /"
+              label="Infraestrutura"
+              title="Canais & jobs"
+              description="Conexões WhatsApp/Meta e crons agendados por tenant"
+            />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Canais — com nomes dos tenants */}
@@ -411,14 +438,23 @@ export default function Operations() {
               </CardContent>
             </Card>
           </div>
+          </section>
 
           {/* ─── Filas + IA — compact row ─────────────────────────────────── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <MiniMetric label="Event Queue" value={noData ? '—' : eqPending} sub={`${eqFailed} falhados`} status={queueStatus} />
-            <MiniMetric label="Message Queue" value={noData ? '—' : mqPending} sub={`${(mq?.sent as number) ?? 0} enviados`} status={mqPending > 0 ? 'warn' : 'ok'} />
-            <MiniMetric label="IA Latência" value={noData ? '—' : `${((ai?.latency_avg as number) ?? 0).toFixed(0)}ms`} sub={`Fallback: ${(((ai?.fallback_rate as number) ?? 0) * 100).toFixed(0)}%`} status={((ai?.fallback_rate as number) ?? 0) > 0.3 ? 'warn' : 'ok'} />
-            <MiniMetric label="Conversas" value={noData ? '—' : (conversations?.active as number) ?? 0} sub={`${(conversations?.unassigned as number) ?? 0} sem atendente`} status={((conversations?.unassigned as number) ?? 0) > 100 ? 'warn' : 'ok'} />
-          </div>
+          <section className="space-y-4">
+            <SectionHeader
+              numeral="04 /"
+              label="Pipelines"
+              title="Filas, IA & conversas"
+              description="Throughput em tempo real do motor operacional"
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <MiniMetric label="Event Queue" value={noData ? '—' : eqPending} sub={`${eqFailed} falhados`} status={queueStatus} />
+              <MiniMetric label="Message Queue" value={noData ? '—' : mqPending} sub={`${(mq?.sent as number) ?? 0} enviados`} status={mqPending > 0 ? 'warn' : 'ok'} />
+              <MiniMetric label="IA Latência" value={noData ? '—' : `${((ai?.latency_avg as number) ?? 0).toFixed(0)}ms`} sub={`Fallback: ${(((ai?.fallback_rate as number) ?? 0) * 100).toFixed(0)}%`} status={((ai?.fallback_rate as number) ?? 0) > 0.3 ? 'warn' : 'ok'} />
+              <MiniMetric label="Conversas" value={noData ? '—' : (conversations?.active as number) ?? 0} sub={`${(conversations?.unassigned as number) ?? 0} sem atendente`} status={((conversations?.unassigned as number) ?? 0) > 100 ? 'warn' : 'ok'} />
+            </div>
+          </section>
 
           {/* Event type breakdown if there's data */}
           {eq?.by_type && Object.keys(eq.by_type as object).length > 0 && (

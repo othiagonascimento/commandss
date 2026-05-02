@@ -7,6 +7,7 @@ import { DataQualityBadge } from '@/components/quality/DataQualityBadge';
 import { DataQualityNotice } from '@/components/quality/MetricValue';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { Surface, SectionHeader } from '@/components/ds/Surface';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -302,130 +303,115 @@ export default function TenantHealth() {
         <DataQualityNotice variant="warning" message={healthRead.meta.warnings.join(' • ')} />
       )}
 
-      {/* Educational Banner */}
-      <Card className="mb-6 border-primary/20 bg-primary/5">
-        <CardContent className="flex items-start gap-4 py-4">
-          <HeartPulse className="h-8 w-8 text-primary mt-1" />
-          <div>
-            <h3 className="font-semibold text-primary">Monitoramento Proativo</h3>
-            <p className="text-sm text-muted-foreground">
-              O score de saúde é calculado com base em: atividade recente, uso de recursos, erros, 
-              e engajamento dos usuários. Tenants com score baixo precisam de atenção imediata.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Total</span>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold mt-1">{summary.total}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-success/30">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-success">Saudáveis</span>
-              <CheckCircle className="h-4 w-4 text-success" />
-            </div>
-            <p className="text-2xl font-bold mt-1 text-success">{summary.healthy}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-warning/30">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-warning">Atenção</span>
-              <AlertTriangle className="h-4 w-4 text-warning" />
-            </div>
-            <p className="text-2xl font-bold mt-1 text-warning">{summary.warning}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-destructive/30">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-destructive">Críticos</span>
-              <XCircle className="h-4 w-4 text-destructive" />
-            </div>
-            <p className="text-2xl font-bold mt-1 text-destructive">{summary.critical}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Inativos</span>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <p className="text-2xl font-bold mt-1">{summary.inactive}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="pt-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou subdomínio..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="healthy">Saudáveis</SelectItem>
-                <SelectItem value="warning">Atenção</SelectItem>
-                <SelectItem value="critical">Críticos</SelectItem>
-                <SelectItem value="inactive">Inativos</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Ordenar por" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="health_score">Score (menor primeiro)</SelectItem>
-                <SelectItem value="name">Nome (A-Z)</SelectItem>
-                <SelectItem value="activity">Última Atividade</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Tenants Grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Skeleton key={i} className="h-[280px]" />
+      {/* Resumo numérico */}
+      <section className="space-y-4 mb-8">
+        <SectionHeader
+          numeral="01 /"
+          label="Distribuição"
+          title="Status atual da base"
+          description="Score realtime calculado a partir de atividade, recursos, erros e engajamento"
+        />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {[
+            { label: 'Total', value: summary.total, tone: 'muted' as const, Icon: Building2 },
+            { label: 'Saudáveis', value: summary.healthy, tone: 'success' as const, Icon: CheckCircle },
+            { label: 'Atenção', value: summary.warning, tone: 'warning' as const, Icon: AlertTriangle },
+            { label: 'Críticos', value: summary.critical, tone: 'destructive' as const, Icon: XCircle },
+            { label: 'Inativos', value: summary.inactive, tone: 'muted' as const, Icon: Clock },
+          ].map(({ label, value, tone, Icon }) => (
+            <Surface key={label} variant="raised" className="p-4">
+              <div className="flex items-center justify-between">
+                <span className={cn(
+                  'editorial-label',
+                  tone === 'success' && 'text-success',
+                  tone === 'warning' && 'text-warning',
+                  tone === 'destructive' && 'text-destructive',
+                  tone === 'muted' && 'text-muted-foreground',
+                )}>{label}</span>
+                <Icon className={cn(
+                  'h-4 w-4',
+                  tone === 'success' && 'text-success',
+                  tone === 'warning' && 'text-warning',
+                  tone === 'destructive' && 'text-destructive',
+                  tone === 'muted' && 'text-muted-foreground',
+                )} />
+              </div>
+              <p className={cn(
+                'font-display text-3xl font-bold tracking-tight mt-2',
+                tone === 'success' && 'text-success',
+                tone === 'warning' && 'text-warning',
+                tone === 'destructive' && 'text-destructive',
+              )}>{value}</p>
+            </Surface>
           ))}
         </div>
-      ) : filteredTenants.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12 text-muted-foreground">
+      </section>
+
+      {/* Lista filtrável */}
+      <section className="space-y-4">
+        <SectionHeader
+          numeral="02 /"
+          label="Diretório"
+          title="Tenants monitorados"
+          description={filteredTenants.length > 0 ? `${filteredTenants.length} resultado(s)` : undefined}
+          actions={
+            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[150px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="healthy">Saudáveis</SelectItem>
+                  <SelectItem value="warning">Atenção</SelectItem>
+                  <SelectItem value="critical">Críticos</SelectItem>
+                  <SelectItem value="inactive">Inativos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full md:w-[170px]">
+                  <SelectValue placeholder="Ordenar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="health_score">Score (menor)</SelectItem>
+                  <SelectItem value="name">Nome (A-Z)</SelectItem>
+                  <SelectItem value="activity">Última atividade</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          }
+        />
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-[280px]" />
+            ))}
+          </div>
+        ) : filteredTenants.length === 0 ? (
+          <Surface variant="raised" className="text-center py-12 text-muted-foreground">
             <HeartPulse className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="font-medium">Nenhum tenant encontrado</p>
             <p className="text-sm">Tente ajustar os filtros de busca</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTenants.map((tenant) => (
-            <TenantHealthCard key={tenant.id} tenant={tenant} />
-          ))}
-        </div>
-      )}
+          </Surface>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredTenants.map((tenant) => (
+              <TenantHealthCard key={tenant.id} tenant={tenant} />
+            ))}
+          </div>
+        )}
+      </section>
+
     </DashboardLayout>
   );
 }
