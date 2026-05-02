@@ -215,8 +215,8 @@ export function HomeBrazilMap() {
                   key={uf}
                   d={buildPath((f as any).geometry)}
                   fill={fillFor(uf)}
-                  stroke={isSel || isHover ? 'hsl(var(--brand-magenta))' : 'hsl(var(--brand-purple) / 0.45)'}
-                  strokeWidth={isSel ? 1.6 : isHover ? 1.2 : 0.85}
+                  stroke={isSel || isHover ? 'hsl(var(--brand-magenta))' : 'hsl(var(--ink-primary) / 0.25)'}
+                  strokeWidth={isSel ? 2 : isHover ? 1.4 : 0.9}
                   className="cursor-pointer transition-all duration-200"
                   style={{ animation: `fade-in .4s cubic-bezier(.2,.7,.1,1) both`, animationDelay: `${i * 14}ms` }}
                   onMouseMove={e => setHover({ uf, x: e.nativeEvent.offsetX, y: e.nativeEvent.offsetY, n })}
