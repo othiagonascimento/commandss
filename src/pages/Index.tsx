@@ -299,10 +299,8 @@ export default function Index() {
             actions={<button onClick={() => navigate('/ai-diagnostics')} className="font-mono text-[10px] uppercase tracking-wider text-ink-3 hover:text-plasma inline-flex items-center gap-1 transition-colors">diagnóstico <ArrowUpRight className="h-3 w-3" /></button>} />
           <Surface className="p-5">
             <div className="grid grid-cols-2 gap-5">
-              <Stat label="Mensagens" value={overview ? fmtNum(overview.usage.total_messages) : '—'} highlight />
-              <Stat label="Tenants ativos" value={overview ? String(overview.tenants.active) : '—'} />
-              <Stat label="Trials" value={overview ? String(overview.subscriptions.trial) : '—'} />
-              <Stat label="Conversões 7d" value={overview ? String(overview.recent_activity.new_tenants_7d) : '—'} />
+              <Stat label="Mensagens 30d" value={overview ? fmtNum(overview.usage.total_messages) : '—'} highlight />
+              <Stat label="Média / tenant" value={overview && overview.tenants.total > 0 ? fmtNum(Math.round(overview.usage.total_messages / overview.tenants.total)) : '—'} />
             </div>
             <div className="hairline-t mt-4 pt-3 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
               fonte: master-analytics · {overviewMeta?.method ?? '—'}
