@@ -26,6 +26,7 @@ import {
   Bell,
   ClipboardList,
   Radio,
+  DollarSign,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -71,7 +72,7 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
   const location = useLocation();
   const { signOut } = useAuth();
   const permissions = usePermissions();
-  const [openGroups, setOpenGroups] = useState<string[]>(['overview', 'ai', 'clients', 'commercial', 'system']);
+  const [openGroups, setOpenGroups] = useState<string[]>(['overview', 'ai', 'clients', 'commercial', 'finops', 'system']);
 
   // Define nav groups with permission checks
   const navGroups: NavGroup[] = useMemo(() => [
@@ -198,6 +199,24 @@ export function AppSidebar({ collapsed, onCollapse, mobileOpen, onMobileClose }:
           description: 'Avisos para admins',
           permissionCheck: permissions.canViewBroadcasts,
         },
+      ],
+    },
+    {
+      id: 'finops',
+      label: 'FinOps · Privado',
+      icon: DollarSign,
+      permissionCheck: () => permissions.isSuperAdmin(),
+      items: [
+        { icon: BarChart3, label: 'Command Center', path: '/finops', description: 'Visão executiva da economia', permissionCheck: () => permissions.isSuperAdmin() },
+        { icon: Building2, label: 'Tenants P&L', path: '/finops/tenants', description: 'Margem por tenant', permissionCheck: () => permissions.isSuperAdmin() },
+        { icon: UserCog, label: 'Usuários CRM', path: '/finops/users', description: 'Custo por operador', permissionCheck: () => permissions.isSuperAdmin() },
+        { icon: Brain, label: 'AI Economics', path: '/finops/ai', description: 'Custo por modelo/layer/op', permissionCheck: () => permissions.isSuperAdmin() },
+        { icon: Package, label: 'Mídia & Storage', path: '/finops/media', description: 'GCS, vídeo, uploads', permissionCheck: () => permissions.isSuperAdmin() },
+        { icon: Cog, label: 'Infra & Overhead', path: '/finops/infra', description: 'Load Balancer, CDN, GCS', permissionCheck: () => permissions.isSuperAdmin() },
+        { icon: Briefcase, label: 'Investor View', path: '/finops/investor', description: 'Sumário executivo', permissionCheck: () => permissions.isSuperAdmin() },
+        { icon: Bell, label: 'Anomalias', path: '/finops/anomalies', description: 'Inbox de alertas econômicos', permissionCheck: () => permissions.isSuperAdmin() },
+        { icon: Calculator, label: 'Pricing IA', path: '/finops/settings/pricing', description: 'Histórico de preços por modelo', permissionCheck: () => permissions.isSuperAdmin() },
+        { icon: FlaskConical, label: 'Output Budgets', path: '/finops/settings/budgets', description: 'Limites de tokens por layer', permissionCheck: () => permissions.isSuperAdmin() },
       ],
     },
     {

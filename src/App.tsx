@@ -40,6 +40,18 @@ const CadastroLoja = lazy(() => import("./pages/CadastroLoja"));
 const AdminCadastros = lazy(() => import("./pages/AdminCadastros"));
 const Operations = lazy(() => import("./pages/Operations"));
 
+// FinOps pages (Master only)
+const FinOpsOverview = lazy(() => import("./pages/finops/FinOpsOverviewPage"));
+const FinOpsTenants = lazy(() => import("./pages/finops/FinOpsTenantsPage"));
+const FinOpsUsers = lazy(() => import("./pages/finops/FinOpsUsersPage"));
+const FinOpsAI = lazy(() => import("./pages/finops/FinOpsAIPage"));
+const FinOpsMedia = lazy(() => import("./pages/finops/FinOpsMediaPage"));
+const FinOpsInfra = lazy(() => import("./pages/finops/FinOpsInfraPage"));
+const FinOpsInvestor = lazy(() => import("./pages/finops/FinOpsInvestorPage"));
+const FinOpsAnomalies = lazy(() => import("./pages/finops/FinOpsAnomaliesPage"));
+const FinOpsPricing = lazy(() => import("./pages/finops/FinOpsPricingSettingsPage"));
+const FinOpsBudgets = lazy(() => import("./pages/finops/FinOpsBudgetSettingsPage"));
+
 // Page loading skeleton
 const PageSkeleton = () => (
   <div className="min-h-screen bg-background p-6">
@@ -116,6 +128,19 @@ const App = () => (
                 <Route path="/ai-diagnostics" element={<ProtectedRoute><AIDiagnostics /></ProtectedRoute>} />
                 <Route path="/operations" element={<ProtectedRoute><Operations /></ProtectedRoute>} />
                 <Route path="/admin/cadastros" element={<ProtectedRoute><AdminCadastros /></ProtectedRoute>} />
+
+                {/* FinOps / Unit Economics — Master only */}
+                <Route path="/finops" element={<ProtectedRoute><FinOpsOverview /></ProtectedRoute>} />
+                <Route path="/finops/tenants" element={<ProtectedRoute><FinOpsTenants /></ProtectedRoute>} />
+                <Route path="/finops/users" element={<ProtectedRoute><FinOpsUsers /></ProtectedRoute>} />
+                <Route path="/finops/ai" element={<ProtectedRoute><FinOpsAI /></ProtectedRoute>} />
+                <Route path="/finops/media" element={<ProtectedRoute><FinOpsMedia /></ProtectedRoute>} />
+                <Route path="/finops/infra" element={<ProtectedRoute><FinOpsInfra /></ProtectedRoute>} />
+                <Route path="/finops/investor" element={<ProtectedRoute><FinOpsInvestor /></ProtectedRoute>} />
+                <Route path="/finops/anomalies" element={<ProtectedRoute><FinOpsAnomalies /></ProtectedRoute>} />
+                <Route path="/finops/settings/pricing" element={<ProtectedRoute><FinOpsPricing /></ProtectedRoute>} />
+                <Route path="/finops/settings/budgets" element={<ProtectedRoute><FinOpsBudgets /></ProtectedRoute>} />
+
                 {/* Public onboarding route - URL curta e amigável */}
                 <Route path="/cadastro" element={<CadastroLoja />} />
                 {/* Redirecionamentos para URLs antigas */}
