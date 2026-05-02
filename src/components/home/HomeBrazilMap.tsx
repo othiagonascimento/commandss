@@ -47,7 +47,12 @@ export function HomeBrazilMap() {
       const node = ref.current;
       if (!node) return;
       const r = node.getBoundingClientRect();
-      if (r.width > 0) setSize({ w: r.width, h: Math.max(420, r.width * 0.95) });
+      if (r.width > 0) {
+        // Brazil aspect ratio ~ 1.06 (slightly taller than wide). Make it sovereign.
+        const isMobile = r.width < 640;
+        const h = isMobile ? Math.max(520, r.width * 1.1) : Math.max(640, Math.min(820, r.width * 1.05));
+        setSize({ w: r.width, h });
+      }
     };
     measure();
     const ro = new ResizeObserver(measure);
