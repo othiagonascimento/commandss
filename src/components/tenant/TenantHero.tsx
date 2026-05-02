@@ -115,7 +115,7 @@ export function TenantHero({ tenant, tenantId, alerts = [], onRecalculateUsage, 
             )}
             {onToggleStatus && (
               <Button variant="outline" size="sm" onClick={onToggleStatus}>
-                <Power className={cn('w-4 h-4 mr-1.5', tenant?.is_active ? 'text-warning' : 'text-success')} />
+                <Power className={cn('w-4 h-4 mr-1.5', tenant?.is_active ? 'text-success' : 'text-muted-foreground')} />
                 {tenant?.is_active ? 'Desativar' : 'Ativar'}
               </Button>
             )}

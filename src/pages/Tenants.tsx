@@ -36,6 +36,7 @@ import {
   MapPin,
   Users,
   ExternalLink,
+  Edit,
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -343,6 +344,15 @@ export default function Tenants() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
+                        title="Editar"
+                        onClick={() => navigate(`/tenants/${tenant.id}`)}
+                      >
+                        <Edit className="w-4 h-4 text-ink-2" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
                         title="Abrir CRM"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -354,7 +364,7 @@ export default function Tenants() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={cn('h-8 w-8', tenant.is_active ? 'text-warning hover:text-warning' : 'text-success hover:text-success')}
+                        className={cn('h-8 w-8', tenant.is_active ? 'text-success hover:text-success' : 'text-muted-foreground hover:text-foreground')}
                         title={tenant.is_active ? 'Desativar' : 'Ativar'}
                         onClick={() => setTenantToToggle(tenant)}
                       >

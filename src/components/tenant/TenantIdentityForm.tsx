@@ -4,13 +4,11 @@ import { tenantsApi } from '@/services/masterApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, Save, Building2, MapPin, CreditCard } from 'lucide-react';
+import { Loader2, Save, Building2, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 
 const BR_UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
@@ -18,9 +16,6 @@ const BR_UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG'
 interface FormState {
   name: string;
   subdomain: string;
-  plan_type: string;
-  trial_enabled: boolean;
-  trial_days: number;
   city: string;
   state: string;
   country: string;
@@ -34,8 +29,7 @@ interface TenantIdentityFormProps {
 export function TenantIdentityForm({ tenantId, tenant }: TenantIdentityFormProps) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>({
-    name: '', subdomain: '', plan_type: 'basic', trial_enabled: false, trial_days: 7,
-    city: '', state: '', country: 'BR',
+    name: '', subdomain: '', city: '', state: '', country: 'BR',
   });
 
   useEffect(() => {
@@ -43,9 +37,6 @@ export function TenantIdentityForm({ tenantId, tenant }: TenantIdentityFormProps
     setForm({
       name: tenant.name || '',
       subdomain: tenant.slug || tenant.subdomain || '',
-      plan_type: tenant.plan_type || 'basic',
-      trial_enabled: tenant.trial_enabled || false,
-      trial_days: tenant.trial_days || 7,
       city: tenant.city || '',
       state: tenant.state || '',
       country: tenant.country || 'BR',
@@ -71,9 +62,6 @@ export function TenantIdentityForm({ tenantId, tenant }: TenantIdentityFormProps
     mutation.mutate({
       name: form.name,
       subdomain: form.subdomain,
-      plan_type: form.plan_type,
-      trial_enabled: form.trial_enabled,
-      trial_days: form.trial_days,
       city: form.city || null,
       state: form.state || null,
       country: form.country || 'BR',
@@ -141,53 +129,6 @@ export function TenantIdentityForm({ tenantId, tenant }: TenantIdentityFormProps
               <Input id="country" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value.toUpperCase().slice(0, 2) })} maxLength={2} />
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Plano */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CreditCard className="w-4 h-4" />Plano e trial
-          </CardTitle>
-          <CardDescription>Define os módulos disponíveis e período de teste</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Tipo de plano</Label>
-              <Select value={form.plan_type} onValueChange={(v) => setForm({ ...form, plan_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="basic">Basic</SelectItem>
-                  <SelectItem value="pro">Pro</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Trial habilitado</Label>
-              <p className="text-sm text-muted-foreground">Permitir período de teste gratuito</p>
-            </div>
-            <Switch checked={form.trial_enabled} onCheckedChange={(v) => setForm({ ...form, trial_enabled: v })} />
-          </div>
-
-          {form.trial_enabled && (
-            <div className="space-y-2 pl-4 border-l-2 border-primary/20">
-              <Label htmlFor="trial_days">Dias de trial</Label>
-              <Input
-                id="trial_days" type="number" min={1} max={90}
-                value={form.trial_days}
-                onChange={(e) => setForm({ ...form, trial_days: parseInt(e.target.value) || 7 })}
-                className="w-32"
-              />
-            </div>
-          )}
         </CardContent>
       </Card>
 
