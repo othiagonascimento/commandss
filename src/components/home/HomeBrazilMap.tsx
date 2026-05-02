@@ -187,6 +187,8 @@ export function HomeBrazilMap({ bare = false }: { bare?: boolean } = {}) {
     return `hsl(var(--brand-magenta) / ${alpha})`;
   };
 
+  const selList = selected && selected !== '__none__' ? (byUF.get(selected) ?? []) : [];
+
   const mapCanvas = (
     <div
       ref={ref}
