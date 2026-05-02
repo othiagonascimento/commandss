@@ -9,6 +9,7 @@ import { Ticker } from '@/components/ds/Feedback';
 import { StatusDot } from '@/components/ds/Atoms';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { usePrivacy } from '@/contexts/PrivacyContext';
+import uopaSymbol from '@/assets/uopa-symbol.png';
 
 interface HeaderProps {
   onMenuClick?: () => void;
