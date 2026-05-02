@@ -5,6 +5,7 @@ import { OpsSnapshotSchema } from '@/lib/masterSchemas';
 import { callMasterApiRaw } from '@/services/masterApi';
 import { opsHealthApi, alertsApi } from '@/services/masterApi';
 import type { MasterReadMeta } from '@/lib/masterContract';
+import type { AlertRecord } from '@/hooks/useAlerts';
 
 const AlertSchema = z.object({
   id: z.string(),
@@ -24,7 +25,7 @@ export interface UseOpsHealthResult {
   snapshot: z.infer<typeof OpsSnapshotSchema> | null;
   snapshotMeta: MasterReadMeta | null;
   snapshotSchemaInvalid: boolean;
-  alerts: z.infer<typeof AlertsArraySchema>;
+  alerts: AlertRecord[];
   alertsMeta: MasterReadMeta | null;
   alertCount: number;
   alertStats: { total_active: number; by_severity: Record<string, number>; by_type: Record<string, number> } | undefined;
@@ -93,7 +94,7 @@ export function useOpsHealth(tenantId?: string): UseOpsHealthResult {
     snapshot: snapshot.data,
     snapshotMeta: snapshot.meta,
     snapshotSchemaInvalid: snapshot.schemaInvalid,
-    alerts: alerts.data ?? [],
+    alerts: (alerts.data ?? []) as unknown as AlertRecord[],
     alertsMeta: alerts.meta,
     alertCount: alertStats.data?.total_active ?? alerts.data?.length ?? 0,
     alertStats: alertStats.data,
