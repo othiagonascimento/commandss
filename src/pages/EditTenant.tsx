@@ -203,6 +203,10 @@ export default function EditTenant() {
       plan_type: formData.plan_type,
       trial_enabled: formData.trial_enabled,
       trial_days: formData.trial_days,
+      // Localização
+      city: formData.city || null,
+      state: formData.state || null,
+      country: formData.country || 'BR',
       // Pricing
       price_per_user: formData.price_per_user,
       contracted_users: formData.contracted_users,
