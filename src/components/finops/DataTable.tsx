@@ -1,4 +1,4 @@
-import { useMemo, useState, ReactNode } from 'react';
+import { useMemo, useState, ReactNode, forwardRef } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -86,7 +86,7 @@ export function DataTable<T>({
   }, [csvFilename, table, sorting, globalFilter]);
 
   return (
-    <div className="space-y-2">
+    <DataTableRoot>
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -216,6 +216,18 @@ export function DataTable<T>({
       <div className="text-xs text-muted-foreground tabular-nums">
         {table.getFilteredRowModel().rows.length} de {data.length} {data.length === 1 ? 'registro' : 'registros'}
       </div>
-    </div>
+    </DataTableRoot>
   );
 }
+
+// Internal forwardRef wrapper so DataTable can be a child of components that
+// inject refs (e.g. Radix's Slot, shadcn Card). Without this, React warns
+// "Function components cannot be given refs."
+const DataTableRoot = forwardRef<HTMLDivElement, { children: ReactNode }>(
+  ({ children }, ref) => (
+    <div ref={ref} className="space-y-2">
+      {children}
+    </div>
+  ),
+);
+DataTableRoot.displayName = 'DataTableRoot';
