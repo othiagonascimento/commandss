@@ -90,13 +90,59 @@ export function HomeBrazilMap() {
   const noCity = tenants.filter(t => t.state && !t.city).length;
 
   const projection = useMemo(() => geo ? d3.geoMercator().fitSize([size.w, size.h], geo as any) : null, [geo, size]);
-  const pathGen = useMemo(() => projection ? d3.geoPath(projection as any) : null, [projection]);
+
+  // Build path d-strings manually from coordinates to avoid d3-geo polygon winding issues
+  // (some BR geojson files have rings wound opposite to RFC 7946, which makes geoPath fill the exterior)
+  const buildPath = useMemo(() => {
+    if (!projection) return (_: any) => '';
+    const project = (c: [number, number]) => {
+      const p = projection(c);
+      return p ? `${p[0].toFixed(2)},${p[1].toFixed(2)}` : '';
+    };
+    const ringToPath = (ring: [number, number][]) => {
+      if (!ring.length) return '';
+      return 'M' + ring.map(project).filter(Boolean).join('L') + 'Z';
+    };
+    return (geom: any): string => {
+      if (!geom) return '';
+      if (geom.type === 'Polygon') {
+        return (geom.coordinates as [number, number][][]).map(ringToPath).join(' ');
+      }
+      if (geom.type === 'MultiPolygon') {
+        return (geom.coordinates as [number, number][][][])
+          .map(poly => poly.map(ringToPath).join(' '))
+          .join(' ');
+      }
+      return '';
+    };
+  }, [projection]);
+
+  // Centroid via simple average of outer ring (good enough for label placement)
+  const centroidFor = (geom: any): [number, number] | null => {
+    if (!projection || !geom) return null;
+    let ring: [number, number][] = [];
+    if (geom.type === 'Polygon') ring = geom.coordinates[0];
+    else if (geom.type === 'MultiPolygon') {
+      // pick largest ring
+      let best: [number, number][] = [];
+      for (const poly of geom.coordinates) if (poly[0].length > best.length) best = poly[0];
+      ring = best;
+    }
+    if (!ring.length) return null;
+    let sx = 0, sy = 0, n = 0;
+    for (const c of ring) {
+      const p = projection(c);
+      if (p) { sx += p[0]; sy += p[1]; n++; }
+    }
+    return n ? [sx / n, sy / n] : null;
+  };
 
   const fillFor = (uf: string) => {
     const n = byUF.get(uf)?.length ?? 0;
-    if (n === 0) return 'hsl(var(--brand-purple) / 0.06)';
+    if (n === 0) return 'hsl(var(--surface-2))';
     const ratio = n / max;
-    const alpha = Math.max(0.22, Math.min(0.78, 0.28 + ratio * 0.55));
+    // Stronger, more saturated active fill so active states truly stand out
+    const alpha = Math.max(0.45, Math.min(0.95, 0.55 + ratio * 0.40));
     return `hsl(var(--brand-magenta) / ${alpha})`;
   };
 
