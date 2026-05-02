@@ -107,7 +107,7 @@ export default function AIDiagnostics() {
     dataSchema: AIAdvancedDataSchema,
     options: { staleTime: 60_000 },
   });
-  const aiData = aiRead.data as AIAdvancedData | undefined;
+  const aiData = aiRead.data as unknown as AIAdvancedData | undefined;
   const isLoading = aiRead.isLoading;
   const refetch = aiRead.refetch;
 
