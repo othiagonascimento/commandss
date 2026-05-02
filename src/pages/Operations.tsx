@@ -326,29 +326,23 @@ export default function Operations() {
                 title="Sistema operacional"
                 description="Nenhum alerta ativo no momento"
               />
+              <Card>
+                <CardContent className="flex items-center justify-center gap-3 py-8">
+                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  <span className="text-muted-foreground">Tudo limpo — nenhum alerta ativo</span>
+                </CardContent>
+              </Card>
             </section>
           )}
 
           {/* ─── Saúde do Sistema ────────────────────────────────────────── */}
-          <section className="space-y-3">
+          <section className="space-y-4">
             <SectionHeader
               numeral="03 /"
               label="Infraestrutura"
               title="Canais & jobs"
               description="Conexões WhatsApp/Meta e crons agendados por tenant"
             />
-          </section>
-
-          {filteredAlerts.length === 0 && (
-            <Card>
-              <CardContent className="flex items-center justify-center gap-3 py-8">
-                <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                <span className="text-muted-foreground">Nenhum alerta ativo — sistema operacional</span>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ─── Saúde do Sistema ────────────────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Canais — com nomes dos tenants */}
