@@ -340,10 +340,10 @@ export default function Index() {
 function MiniHero({ label, value, sub, tone = 'default', big = false }: { label: string; value: string; sub?: string; tone?: 'default' | 'plasma' | 'ember'; big?: boolean }) {
   const t = tone === 'plasma' ? 'text-brand-gradient' : tone === 'ember' ? 'text-ember' : 'text-ink';
   return (
-    <div className="hairline-l pl-3 transition-all hover:pl-4 hover:border-brand-magenta/50">
-      <div className="editorial-label">{label}</div>
-      <div className={cn('font-mono font-semibold tabular mt-1.5', big ? 'text-3xl' : 'text-2xl', t)}>{value}</div>
-      {sub && <div className="font-mono text-[10px] text-ink-faint uppercase tracking-wider mt-1">{sub}</div>}
+    <div className="hairline-l pl-3 min-w-0 transition-colors hover:border-brand-magenta/60">
+      <div className="editorial-label truncate">{label}</div>
+      <div className={cn('font-mono font-semibold tabular mt-1.5 truncate', big ? 'text-3xl' : 'text-2xl', t)}>{value}</div>
+      {sub && <div className="font-mono text-[10px] text-ink-faint uppercase tracking-wider mt-1 truncate">{sub}</div>}
     </div>
   );
 }
