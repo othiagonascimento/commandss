@@ -1,76 +1,73 @@
-import { useQuery } from '@tanstack/react-query';
-import { analyticsApi, AnalyticsOverview, RevenueData, TimeSeriesResponse } from '@/services/masterApi';
+import { useMasterRead } from '@/hooks/useMasterRead';
+import { callMasterApiRaw } from '@/services/masterApi';
+import {
+  AnalyticsOverviewSchema,
+  RevenueSchema,
+  TimeSeriesResponseSchema,
+} from '@/lib/masterSchemas';
+import type { z } from 'zod';
+import type { MasterReadMeta } from '@/lib/masterContract';
+
+export type AnalyticsOverview = z.infer<typeof AnalyticsOverviewSchema>;
+export type RevenueData = z.infer<typeof RevenueSchema>;
+export type TimeSeriesResponse = z.infer<typeof TimeSeriesResponseSchema>;
 
 export interface MasterDashboardData {
   overview: AnalyticsOverview | null;
+  overviewMeta: MasterReadMeta | null;
+  overviewSchemaInvalid: boolean;
   revenue: RevenueData | null;
+  revenueMeta: MasterReadMeta | null;
+  revenueSchemaInvalid: boolean;
   timeSeries: TimeSeriesResponse | null;
+  timeSeriesMeta: MasterReadMeta | null;
+  timeSeriesSchemaInvalid: boolean;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
 }
 
 export function useMasterDashboard(): MasterDashboardData {
-  const {
-    data: overviewData,
-    isLoading: overviewLoading,
-    error: overviewError,
-    refetch: refetchOverview,
-  } = useQuery({
-    queryKey: ['master-analytics-overview'],
-    queryFn: async () => {
-      const result = await analyticsApi.getOverview();
-      if (result.error) throw new Error(result.error);
-      return result.data;
-    },
-    staleTime: 30000, // 30 seconds for more responsive dashboard
-    gcTime: 60000,
+  const overview = useMasterRead({
+    widget: 'dashboard.overview',
+    queryKey: ['master-analytics-overview-v2'],
+    queryFn: () => callMasterApiRaw('master-analytics', 'GET', 'overview'),
+    dataSchema: AnalyticsOverviewSchema,
+    options: { staleTime: 30_000, gcTime: 60_000 },
   });
 
-  const {
-    data: revenueData,
-    isLoading: revenueLoading,
-    error: revenueError,
-    refetch: refetchRevenue,
-  } = useQuery({
-    queryKey: ['master-analytics-revenue'],
-    queryFn: async () => {
-      const result = await analyticsApi.getRevenue();
-      if (result.error) throw new Error(result.error);
-      return result.data;
-    },
-    staleTime: 30000,
-    gcTime: 60000,
+  const revenue = useMasterRead({
+    widget: 'dashboard.revenue',
+    queryKey: ['master-analytics-revenue-v2'],
+    queryFn: () => callMasterApiRaw('master-analytics', 'GET', 'revenue'),
+    dataSchema: RevenueSchema,
+    options: { staleTime: 30_000, gcTime: 60_000 },
   });
 
-  const {
-    data: timeSeriesData,
-    isLoading: timeSeriesLoading,
-    error: timeSeriesError,
-    refetch: refetchTimeSeries,
-  } = useQuery({
-    queryKey: ['master-analytics-timeseries'],
-    queryFn: async () => {
-      const result = await analyticsApi.getTimeSeries('monthly');
-      if (result.error) throw new Error(result.error);
-      return result.data;
-    },
-    staleTime: 60000, // 1 minute for time series
-    gcTime: 120000,
+  const timeSeries = useMasterRead({
+    widget: 'dashboard.timeseries',
+    queryKey: ['master-analytics-timeseries-v2'],
+    queryFn: () => callMasterApiRaw('master-analytics', 'GET', 'timeseries?period=monthly'),
+    dataSchema: TimeSeriesResponseSchema,
+    options: { staleTime: 60_000, gcTime: 120_000 },
   });
-
-  const refetch = () => {
-    refetchOverview();
-    refetchRevenue();
-    refetchTimeSeries();
-  };
 
   return {
-    overview: overviewData || null,
-    revenue: revenueData || null,
-    timeSeries: timeSeriesData || null,
-    isLoading: overviewLoading || revenueLoading || timeSeriesLoading,
-    error: overviewError?.message || revenueError?.message || timeSeriesError?.message || null,
-    refetch,
+    overview: overview.data,
+    overviewMeta: overview.meta,
+    overviewSchemaInvalid: overview.schemaInvalid,
+    revenue: revenue.data,
+    revenueMeta: revenue.meta,
+    revenueSchemaInvalid: revenue.schemaInvalid,
+    timeSeries: timeSeries.data,
+    timeSeriesMeta: timeSeries.meta,
+    timeSeriesSchemaInvalid: timeSeries.schemaInvalid,
+    isLoading: overview.isLoading || revenue.isLoading || timeSeries.isLoading,
+    error: overview.error?.message || revenue.error?.message || timeSeries.error?.message || null,
+    refetch: () => {
+      overview.refetch();
+      revenue.refetch();
+      timeSeries.refetch();
+    },
   };
 }
