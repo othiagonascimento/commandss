@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { SectionHeader } from '@/components/ds/Surface';
 import { useOpsHealth } from '@/hooks/useOpsHealth';
 import { useAlerts, useResolvedAlerts, type AlertRecord } from '@/hooks/useAlerts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
