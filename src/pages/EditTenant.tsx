@@ -45,6 +45,10 @@ interface TenantFormData {
   plan_type: string;
   trial_enabled: boolean;
   trial_days: number;
+  // Localização
+  city: string;
+  state: string;
+  country: string;
   // Pricing fields
   price_per_user: number;
   contracted_users: number;
@@ -60,6 +64,8 @@ interface TenantFormData {
   has_monthly_fee: boolean;
 }
 
+const BR_UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+
 export default function EditTenant() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -71,6 +77,9 @@ export default function EditTenant() {
     plan_type: 'basic',
     trial_enabled: false,
     trial_days: 7,
+    city: '',
+    state: '',
+    country: 'BR',
     // Pricing defaults
     price_per_user: 69.90,
     contracted_users: 1,
@@ -121,6 +130,9 @@ export default function EditTenant() {
         implementation_status?: string;
         implementation_paid_externally?: boolean;
         has_monthly_fee?: boolean;
+        city?: string | null;
+        state?: string | null;
+        country?: string | null;
       };
       
       setFormData({
@@ -129,6 +141,9 @@ export default function EditTenant() {
         plan_type: tenantData.plan_type || 'basic',
         trial_enabled: tenantData.trial_enabled || false,
         trial_days: tenantData.trial_days || 7,
+        city: tenantData.city || '',
+        state: tenantData.state || '',
+        country: tenantData.country || 'BR',
         // Pricing
         price_per_user: tenantData.price_per_user ?? 69.90,
         contracted_users: tenantData.contracted_users ?? 1,
