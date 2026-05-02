@@ -218,6 +218,13 @@ export default function APICosts() {
         }
       />
 
+      <div className="mb-6 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+        <strong>Contrato legado.</strong> Esta tela edita <code className="font-mono">api_cost_config</code>, que está sendo
+        substituída por <code className="font-mono">ai_model_pricing_history</code> (fonte primária do FinOps). Use{' '}
+        <a href="/finops/pricing-settings" className="underline font-medium">FinOps → Pricing Settings</a> para o novo histórico
+        de preços. Esta página continua funcionando para overrides manuais e taxa USD→BRL.
+      </div>
+
       {/* Global Settings */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>

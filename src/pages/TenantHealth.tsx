@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { safeArray } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useMasterRead } from '@/hooks/useMasterRead';
+import { callMasterApiRaw } from '@/services/masterApi';
+import { TenantHealthListSchema } from '@/lib/masterSchemas';
+import { DataQualityBadge } from '@/components/quality/DataQualityBadge';
+import { DataQualityNotice } from '@/components/quality/MetricValue';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,8 +38,6 @@ import {
   Bell,
   Zap,
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { analyticsApi } from '@/services/masterApi';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -46,7 +48,7 @@ interface TenantHealthData {
   name: string;
   subdomain: string;
   plan_type: string;
-  health_score: number;
+  health_score: number | null;
   status: 'healthy' | 'warning' | 'critical' | 'inactive';
   last_activity: string | null;
   metrics: {
@@ -65,13 +67,15 @@ interface TenantHealthData {
   }>;
 }
 
-function getHealthColor(score: number) {
+function getHealthColor(score: number | null) {
+  if (score == null) return 'text-muted-foreground';
   if (score >= 80) return 'text-success';
   if (score >= 50) return 'text-warning';
   return 'text-destructive';
 }
 
-function getHealthBgColor(score: number) {
+function getHealthBgColor(score: number | null) {
+  if (score == null) return 'bg-muted';
   if (score >= 80) return 'bg-success/10';
   if (score >= 50) return 'bg-warning/10';
   return 'bg-destructive/10';
@@ -125,10 +129,16 @@ function TenantHealthCard({ tenant }: { tenant: TenantHealthData }) {
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Score de Saúde</span>
           <div className="flex items-center gap-2">
-            <Progress value={tenant.health_score} className="w-20 h-2" />
-            <span className={cn("font-bold text-lg", getHealthColor(tenant.health_score))}>
-              {tenant.health_score}
-            </span>
+            {tenant.health_score == null ? (
+              <span className="text-xs text-muted-foreground italic">Sem dados</span>
+            ) : (
+              <>
+                <Progress value={tenant.health_score} className="w-20 h-2" />
+                <span className={cn("font-bold text-lg", getHealthColor(tenant.health_score))}>
+                  {tenant.health_score}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -210,15 +220,16 @@ export default function TenantHealth() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('health_score');
 
-  const { data: healthData, isLoading, refetch } = useQuery({
-    queryKey: ['tenant-health'],
-    queryFn: async () => {
-      const result = await analyticsApi.custom('tenant-health');
-      if (result.error) throw new Error(result.error);
-      return safeArray<TenantHealthData>(result.data);
-    },
-    staleTime: 60000,
+  const healthRead = useMasterRead({
+    widget: 'tenant-health.list',
+    queryKey: ['tenant-health-v2'],
+    queryFn: () => callMasterApiRaw('master-analytics', 'GET', 'tenant-health'),
+    dataSchema: TenantHealthListSchema,
+    options: { staleTime: 60_000 },
   });
+  const healthData = safeArray<TenantHealthData>(healthRead.data as unknown);
+  const isLoading = healthRead.isLoading;
+  const refetch = healthRead.refetch;
 
   const filteredTenants = (healthData || [])
     .filter(tenant => {
@@ -232,8 +243,12 @@ export default function TenantHealth() {
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'health_score':
-          return a.health_score - b.health_score; // Lower first (needs attention)
+        case 'health_score': {
+          // Tenants with null score go to the end (no data → can't prioritize)
+          const av = a.health_score ?? Number.POSITIVE_INFINITY;
+          const bv = b.health_score ?? Number.POSITIVE_INFINITY;
+          return av - bv; // Lower first (needs attention)
+        }
         case 'name':
           return a.name.localeCompare(b.name);
         case 'activity':
@@ -261,7 +276,8 @@ export default function TenantHealth() {
         description="Monitore o status e performance de cada cliente"
         icon={HeartPulse}
         actions={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {healthRead.meta && <DataQualityBadge meta={healthRead.meta} />}
             <Button variant="outline" size="sm">
               <Bell className="h-4 w-4 mr-2" />
               Configurar Alertas
@@ -273,6 +289,16 @@ export default function TenantHealth() {
           </div>
         }
       />
+
+      {healthRead.schemaInvalid && (
+        <DataQualityNotice
+          variant="error"
+          message="A lista de saúde dos tenants veio em formato inesperado (schema v2 inválido). Os cards podem estar parciais."
+        />
+      )}
+      {healthRead.meta?.warnings && healthRead.meta.warnings.length > 0 && (
+        <DataQualityNotice variant="warning" message={healthRead.meta.warnings.join(' • ')} />
+      )}
 
       {/* Educational Banner */}
       <Card className="mb-6 border-primary/20 bg-primary/5">

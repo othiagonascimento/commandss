@@ -124,9 +124,10 @@ function RankingCard({
 export default function Rankings() {
   const [activeTab, setActiveTab] = useState('tenants');
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
+  
 
   // Fetch tenant rankings from tenant_usage + ai_events aggregation
-  const { data: tenantUsage, isLoading } = useQuery({
+  const { data: tenantUsage, isLoading, dataUpdatedAt, refetch } = useQuery({
     queryKey: ['tenant-rankings', selectedTenantId],
     queryFn: async () => {
       // Get tenant_usage data
@@ -218,11 +219,28 @@ export default function Rankings() {
         description="Ranking real dos tenants mais ativos baseado em dados de uso"
         icon={Trophy}
         actions={
-          <TenantSelector
-            value={selectedTenantId}
-            onChange={setSelectedTenantId}
-            placeholder="Todas as Lojas"
-          />
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-[10px] gap-1.5">
+              Fonte: <code className="font-mono">tenant_usage</code> + <code className="font-mono">ai_events</code>
+            </Badge>
+            {dataUpdatedAt > 0 && (
+              <Badge variant="secondary" className="text-[10px]">
+                Atualizado {new Date(dataUpdatedAt).toLocaleTimeString('pt-BR')}
+              </Badge>
+            )}
+            <TenantSelector
+              value={selectedTenantId}
+              onChange={setSelectedTenantId}
+              placeholder="Todas as Lojas"
+            />
+            <button
+              onClick={() => { refetch(); }}
+              className="text-xs underline text-muted-foreground hover:text-foreground"
+              type="button"
+            >
+              Atualizar
+            </button>
+          </div>
         }
       />
 

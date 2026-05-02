@@ -506,9 +506,13 @@ async function getTenantHealthData() {
     const snap = tenantSnapshot?.snapshot_data;
     const hasSnapshot = !!snap;
     
-    // Real health score: weighted 100-point scale
-    let healthScore = 0;
+    // Real health score: weighted 100-point scale.
+    // Preserve null when there is no operational snapshot — never fake "100% healthy".
+    let healthScore: number | null = null;
+    let scoreMethod: 'measured' | 'estimated' | 'none' = 'none';
     if (hasSnapshot) {
+      scoreMethod = 'measured';
+      healthScore = 0;
       // 25pts: channels connected
       const channels = snap?.channels;
       const whatsappOk = channels?.whatsapp?.some((w: any) => w.status === 'connected') ?? false;
@@ -530,18 +534,23 @@ async function getTenantHealthData() {
       const tokensUsed = usage?.ai_tokens_used || 0;
       const usageOk = (storageUsed / storageLimit < 0.8) && (tokensUsed / tokenLimit < 0.8);
       healthScore += usageOk ? 15 : 0;
-    } else {
-      // Fallback: simplified local formula (marked as estimated)
+    } else if (hasUsers || hasRecentActivity) {
+      // Tenant has activity but no ops snapshot yet → estimated score
+      scoreMethod = 'estimated';
       healthScore = 30;
       if (isActive) healthScore += 25;
       if (hasUsers) healthScore += 20;
       if (hasRecentActivity) healthScore += 25;
     }
+    // else: brand new / inactive tenant → keep healthScore=null
 
-    const status = healthScore >= 80 ? 'healthy' 
-      : healthScore >= 50 ? 'warning' 
-      : healthScore >= 20 ? 'critical' 
-      : 'inactive';
+    const status: 'healthy' | 'warning' | 'critical' | 'inactive' =
+      healthScore == null
+        ? 'inactive'
+        : healthScore >= 80 ? 'healthy'
+        : healthScore >= 50 ? 'warning'
+        : healthScore >= 20 ? 'critical'
+        : 'inactive';
 
     const alerts = [];
     if (!hasRecentActivity) {
@@ -579,6 +588,7 @@ async function getTenantHealthData() {
     return {
       ...tenant,
       health_score: healthScore,
+      health_score_method: scoreMethod,
       status,
       last_activity: usage?.updated_at || tenant.created_at,
       metrics: {
@@ -898,9 +908,11 @@ serve(async (req) => {
         };
         break;
 
-      case 'activity-logs':
-        responseData = await getActivityLogs(50);
+      case 'activity-logs': {
+        const limit = Math.min(500, Math.max(1, parseInt(url.searchParams.get('limit') || '50', 10) || 50));
+        responseData = await getActivityLogs(limit);
         break;
+      }
 
       case 'tenant-health':
         responseData = await getTenantHealthData();

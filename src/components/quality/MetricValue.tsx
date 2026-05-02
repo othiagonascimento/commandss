@@ -35,3 +35,23 @@ export function MetricValue({ meta, children, unavailableLabel = 'Indisponível'
   }
   return <span className={className}>{children}</span>;
 }
+
+interface NoticeProps {
+  variant?: 'warning' | 'error' | 'info';
+  message: string;
+  className?: string;
+}
+
+/** Inline banner explaining data quality issues for a widget/page. */
+export function DataQualityNotice({ variant = 'warning', message, className }: NoticeProps) {
+  const styles = {
+    warning: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    error: 'border-destructive/40 bg-destructive/10 text-destructive',
+    info: 'border-border bg-muted/40 text-muted-foreground',
+  } as const;
+  return (
+    <div className={cn('mb-4 rounded-md border px-3 py-2 text-xs', styles[variant], className)}>
+      {message}
+    </div>
+  );
+}
