@@ -648,7 +648,8 @@ Deno.serve(async (req) => {
     if (req.method === 'GET' && tenantId && subPath === 'users') {
       // Try remote first if available
       const targetSupabase = remoteSupabase || supabase;
-      
+
+      // Fetch user_usage + profile (avoid combining two same-key embeds)
       const { data: userUsage, error } = await targetSupabase
         .from('user_usage')
         .select(`
@@ -657,13 +658,6 @@ Deno.serve(async (req) => {
             id,
             full_name,
             role
-          ),
-          user_limits:user_id (
-            ai_tokens_monthly,
-            storage_mb,
-            messages_monthly,
-            can_use_ai,
-            can_transcribe
           )
         `)
         .eq('tenant_id', tenantId);
@@ -676,7 +670,25 @@ Deno.serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ data: userUsage, total: userUsage?.length || 0 }), {
+      // Fetch user_limits separately and merge
+      const userIds = (userUsage || []).map((u: Record<string, unknown>) => u.user_id as string).filter(Boolean);
+      let limitsByUser: Record<string, unknown> = {};
+      if (userIds.length > 0) {
+        const { data: ulim } = await targetSupabase
+          .from('user_limits')
+          .select('user_id, ai_tokens_monthly, storage_mb, messages_monthly, can_use_ai, can_transcribe')
+          .eq('tenant_id', tenantId)
+          .in('user_id', userIds);
+        for (const row of (ulim || []) as Record<string, unknown>[]) {
+          limitsByUser[row.user_id as string] = row;
+        }
+      }
+      const merged = (userUsage || []).map((u: Record<string, unknown>) => ({
+        ...u,
+        user_limits: limitsByUser[u.user_id as string] || null,
+      }));
+
+      return new Response(JSON.stringify({ data: merged, total: merged.length }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
