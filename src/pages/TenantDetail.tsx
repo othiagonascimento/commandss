@@ -597,7 +597,7 @@ export default function TenantDetail() {
           </div>
 
           <div>
-            <SectionTitle index="04" title="Overrides ativos" hint="Customizações sobrescrevendo o plano" />
+            <SectionTitle index="03" title="Overrides ativos" hint="Customizações sobrescrevendo o plano" />
             {features && (
               <TenantOverridesForm
                 currentOverrides={features.overrides || {}}
@@ -612,7 +612,7 @@ export default function TenantDetail() {
           </div>
 
           <div>
-            <SectionTitle index="05" title="Consumo por usuário" hint="Tokens e custo por operador" />
+            <SectionTitle index="04" title="Consumo por usuário" hint="Tokens e custo por operador" />
             <TenantUserCreditsTable tenantId={id!} />
           </div>
         </TabsContent>
