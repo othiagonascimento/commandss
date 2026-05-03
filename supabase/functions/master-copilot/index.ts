@@ -40,51 +40,63 @@ async function callProvider(opts: {
   tools?: any[];
   stream: boolean;
   temperature?: number;
+  timeoutMs?: number;
 }): Promise<Response> {
-  const { provider, model, messages, tools, stream, temperature = 0.4 } = opts;
+  const { provider, model, messages, tools, stream, temperature = 0.4, timeoutMs = 45_000 } = opts;
   const supportsTools = tools && tools.length > 0;
+  const ctrl = new AbortController();
+  const tmr = setTimeout(() => ctrl.abort(), timeoutMs);
+
+  const doFetch = async (url: string, headers: Record<string, string>, body: any) => {
+    try {
+      console.log(`[copilot] -> ${provider} ${model} stream=${stream} tools=${supportsTools}`);
+      const r = await fetch(url, { method: "POST", headers, body: JSON.stringify(body), signal: ctrl.signal });
+      console.log(`[copilot] <- ${provider} status=${r.status}`);
+      return r;
+    } finally {
+      clearTimeout(tmr);
+    }
+  };
 
   if (provider === "google") {
     const key = Deno.env.get("GEMINI_API_KEY");
     if (!key) throw new Error("GEMINI_API_KEY missing");
-    // Use OpenAI-compatible Gemini endpoint
-    return fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages, tools: supportsTools ? tools : undefined, stream, temperature }),
-    });
+    return doFetch(
+      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      { model, messages, tools: supportsTools ? tools : undefined, stream, temperature },
+    );
   }
   if (provider === "openai") {
     const key = Deno.env.get("OPENAI_API_KEY");
     if (!key) throw new Error("OPENAI_API_KEY missing");
-    return fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages, tools: supportsTools ? tools : undefined, stream, temperature }),
-    });
+    return doFetch(
+      "https://api.openai.com/v1/chat/completions",
+      { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      { model, messages, tools: supportsTools ? tools : undefined, stream, temperature },
+    );
   }
   if (provider === "anthropic") {
     const key = Deno.env.get("ANTHROPIC_API_KEY");
     if (!key) throw new Error("ANTHROPIC_API_KEY missing");
-    // Translate to Anthropic schema
     const sys = messages.filter((m) => m.role === "system").map((m) => (typeof m.content === "string" ? m.content : "")).join("\n\n");
     const msgs = messages
-      .filter((m) => m.role !== "system")
+      .filter((m) => m.role !== "system" && m.role !== "tool")
       .map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: typeof m.content === "string" ? m.content : JSON.stringify(m.content) }));
-    return fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model, max_tokens: 4096, system: sys, messages: msgs, stream }),
-    });
+    return doFetch(
+      "https://api.anthropic.com/v1/messages",
+      { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
+      { model, max_tokens: 4096, system: sys, messages: msgs, stream },
+    );
   }
   if (provider === "deepseek") {
     const key = Deno.env.get("DEEPSEEK_API_KEY");
     if (!key) throw new Error("DEEPSEEK_API_KEY missing");
-    return fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages, tools: supportsTools ? tools : undefined, stream, temperature }),
-    });
+    return doFetch(
+      "https://api.deepseek.com/chat/completions",
+      { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      { model, messages, tools: supportsTools ? tools : undefined, stream, temperature },
+    );
   }
   throw new Error(`Unsupported provider: ${provider}`);
 }
