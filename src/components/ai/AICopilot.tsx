@@ -175,8 +175,9 @@ export function AICopilot() {
                 prev.map((m) => {
                   if (m.id !== assistantMsg.id) return m;
                   const tools = [...(m.tools || [])];
-                  const last = tools.findLast?.((t) => t.name === evt.name && t.ok === undefined);
-                  if (last) last.ok = evt.ok;
+                  for (let i = tools.length - 1; i >= 0; i--) {
+                    if (tools[i].name === evt.name && tools[i].ok === undefined) { tools[i].ok = evt.ok; break; }
+                  }
                   return { ...m, tools };
                 })
               );
