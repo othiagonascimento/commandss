@@ -1,112 +1,57 @@
-project_id = "btoyclznuuwvxbsacemw"
+project_id = "uopacrm"
 
-[functions.master-analytics]
-verify_jwt = false
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
-[functions.master-tenants]
-verify_jwt = false
+[db]
+port = 54322
+shadow_port = 54323
+major_version = 15
 
-[functions.master-data]
-verify_jwt = false
+[db.pooler]
+enabled = true
+port = 54324
+pool_mode = "transaction"
+default_pool_size = 20
+max_pool_size = 20
 
-[functions.master-users]
-verify_jwt = false
+[realtime]
+enabled = true
+port = 54325
 
-[functions.master-usage]
-verify_jwt = false
+[studio]
+enabled = true
+port = 54326
 
-[functions.master-settings]
-verify_jwt = false
+[inbucket]
+enabled = true
+port = 54327
 
-[functions.master-billing]
-verify_jwt = false
+[edge_runtime]
+enabled = true
+port = 54328
+inspector_port = 54329
 
-[functions.master-subscriptions]
-verify_jwt = false
+[analytics]
+enabled = true
+port = 54330
 
-[functions.master-templates-proxy]
-verify_jwt = false
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/**"]
+jwt_expiry = 3600
+enable_signup = true
 
-[functions.master-ai-advanced]
-verify_jwt = false
+[auth.email]
+enable_signup = true
 
-[functions.master-ai-diagnostics]
-verify_jwt = false
+[storage]
+enabled = true
 
-[functions.master-ai-insights]
-verify_jwt = false
-
-[functions.master-branding]
-verify_jwt = false
-
-[functions.master-invite]
-verify_jwt = false
-
-[functions.master-onboarding]
-verify_jwt = false
-
-[functions.master-proxy]
-verify_jwt = false
-
-[functions.master-tenant-features]
-verify_jwt = false
-
-[functions.master-user-limits]
-verify_jwt = false
-
-[functions.ops-health-query]
-verify_jwt = false
-
-[functions.ops-health-receiver]
-verify_jwt = false
-
-[functions.rag-metrics-query]
-verify_jwt = false
-
-[functions.rag-metrics-ingest]
-verify_jwt = false
-
-[functions.broadcasts]
-verify_jwt = false
-
-[functions.check-limits]
-verify_jwt = false
-
-[functions.create-subscription]
-verify_jwt = false
-
-[functions.create-tenant-checkout]
-verify_jwt = false
-
-[functions.customer-portal]
-verify_jwt = false
-
-[functions.feature-flags]
-verify_jwt = false
-
-[functions.impersonate]
-verify_jwt = false
-
-[functions.invite-links]
-verify_jwt = false
-
-[functions.log-api-usage]
-verify_jwt = false
-
-[functions.onboarding]
-verify_jwt = false
-
-[functions.send-welcome-email]
-verify_jwt = false
-
-[functions.stripe-webhook]
-verify_jwt = false
-
-[functions.sync-tenant-to-crm]
-verify_jwt = false
-
-[functions.unit-economics]
-verify_jwt = false
-
-[functions.verify-domains]
-verify_jwt = false
+[storage.image_transformation]
+enabled = true
