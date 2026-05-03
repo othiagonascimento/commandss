@@ -124,39 +124,47 @@ export function AICopilot() {
         ...messages.map((m) => ({ role: m.role, content: m.content })),
         { role: 'user', content: userContent },
       ];
+      const requestController = new AbortController();
+      const requestTimeout = window.setTimeout(() => requestController.abort(), 60_000);
 
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          messages: historyForApi,
-          conversation_id: conversationId,
-          route_context: location.pathname,
-        }),
-      });
-      if (!resp.ok || !resp.body) {
-        const txt = await resp.text();
-        throw new Error(`Erro ${resp.status}: ${txt.slice(0, 200)}`);
-      }
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            messages: historyForApi,
+            conversation_id: conversationId,
+            route_context: location.pathname,
+          }),
+          signal: requestController.signal,
+        });
+        if (!resp.ok || !resp.body) {
+          const txt = await resp.text();
+          throw new Error(`Erro ${resp.status}: ${txt.slice(0, 200)}`);
+        }
 
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = '';
-      let streamDone = false;
-      while (!streamDone) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        let nl;
-        while ((nl = buf.indexOf('\n')) !== -1) {
-          let line = buf.slice(0, nl);
-          buf = buf.slice(nl + 1);
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (!line.startsWith('data: ')) continue;
-          const json = line.slice(6).trim();
-          if (!json) continue;
-          try {
-            const evt = JSON.parse(json);
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        let streamDone = false;
+        while (!streamDone) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf('\n')) !== -1) {
+            let line = buf.slice(0, nl);
+            buf = buf.slice(nl + 1);
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            if (!line.startsWith('data: ')) continue;
+            const json = line.slice(6).trim();
+            if (!json) continue;
+            let evt: any;
+            try {
+              evt = JSON.parse(json);
+            } catch {
+              continue;
+            }
             if (evt.type === 'meta') {
               if (evt.conversation_id) setConversationId(evt.conversation_id);
               setMessages((prev) =>
@@ -190,15 +198,18 @@ export function AICopilot() {
             } else if (evt.type === 'error') {
               throw new Error(evt.message);
             }
-          } catch {
-            // ignore parse errors mid-chunk
           }
         }
+      } finally {
+        window.clearTimeout(requestTimeout);
       }
     } catch (e: any) {
-      toast.error(e?.message || 'Erro no copilot');
+      const message = e?.name === 'AbortError'
+        ? 'Tempo limite excedido ao chamar o Copiloto. Verifique as secrets do provedor de IA no Supabase.'
+        : e?.message || 'Erro no copilot';
+      toast.error(message);
       setMessages((prev) =>
-        prev.map((m) => (m.id === assistantMsg.id ? { ...m, content: `❌ ${e?.message || 'Erro'}` } : m))
+        prev.map((m) => (m.id === assistantMsg.id ? { ...m, content: `❌ ${message}` } : m))
       );
     } finally {
       setIsLoading(false);

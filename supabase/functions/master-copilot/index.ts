@@ -33,6 +33,25 @@ function pickLayer(text: string, hasMedia: boolean): LayerKey {
 // ============== Provider adapters (OpenAI-compatible request shape) ==============
 interface ChatMsg { role: string; content: any; tool_call_id?: string; tool_calls?: any; name?: string }
 
+const PROVIDER_SECRETS: Record<string, string> = {
+  google: "GEMINI_API_KEY",
+  openai: "OPENAI_API_KEY",
+  anthropic: "ANTHROPIC_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
+};
+
+function providerHasKey(provider: string) {
+  const secretName = PROVIDER_SECRETS[provider];
+  return Boolean(secretName && Deno.env.get(secretName));
+}
+
+function availableProviderHint() {
+  const available = Object.entries(PROVIDER_SECRETS)
+    .filter(([provider]) => providerHasKey(provider))
+    .map(([provider]) => provider);
+  return available.length ? available.join(", ") : "nenhum provedor com secret disponível";
+}
+
 async function callProvider(opts: {
   provider: string;
   model: string;
@@ -290,13 +309,27 @@ serve(async (req) => {
     // Resolve provider + tool support
     const { data: catalog } = await admin.from("ai_available_models").select("provider, model_id, supports_tools, supports_vision").eq("is_active", true);
     let modelInfo = (catalog || []).find((m: any) => m.model_id === chosenModel);
-    if (!modelInfo) modelInfo = (catalog || []).find((m: any) => m.model_id === "gemini-1.5-flash") || { provider: "google", model_id: "gemini-1.5-flash", supports_tools: true };
+    if (!modelInfo) {
+      modelInfo = (catalog || []).find((m: any) => m.model_id === "gemini-1.5-flash") ||
+        (catalog || []).find((m: any) => providerHasKey(m.provider)) ||
+        { provider: "google", model_id: "gemini-1.5-flash", supports_tools: true };
+    }
 
     // If chosen model doesn't support tools, fall back to a tool-capable model in the same category for tool execution
     let provider = modelInfo.provider;
     if (!modelInfo.supports_tools) {
-      const fallback = (catalog || []).find((m: any) => m.supports_tools && m.layer_category === (layer === "layer_3" ? "elite" : layer === "layer_2" ? "standard" : "basic"));
+      const fallback = (catalog || []).find((m: any) => m.supports_tools && providerHasKey(m.provider) && m.layer_category === (layer === "layer_3" ? "elite" : layer === "layer_2" ? "standard" : "basic"));
       if (fallback) { chosenModel = fallback.model_id; provider = fallback.provider; }
+    }
+
+    if (!providerHasKey(provider)) {
+      const fallback = (catalog || []).find((m: any) => providerHasKey(m.provider) && (m.supports_tools || !TOOLS.length));
+      if (fallback) {
+        chosenModel = fallback.model_id;
+        provider = fallback.provider;
+      } else {
+        throw new Error(`Nenhuma chave de IA disponível para o Copiloto. Secrets detectados: ${availableProviderHint()}. Adicione GEMINI_API_KEY, OPENAI_API_KEY ou ANTHROPIC_API_KEY neste projeto Supabase.`);
+      }
     }
 
     const systemBase = `Você é o Copiloto Master do UopaCRM. Você ajuda o admin master a entender o sistema, tenants, receita, custos e operação. Use as ferramentas disponíveis sempre que precisar de dados reais. Responda em português, com markdown, conciso e objetivo. Cite números exatos quando vierem de ferramentas.\n\nContexto da rota atual: ${route_context || "—"}`;
