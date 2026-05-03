@@ -570,30 +570,12 @@ export default function TenantDetail() {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <SectionTitle index="02" title="Módulos" hint="Funcionalidades habilitadas" />
-              {features && (
-                <TenantModulesEditor
-                  modules={{
-                    module_ai_agent: features.module_ai_agent,
-                    module_ai_transcription: features.module_ai_transcription,
-                    module_automation_flows: features.module_automation_flows,
-                    module_campaigns: features.module_campaigns,
-                    module_ecommerce: features.module_ecommerce,
-                    module_erp_integration: features.module_erp_integration,
-                    module_api_access: features.module_api_access,
-                    module_whitelabel: features.module_whitelabel,
-                    module_multi_whatsapp: features.module_multi_whatsapp,
-                  }}
-                  onChange={(modules) => updateFeaturesMutation.mutate({ modules })}
-                  disabled={updateFeaturesMutation.isPending}
-                />
-              )}
-            </div>
+          <div className="grid grid-cols-1 gap-6">
+            {/* Módulos ocultos: enforcement no CRM ainda não implementado.
+                Reativar quando módulos forem 100% funcionais (RLS/checks server-side). */}
 
             <div>
-              <SectionTitle index="03" title="Limites numéricos" />
+              <SectionTitle index="02" title="Limites numéricos" />
               {features && (
                 <TenantLimitsEditor
                   limits={{
@@ -615,7 +597,7 @@ export default function TenantDetail() {
           </div>
 
           <div>
-            <SectionTitle index="04" title="Overrides ativos" hint="Customizações sobrescrevendo o plano" />
+            <SectionTitle index="03" title="Overrides ativos" hint="Customizações sobrescrevendo o plano" />
             {features && (
               <TenantOverridesForm
                 currentOverrides={features.overrides || {}}
@@ -630,7 +612,7 @@ export default function TenantDetail() {
           </div>
 
           <div>
-            <SectionTitle index="05" title="Consumo por usuário" hint="Tokens e custo por operador" />
+            <SectionTitle index="04" title="Consumo por usuário" hint="Tokens e custo por operador" />
             <TenantUserCreditsTable tenantId={id!} />
           </div>
         </TabsContent>
