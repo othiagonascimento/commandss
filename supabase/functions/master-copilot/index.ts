@@ -33,6 +33,25 @@ function pickLayer(text: string, hasMedia: boolean): LayerKey {
 // ============== Provider adapters (OpenAI-compatible request shape) ==============
 interface ChatMsg { role: string; content: any; tool_call_id?: string; tool_calls?: any; name?: string }
 
+const PROVIDER_SECRETS: Record<string, string> = {
+  google: "GEMINI_API_KEY",
+  openai: "OPENAI_API_KEY",
+  anthropic: "ANTHROPIC_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
+};
+
+function providerHasKey(provider: string) {
+  const secretName = PROVIDER_SECRETS[provider];
+  return Boolean(secretName && Deno.env.get(secretName));
+}
+
+function availableProviderHint() {
+  const available = Object.entries(PROVIDER_SECRETS)
+    .filter(([provider]) => providerHasKey(provider))
+    .map(([provider]) => provider);
+  return available.length ? available.join(", ") : "nenhum provedor com secret disponível";
+}
+
 async function callProvider(opts: {
   provider: string;
   model: string;
