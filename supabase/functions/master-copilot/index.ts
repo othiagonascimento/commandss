@@ -194,18 +194,18 @@ async function execTool(admin: any, name: string, args: any): Promise<any> {
       const days = Math.min(90, Math.max(1, args?.days || 30));
       const since = new Date(Date.now() - days * 86400_000).toISOString();
       const { data } = await admin
-        .from("ai_advanced")
-        .select("provider, total_cost, created_at")
+        .from("api_usage_logs")
+        .select("provider, cost_usd, created_at")
         .gte("created_at", since);
       const byProvider: Record<string, number> = {};
       let total = 0;
       for (const r of data || []) {
         const p = r.provider || "unknown";
-        const c = Number(r.total_cost) || 0;
+        const c = Number(r.cost_usd) || 0;
         byProvider[p] = (byProvider[p] || 0) + c;
         total += c;
       }
-      return { days, total_cost: total, by_provider: byProvider };
+      return { days, total_cost_usd: total, by_provider_usd: byProvider };
     }
     return { error: `Unknown tool: ${name}` };
   } catch (e) {
