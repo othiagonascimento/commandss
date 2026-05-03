@@ -207,7 +207,7 @@ export function AICopilot() {
       const message = e?.name === 'AbortError'
         ? 'Tempo limite excedido ao chamar o Copiloto. Verifique as secrets do provedor de IA no Supabase.'
         : e?.message || 'Erro no copilot';
-      toast.error(e?.message || 'Erro no copilot');
+      toast.error(message);
       setMessages((prev) =>
         prev.map((m) => (m.id === assistantMsg.id ? { ...m, content: `❌ ${message}` } : m))
       );
