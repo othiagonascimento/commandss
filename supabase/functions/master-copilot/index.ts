@@ -351,6 +351,11 @@ serve(async (req) => {
             break;
           }
 
+          if (!assistantText) {
+            assistantText = "Não consegui gerar uma resposta no momento. Tente reformular ou peça algo mais específico.";
+            controller.enqueue(sseChunk({ type: "delta", text: assistantText }));
+          }
+
           const latency = Date.now() - start;
           await admin.from("copilot_messages").insert({
             conversation_id: convId, user_id: user.id, role: "assistant",
@@ -362,6 +367,7 @@ serve(async (req) => {
           controller.enqueue(sseChunk({ type: "done", latency_ms: latency }));
           controller.close();
         } catch (e: any) {
+          console.error("[copilot] stream error:", e?.message || e);
           controller.enqueue(sseChunk({ type: "error", message: String(e?.message || e) }));
           controller.close();
         }
