@@ -1,230 +1,150 @@
 
-# Painel Master Uôpa — Redesign Elite (Fase A revisada)
+## Reentendimento
 
-Reconstrução com **identidade visual própria**, fugindo do "look IA padrão" (Inter + cards arredondados + gradiente roxo + glass genérico). O Painel Master vira um **command center editorial**, com cara de terminal financeiro de elite cruzado com revista de design — não com mais um admin SaaS.
+Você tem razão — o plano anterior ignorava o ativo mais importante do projeto: a **AI Engine multi-layer já existente no CRM (Supabase externo)**.
 
-Backend, contratos, rotas, RLS, multitenancy e edge functions: **intocados**. Toda a refatoração é frontend.
+Hoje a engine tem três camadas configuráveis (`ai_layer_1_model/instructions`, `ai_layer_2_*`, `ai_layer_3_*`), com modelos vindos de `ai_available_models` (categorias `router`, `standard`, `elite`):
 
-## 1. Identidade visual Uôpa (sistema, não tema)
+- **Layer 1 (Router)** — Gemini, **multimodal** (texto + áudio + imagem). Roteador rápido e barato.
+- **Layer 2 (Standard)** — Modelo balanceado para a maioria das conversas.
+- **Layer 3 (Elite)** — Modelo avançado para casos complexos / análises profundas.
 
-### Filosofia
-"**Operação editorial, dados como matéria-prima**". Cada pixel comunica precisão. Inspiração conceitual: terminal Bloomberg + editorial Pentagram + densidade de informação do FT.com + sobriedade do Are.na — sem copiar nenhum.
+Cada layer tem provedor, custo, latência, instruções globais, overrides por nicho e por tenant — tudo isso já é gerenciado pelo Master. O copilot atual ignora completamente essa engine e chama OpenAI/Anthropic/Google diretamente, o que é inconsistente, gasta secret keys que deveriam estar centralizadas, e não aproveita a multimodalidade da Layer 1.
 
-### Tipografia (zero Inter, zero Geist)
-- **Display / Hero / Numerais**: `Space Grotesk` (geométrica afiada, não-comum em SaaS) — pesos 500/600/700, tracking apertado em hero (`-0.04em`).
-- **Texto / UI**: `Söhne` substituto livre → **`Inter Tight`** ❌ NÃO. Usar **`Manrope`** (mais distinto, terminações abertas, cara editorial) em 400/500/600.
-- **Mono / Dados / Métricas**: `JetBrains Mono` com `font-feature-settings: "tnum","ss02","cv11"` — números tabulares, alternativas estilísticas ligadas.
-- **Labels técnicos**: `JetBrains Mono` em UPPERCASE 11px, tracking `0.12em` — etiquetas tipo "MRR / 30D" como em painéis de trading.
+**Princípio de não-quebra**: nada da engine do CRM (que serve mensagens dos clientes finais) pode ser alterado. O Master vai apenas **consumir** a engine via uma rota nova e isolada de "copiloto interno", reusando as configurações de layer mas com um `system context` próprio (admin Master, não atendente comercial).
 
-Servidas via `@fontsource` (self-hosted, sem Google Fonts em runtime).
+## Visão alvo — "Alexa do Master" rodando nas layers
 
-### Paleta — "Carbono & Plasma"
-Dark exclusivo, **não roxo-IA**. HSL tokens em `index.css`:
+Um copiloto interno que:
 
-- **Canvas**: `#0A0B0D` (carbono profundo, levemente azulado).
-- **Surface 1**: `#101216` (cards).
-- **Surface 2**: `#16191F` (elevated).
-- **Surface 3**: `#1C2028` (overlay/sheet).
-- **Hairline**: `rgba(255,255,255,0.06)` bordas; `0.10` em hover.
-- **Ink primary**: `#E8EAED` (texto principal, não branco puro).
-- **Ink secondary**: `#9098A3`.
-- **Ink muted**: `#5A6270`.
-- **Acento Uôpa "Plasma"**: `#C6FF3D` (lima-elétrico, ácido, único — vira a assinatura). Usado com parcimônia: indicadores ativos, números-chave em hero, hairline de seleção. **Nada de roxo/azul-IA**.
-- **Acento "Ember"**: `#FF7A45` (alertas/atenção, terracota quente, não vermelho clichê).
-- **Acento "Cobalt"**: `#3D7AFF` apenas para links/ações secundárias.
-- **Sucesso**: `#5BD89A` (jade desaturado, não verde Bootstrap).
-- **Crítico**: `#FF4D6A` (coral, não vermelho puro).
-- **Data ramps** (mapa, charts): rampa monocromática carbono → plasma em 7 stops + rampa quente carbono → ember.
+1. **Conversa por voz e texto** com você (admin Master).
+2. **Roteia automaticamente entre as 3 layers** conforme a complexidade da pergunta.
+3. **Usa Layer 1 (Gemini multimodal) como entrada universal**: texto, áudio gravado e imagens (screenshots, prints) entram direto, sem precisar de STT separado para casos simples.
+4. **Tem ferramentas reais** para consultar tenants, MRR, custos, alertas, consumo, RAG.
+5. **Tem base de conhecimento (RAG)** sobre o CRM para tirar dúvidas técnicas.
+6. **Persiste conversas**, suporta markdown, streaming, modo expandido e atalho `Cmd+J`.
 
-### Forma & textura
-- **Radius**: `2px` padrão, `4px` cards, `8px` máximo (sheet/modal). **Zero `rounded-2xl`**. Cantos quase retos = autoridade editorial.
-- **Bordas hairline 1px** sempre visíveis (não "glass borrado") — definem grid.
-- **Grid base 4px** rigoroso. Spacings: 4, 8, 12, 16, 24, 32, 48, 64.
-- **Sem sombras difusas**. Profundidade vem de **surfaces empilhadas + hairlines + 1 inner-glow plasma** em elementos selecionados.
-- **Noise texture** sutil (8% opacity) em surface-0 — quebra o "plástico digital".
-- **Régua tipográfica visível**: cabeçalhos de seção com numeração `01 — VISÃO EXECUTIVA` em mono uppercase.
-
-### Motion
-- Easings: `cubic-bezier(.2,.7,.1,1)` (quase linear, técnico, não bouncy).
-- Durations: 120ms (UI), 200ms (entrada), 320ms (sheet).
-- **Sem fade roxo, sem shimmer dourado**. Skeletons: barra hairline deslizando.
-
-## 2. Linguagem visual diferenciadora
-
-Coisas que **fazem o painel parecer Uôpa e não template**:
-
-- **Numeração editorial das seções** (`01 / 02 / 03`) em mono uppercase no canto.
-- **Crosshairs** sutis nos cantos dos KPI cards principais (4 pequenos `+` decorativos como em interfaces militares/científicas).
-- **Tickers** horizontais com dados ao vivo no header (MRR · Tenants ativos · Msgs/h · Latência IA) — efeito terminal financeiro.
-- **Métricas com unidade explícita ao lado** (`R$ 248k /MRR`, `1.4M /MSG/30D`) em mono.
-- **Delta tipográfico**, não badge: `+12.4%` em plasma inline com o número, sem pílula.
-- **Linhas de grade visíveis** em alguns cards (background blueprint sutil).
-- **Hero da home** com tipografia gigante editorial (clamp 48–96px), número MRR como protagonista visual.
-- **Rodapé fino** em cada card com `last_updated · source · confidence` em mono 10px — assinatura técnica.
-- **Mapa do Brasil** desenhado com hairlines plasma sobre carbono, sem preenchimentos chapados — visual de mapa náutico/cartográfico.
-
-## 3. Arquitetura visual (shell)
-
-### Layout
-- Container `max-w-[1480px]`, padding lateral `clamp(16px, 4vw, 48px)`.
-- Grid base 12 colunas com gap `24px` desktop, `16px` mobile.
-
-### Sidebar — "Rail editorial"
-- Largura `232px` expandida / `56px` mini-rail.
-- Fundo `surface-0` + hairline direita.
-- Grupos com label mono uppercase 10px + linha hairline embaixo.
-- Item ativo: **sem fundo colorido**. Apenas barra plasma `2px` à esquerda + texto em `ink-primary` + numeral mono à direita (atalho).
-- 3 zonas: **COMANDO**, **CLIENTES**, **PLATAFORMA**.
-- Persistência collapsed em `localStorage`.
-
-### Header — "Faixa de comando"
-Altura `52px`, fundo `surface-0` com hairline inferior, blur leve.
-- Esquerda: logo Uôpa monocromática + breadcrumb mono.
-- Centro: `CommandBar` (input minimalista com `⌘K` à direita, sem borda arredondada).
-- Direita em ordem: **ticker compacto** (3 métricas rolando), **OpsStatus dot+label**, **NotificationsBell**, **avatar**.
-- Acima do header em desktop ≥xl: **mini ticker bar** opcional (toggle) com 6 KPIs em mono.
-
-### Mobile
-- Header reduzido a 48px com logo + ⌘K + menu.
-- **Bottom-nav** 5 ícones (Home, Tenants, Operações, IA, Mais) — fundo `surface-1`, hairline superior, ícone ativo com dot plasma.
-- Sidebar vira drawer offcanvas (não menu lateral espremido).
-- KPIs em **carrossel snap horizontal** com indicador mono `01/06`.
-- Tabelas viram **cards-linha densos** com tipografia editorial.
-
-## 4. Command Palette ⌘K
-
-Baseado em `cmdk` (já presente). Visual:
-- Modal centralizado, `surface-3`, hairline plasma `1px`, sem rounded > 4px.
-- Input mono, prompt `>` à esquerda como terminal.
-- Seções: `> NAVEGAR`, `> TENANTS`, `> AÇÕES`, `> RECENTES` — labels mono uppercase.
-- Resultado de tenant mostra: nome em sans + `slug · estado · plano · saúde` em mono cinza.
-- Atalhos visíveis à direita (`↵` `↑↓` `esc`).
-
-## 5. Design system (`src/components/ds/`)
-
-Primitivos com `cva`, todos compatíveis com nova linguagem:
-
-- `Surface` (variants: `canvas | panel | raised | overlay`).
-- `SectionHeader` com slot de numeração editorial.
-- `MetricCard` (variants: `hero | standard | inline | ticker`) — número mono, label uppercase, delta inline, footer assinatura técnica, slot `DataQualityBadge`.
-- `InsightCard` — narrativa curta + CTA (Visão→Diagnóstico→Ação).
-- `AlertRow` — linha densa, severidade no marker esquerdo (barra colorida 2px, não ícone gritante).
-- `StatusDot`, `HealthMarker`, `PlanTag`, `RiskTag` — todas retangulares, mono.
-- `TrendDelta` — número + seta unicode em plasma/ember inline, sem badge.
-- `Ticker` — strip horizontal com items animados (CSS-only).
-- `Crosshair` — decoração de canto reutilizável.
-- `EmptyState` editorial — número grande mono ("00"), título, subtítulo, próxima ação.
-- `Skeleton` — barra hairline deslizando, não shimmer.
-- `FilterBar` — chips retos, sem rounded-full.
-- `TenantCard` / `TenantRow` (densidade alta, info hierarquizada).
-- `ResponsiveTabs`, `MobileActionBar`, `BottomNav`.
-
-## 6. Dashboard — "Mesa de comando"
-
-`src/pages/Index.tsx` decomposto em `src/components/home/`:
+## Arquitetura proposta
 
 ```text
-01 — VISÃO EXECUTIVA
-┌──────────────────────────────────────────────────┐
-│ HERO: status · período · MRR gigante editorial  │
-│       + 3 KPIs satélite + ações                 │
-└──────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│  AICopilot UI (texto + mic + anexos + markdown + stream)   │
+└────────────────────────┬───────────────────────────────────┘
+                         │
+                         ▼
+            master-copilot (NOVO, no Master)
+            ├── carrega ai_layer_*_model + instructions do CRM
+            │   (read-only, via master-settings já existente)
+            ├── carrega ai_available_models (provedor + base_url + api key map)
+            ├── ROTEADOR (heurística + Layer 1 router):
+            │     simples ─► Layer 1
+            │     padrão  ─► Layer 2
+            │     análise ─► Layer 3
+            │     áudio/imagem ─► Layer 1 (multimodal) sempre
+            ├── LOOP de tool-calling com a layer escolhida:
+            │     ├─ get_tenant_overview(id|nome)
+            │     ├─ list_tenants_at_risk(criterios)
+            │     ├─ get_mrr_breakdown(periodo)
+            │     ├─ get_api_costs(periodo, provider?)
+            │     ├─ get_ops_alerts(severidade?)
+            │     ├─ get_user_consumption(tenant_id)
+            │     ├─ search_knowledge_base(query)   ─► copilot_chunks
+            │     ├─ impersonate_link(tenant_id)
+            │     └─ escalate_to_layer_3(reason)    ─► reexecuta na Elite
+            ├── Streaming SSE token-a-token
+            └── Persiste em copilot_conversations / copilot_messages
 
-02 — PULSO OPERACIONAL
-┌─────────┬─────────┬─────────┬─────────┬────────┐
-│ Tenants │ Users   │ Msgs    │ Trials  │ Saúde  │
-│ + crosshairs nos cantos, números mono           │
-└─────────┴─────────┴─────────┴─────────┴────────┘
-
-03 — DISTRIBUIÇÃO NACIONAL          04 — RADAR DE ATENÇÃO
-┌──────────────────────────┬───────────────────────┐
-│ Mapa hairline plasma     │ Lista densa de        │
-│ por estado, side-panel   │ alertas priorizados   │
-└──────────────────────────┴───────────────────────┘
-
-05 — RECEITA & CRESCIMENTO
-┌──────────────────────────────────────────────────┐
-│ Area chart minimalista + insights laterais       │
-└──────────────────────────────────────────────────┘
-
-06 — MOTOR DE IA          07 — SAÚDE DA OPERAÇÃO
-┌──────────────────────┬───────────────────────────┐
-│ Consumo, modelos,    │ Saudáveis/atenção/críticos│
-│ latência, top tenants│ + tendência               │
-└──────────────────────┴───────────────────────────┘
-
-08 — AÇÕES RÁPIDAS
+         ┌────────────────────────────────────────────┐
+         │  Provedores reais (mesmas chaves do CRM)    │
+         │  Gemini / OpenAI / Anthropic / outros       │
+         │  Endpoints lidos de ai_available_models     │
+         └────────────────────────────────────────────┘
 ```
 
-Cada seção: numeração editorial à esquerda + título sans + ações à direita. Hero com tipografia clamp(48–96px), MRR em plasma quando saudável.
+### Por que isso é "robusto e usa as layers"
 
-Mobile: ordem reorganizada, KPIs em carrossel snap, mapa em aspect-square, demais blocos empilhados com mesma linguagem.
+- **Mesma fonte de verdade**: o Master lê `ai_layer_1_model`, `ai_layer_2_model`, `ai_layer_3_model` da tabela de settings do CRM (já espelhada/exposta por `master-settings`). Se você trocar o modelo da Layer 2 amanhã, o copilot acompanha automaticamente.
+- **Mesmas chaves**: provedores e suas API keys vivem nas variáveis do CRM. O Master chama via um endpoint passthrough (`master-llm-proxy`, novo) que recebe `{ layer, messages, tools, stream }`, resolve modelo+chave do CRM e dispara o request — nada é alterado no CRM, é apenas leitura + execução server-to-server.
+- **Roteamento dinâmico**: heurística rápida (length, presence de keywords como "analise", "compare", "por que", anexos) escolhe a layer inicial. A própria Layer 1, quando insegura, pode chamar a tool `escalate_to_layer_3`.
+- **Multimodal natural**: áudio gravado e imagens vão como parts no payload Gemini da Layer 1 — não precisamos de STT separado para o caso simples ("ei, qual o MRR de junho?"). Só usamos STT dedicado se o usuário escolher um modelo Layer 2/3 não-multimodal.
+- **Zero alteração no CRM**: nenhum schema, nenhuma RLS, nenhuma função do CRM muda. Só leituras já existentes (`ai_settings`, `ai_available_models`) e chamadas externas aos provedores.
 
-## 7. Mapa do Brasil — "Cartografia operacional"
+## Tabelas novas (Supabase Master apenas)
 
-`src/components/home/HomeBrazilMap.tsx` com **D3 + GeoJSON**:
+```sql
+copilot_conversations(id, user_id, title, route_context, created_at, updated_at)
+copilot_messages(id, conversation_id, role, content, parts jsonb, tool_calls jsonb,
+                 layer_used text, model_used text, tokens_in int, tokens_out int,
+                 latency_ms int, created_at)
+copilot_documents(id, title, source, mime, size_bytes, uploaded_by, status, created_at)
+copilot_chunks(id, document_id, chunk_index, content, embedding vector(768))
+```
 
-- `d3-geo` + `topojson-client` (~30kb).
-- GeoJSON IBGE simplificado em `public/geo/brasil-estados.json` (~80kb, 5% precisão via mapshaper).
-- **Visual cartográfico**: fundo `surface-1`, estados com fill `surface-2` + border hairline plasma `0.5px`. Estados COM tenants ganham fill em rampa carbono→plasma proporcional à densidade. Estados vazios ficam em `surface-2` com border `ink-muted`.
-- **Coordenadas grid** sutis no fundo (linhas a cada 5° lat/long em opacity 4%).
-- **Label mono** com sigla em estados destacados.
-- Hover: estado ganha fill `plasma/12%` + tooltip mono (UF · N tenants · MRR estimado · última atividade).
-- Click: `Sheet` lateral à direita com lista de cidades + tenants daquele estado.
-- Tenants sem `state`: chip "Sem geolocalização (N)" em rodapé do card, abre lista própria.
-- Mobile: aspect-square, mesma interação, sheet sobe de baixo.
-- Skeleton: silhueta hairline do Brasil pulsando.
+RLS: tudo restrito a `auth.uid() = user_id` + check `is_master_admin()` (mesmo padrão do `MasterOnlyGuard`).
 
-Hook `useTenantsByLocation` deriva no client a partir de `masterApi.listTenants` — zero alteração de backend.
+## Edge functions novas (Master)
 
-## 8. Microinterações elite
+- `master-copilot` — orquestrador (chat + tools + streaming + persistência + roteamento de layer).
+- `master-llm-proxy` — resolve `{layer}` → modelo+provedor+chave (lendo `ai_settings` e `ai_available_models` do CRM via service-role read-only) → executa chamada ao provedor com streaming. Isolado para não vazar chaves e para centralizar telemetria.
+- `master-copilot-ingest` — upload + chunking + embeddings (Gemini embeddings via Layer 1) → grava em `copilot_chunks`.
+- `master-copilot-search` — similarity search no pgvector, top-K com score.
+- `master-copilot-transcribe` — fallback de STT (só usado se a Layer 1 atual não for multimodal); por padrão delega à própria Layer 1.
 
-- **Hover card**: hairline acende para `plasma/40%`, micro-translate `-1px`, sem glow difuso.
-- **Números animam** com `AnimatedNumber` (já existe), easing técnico.
-- **Ticker**: animação CSS infinita, pausa no hover.
-- **Crosshairs** dos hero KPIs aparecem com leve delay (stagger 40ms).
-- **Mapa**: estados aparecem com stagger 8ms (revelação cartográfica).
-- **Skeleton**: barra hairline plasma deslizando 1.2s.
-- **Toast (Sonner)** redesenhado: retangular, mono, hairline lateral colorida por severidade.
+`master-ai-insights` continua existindo para os widgets do dashboard, sem mudanças (não quebra nada).
 
-## 9. Preservação técnica (risco mínimo)
+## UI nova `AICopilot.tsx`
 
-- Rotas (`App.tsx`) intocadas.
-- `AuthContext`, `ProtectedRoute`, `usePermissions` intocados.
-- Hooks de dados (`useMasterDashboard`, `useOpsHealth`, `useMasterRead`, `useAlerts`, `masterApi`) **reutilizados sem modificação**.
-- `parseMasterRead` + `DataQualityBadge` + `MetricValue` continuam centrais — todo `MetricCard` novo aceita slot.
-- Edge functions: zero alteração.
-- Migrations: zero.
-- `GlassCard` antigo vira wrapper sobre `Surface` (compat para páginas ainda não refatoradas).
+- Botão flutuante + atalho `Cmd+J` + modo expandido (Sheet 80% da tela com sidebar de conversas).
+- Render Markdown (`react-markdown` + `remark-gfm`).
+- Streaming token-a-token com indicador "🔧 executando `get_mrr_breakdown`…", "🧠 escalando para Layer 3…".
+- Badge mostrando qual layer/modelo respondeu cada turno (transparência).
+- Botão de microfone (MediaRecorder) → envia o blob de áudio direto como parte multimodal para Layer 1.
+- Botão de anexar imagem → mesmo caminho.
+- Sugestões dinâmicas por rota (em `/tenants` sugere "tenants em risco esta semana", em `/finops/anomalies` sugere "explique a anomalia de hoje").
+- Citações clicáveis quando vem de RAG.
 
-## 10. Escopo desta entrega (Fase A)
+## Garantias de não-quebra do CRM
 
-1. **Tokens & fontes**: `index.css` + `tailwind.config.ts` reescritos (paleta Carbono & Plasma, Space Grotesk + Manrope + JetBrains Mono via `@fontsource`).
-2. **Design system** completo em `src/components/ds/`.
-3. **Shell**: novo `AppSidebar`, `Header` (com Ticker + CommandBar + OpsStatus), `DashboardLayout`, `BottomNav` mobile.
-4. **CommandPalette** ⌘K global com busca de tenants + navegação + ações.
-5. **Dashboard `Index.tsx`** decomposto em 8 seções editoriais.
-6. **Mapa do Brasil** D3 cartográfico + GeoJSON estático.
-7. **Compat**: `GlassCard` adaptado.
+- Apenas **leituras** em tabelas existentes do CRM (`ai_settings`, `ai_available_models`); nunca writes.
+- Nenhuma migração no banco do CRM.
+- Nenhuma função do CRM editada.
+- O `master-llm-proxy` usa as chaves de provedor já configuradas como secrets do Master (espelho das chaves do CRM, conforme padrão atual). Se uma chave estiver faltando, o copilot degrada com mensagem clara — sem afetar o CRM.
+- Adicionamos uma feature flag `copilot.enabled` no Master (default ON) para desligar instantaneamente caso algo aconteça.
+- Telemetria do copilot vai para tabela própria do Master (`copilot_messages`), não polui `ai_advanced` do CRM.
 
-**Próximas fases (já alinhadas, fora deste escopo):**
-- B: Tenants (lista densa editorial) + TenantDetail (dossiê).
-- C: TenantHealth + Analytics + AIDiagnostics + Simulator.
-- D: FinOps polish + acessibilidade + harmonização final + a11y.
+## Fases de entrega
 
-## 11. Critérios de aceite
+**Fase 1 — Engine + chat texto (sem voz, sem RAG)**
+- Migração: `copilot_conversations`, `copilot_messages` + RLS.
+- Edge functions: `master-llm-proxy` (resolve layer→modelo+chave do CRM), `master-copilot` (orquestrador com 4 tools iniciais: tenant_overview, tenants_at_risk, mrr_breakdown, api_costs).
+- Roteador de layer (heurística) + escalate tool.
+- UI nova: streaming, markdown, sidebar de conversas, modo expandido, `Cmd+J`, badge de layer, sugestões por rota.
 
-- Painel **não parece** template Lovable / shadcn padrão / admin genérico.
-- Tipografia: Space Grotesk + Manrope + JetBrains Mono, **zero Inter**.
-- Paleta Carbono & Plasma, **zero roxo-IA, zero azul-Stripe clichê**.
-- Cantos quase retos (≤8px), hairlines ao invés de glass borrado.
-- Hero com MRR em tipografia editorial gigante.
-- Mapa do Brasil cartográfico funcional com drilldown.
-- ⌘K abre paleta terminal-style.
-- Numeração editorial 01–08 nas seções da home.
-- Crosshairs nos KPI hero.
-- Ticker no header com dados ao vivo.
-- Mobile com bottom-nav próprio, KPIs em carrossel, sem desktop espremido.
-- Nenhum endpoint, contrato ou rota alterado.
+**Fase 2 — Multimodal (voz + imagem) via Layer 1**
+- Botão de mic (MediaRecorder, webm/opus) → envia como `inline_data` para Gemini Layer 1.
+- Botão de anexar imagem (drag-drop também).
+- Modo hands-free com VAD simples.
+- TTS via Web Speech API (grátis, zero secret).
+- Fallback `master-copilot-transcribe` apenas se a Layer 1 ativa não suportar áudio.
 
-Posso seguir para implementação?
+**Fase 3 — Base de conhecimento (RAG)**
+- Habilitar `pgvector` no Master.
+- `copilot_documents` + `copilot_chunks`.
+- Página `Settings → Base de Conhecimento do Copilot` com upload, listagem, reindex, exclusão.
+- `master-copilot-ingest` + `master-copilot-search`.
+- Tool `search_knowledge_base` plugada + citações na UI.
+- Opção de ingerir automaticamente os `docs/` deste repositório como base inicial.
+
+**Fase 4 — Polimento e observabilidade**
+- Tools extras: `get_ops_alerts`, `get_user_consumption`, `impersonate_link`.
+- Auto-roteamento mais inteligente (Layer 1 router decide layer final).
+- Página em AI Diagnostics mostrando uso do copilot por layer, latência, custo, top tools chamadas.
+
+## Decisões pendentes (1 minuto)
+
+1. **TTS (resposta falada)**: Web Speech API nativa do navegador (zero secret, qualidade ok) ou ElevenLabs (qualidade premium, exige `ELEVENLABS_API_KEY`)?
+2. **STT fallback**: ok delegar tudo para a Layer 1 multimodal e só implementar fallback se você trocar a Layer 1 para um modelo não-multimodal?
+3. **Base de conhecimento inicial**: já ingerir automaticamente `docs/` do repo do Master + do CRM, ou começar só com upload manual?
+4. **Escopo do início**: faço Fase 1 + Fase 2 juntas no próximo loop (recomendado, é o coração da experiência), ou prefere ver Fase 1 primeiro?
+
+Sugestão padrão (responda "manda ver" se concorda): TTS Web Speech, STT delegado à Layer 1, ingestão automática de `docs/` do Master, **Fases 1+2 juntas** no próximo loop.
