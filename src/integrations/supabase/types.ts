@@ -15427,26 +15427,6 @@ export type Database = {
           },
         ]
       }
-      crm_master_reliability_check: {
-        Row: {
-          ai_events_24h: number | null
-          ai_telemetry_coverage: string | null
-          api_usage_logs_24h: number | null
-          checked_at: string | null
-          dead_letters_total: number | null
-          latest_snapshot_received_at: string | null
-          queue_pending: number | null
-          queued_events_24h: number | null
-          receiver_age_seconds: number | null
-          snapshot_schema_valid: boolean | null
-          source_snapshot_age_seconds: number | null
-          tenant_usage_mismatch_count: number | null
-          warnings: string[] | null
-          webhook_events_24h: number | null
-          webhook_failures_24h: number | null
-        }
-        Relationships: []
-      }
       message_external_id_collisions: {
         Row: {
           channel_type: string | null
