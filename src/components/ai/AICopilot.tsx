@@ -46,6 +46,7 @@ function getSuggestions(pathname: string): string[] {
 
 export function AICopilot() {
   const location = useLocation();
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
