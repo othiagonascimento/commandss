@@ -432,7 +432,7 @@ export function AICopilot() {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating button — sits above mobile bottom nav and respects safe-area */}
       <AnimatePresence>
         {!isOpen && (
           <motion.button
@@ -440,7 +440,10 @@ export function AICopilot() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
+            style={{
+              bottom: 'calc(env(safe-area-inset-bottom) + 4.75rem)',
+            }}
+            className="lg:!bottom-6 fixed right-4 lg:right-6 z-50 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
             title="Abrir copiloto (Cmd+J)"
           >
             <Sparkles className="h-5 w-5" />
@@ -448,26 +451,42 @@ export function AICopilot() {
         )}
       </AnimatePresence>
 
-      {/* Floating panel (compact) */}
-      <AnimatePresence>
-        {isOpen && !expanded && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-6 right-6 z-50 w-[400px] h-[600px] max-h-[80vh] rounded-xl shadow-2xl border bg-background overflow-hidden"
+      {/* Mobile: full-screen sheet from bottom for native feel */}
+      {isMobile ? (
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetContent
+            side="bottom"
+            className="h-[100dvh] w-full p-0 border-0 rounded-none gap-0 flex flex-col"
           >
-            {ChatBody}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div className="flex-1 min-h-0 pt-safe pb-safe">
+              {ChatBody}
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <>
+          {/* Floating panel (compact) */}
+          <AnimatePresence>
+            {isOpen && !expanded && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                className="fixed bottom-6 right-6 z-50 w-[400px] h-[600px] max-h-[80vh] rounded-xl shadow-2xl border bg-background overflow-hidden"
+              >
+                {ChatBody}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      {/* Expanded sheet */}
-      <Sheet open={isOpen && expanded} onOpenChange={(o) => !o && setIsOpen(false)}>
-        <SheetContent side="right" className="w-[80vw] sm:max-w-[900px] p-0">
-          {ChatBody}
-        </SheetContent>
-      </Sheet>
+          {/* Expanded sheet */}
+          <Sheet open={isOpen && expanded} onOpenChange={(o) => !o && setIsOpen(false)}>
+            <SheetContent side="right" className="w-[80vw] sm:max-w-[900px] p-0">
+              {ChatBody}
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
     </>
   );
 }
