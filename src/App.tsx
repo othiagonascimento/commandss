@@ -39,6 +39,7 @@ const AIDiagnostics = lazy(() => import("./pages/AIDiagnostics"));
 const CadastroLoja = lazy(() => import("./pages/CadastroLoja"));
 const AdminCadastros = lazy(() => import("./pages/AdminCadastros"));
 const Operations = lazy(() => import("./pages/Operations"));
+const Install = lazy(() => import("./pages/Install"));
 
 // FinOps pages (Master only)
 const FinOpsOverview = lazy(() => import("./pages/finops/FinOpsOverviewPage"));
@@ -143,6 +144,7 @@ const App = () => (
 
                 {/* Public onboarding route - URL curta e amigável */}
                 <Route path="/cadastro" element={<CadastroLoja />} />
+                <Route path="/install" element={<Install />} />
                 {/* Redirecionamentos para URLs antigas */}
                 <Route path="/cadastro-loja" element={<Navigate to="/cadastro" replace />} />
                 <Route path="/cadastros-loja" element={<Navigate to="/cadastro" replace />} />
