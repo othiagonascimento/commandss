@@ -400,4 +400,33 @@
   .bg-surface-1 { background: hsl(var(--surface-1)); }
   .bg-surface-2 { background: hsl(var(--surface-2)); }
   .bg-surface-3 { background: hsl(var(--surface-3)); }
+
+  /* ====== Mobile / PWA elite tweaks ====== */
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pl-safe { padding-left: env(safe-area-inset-left); }
+  .pr-safe { padding-right: env(safe-area-inset-right); }
+  .mt-safe { margin-top: env(safe-area-inset-top); }
+  .mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+  .min-h-screen-safe { min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .h-dvh { height: 100dvh; }
+}
+
+/* ====== PWA / Mobile native feel (global) ====== */
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior-y: none;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+input, textarea, [contenteditable="true"], .selectable {
+  user-select: text;
+  -webkit-user-select: text;
+}
+@media (display-mode: standalone) {
+  .only-browser { display: none !important; }
+}
+@media not all and (display-mode: standalone) {
+  .only-standalone { display: none !important; }
 }

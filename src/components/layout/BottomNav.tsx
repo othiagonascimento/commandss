@@ -15,7 +15,7 @@ export function BottomNav({ onMore }: { onMore: () => void }) {
   const isActive = (p: string) => p === '/' ? pathname === '/' : pathname.startsWith(p);
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-canvas/95 backdrop-blur hairline-t">
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-canvas/95 backdrop-blur hairline-t pb-safe">
       <div className="grid grid-cols-5 h-14">
         {items.map(it => {
           const active = isActive(it.path);
