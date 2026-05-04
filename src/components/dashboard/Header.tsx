@@ -79,7 +79,7 @@ export function Header({ onMenuClick, onCommandOpen }: HeaderProps) {
   })();
 
   return (
-    <header className="sticky top-0 z-30 bg-canvas/85 backdrop-blur hairline-b">
+    <header className="sticky top-0 z-30 bg-canvas/85 backdrop-blur hairline-b pt-safe">
       <div className="h-14 flex items-center gap-3 px-3 sm:px-5">
         <button onClick={onMenuClick} className="lg:hidden -ml-1 p-2 text-ink-2 hover:text-ink" aria-label="Abrir menu">
           <Menu className="h-5 w-5" />
