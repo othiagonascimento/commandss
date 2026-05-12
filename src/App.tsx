@@ -40,6 +40,7 @@ const CadastroLoja = lazy(() => import("./pages/CadastroLoja"));
 const AdminCadastros = lazy(() => import("./pages/AdminCadastros"));
 const Operations = lazy(() => import("./pages/Operations"));
 const Install = lazy(() => import("./pages/Install"));
+const Docs = lazy(() => import("./pages/Docs"));
 
 // FinOps pages (Master only)
 const FinOpsOverview = lazy(() => import("./pages/finops/FinOpsOverviewPage"));
