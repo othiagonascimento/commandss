@@ -430,3 +430,17 @@ input, textarea, [contenteditable="true"], .selectable {
 @media not all and (display-mode: standalone) {
   .only-standalone { display: none !important; }
 }
+
+/* ====== Document reader prose ====== */
+.prose-doc {
+  color: hsl(var(--ink-2));
+  font-size: 15px;
+  line-height: 1.75;
+  max-width: 70ch;
+}
+.prose-doc p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.prose-doc p:empty,
+.prose-doc p.h-2 { min-height: 0.5rem; }

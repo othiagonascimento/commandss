@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Activity, Brain, Calculator, Trophy,
   CreditCard, Link2, ClipboardList, Bell, BarChart3, Cog, UserCog,
   FileText, Clock, Package, FlaskConical, DollarSign, Settings as SettingsIcon,
-  Radio,
+  Radio, BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -65,6 +65,7 @@ export function AppSidebar({ mobileOpen, onMobileClose }: Props) {
         { icon: FileText,    label: 'Logs',         path: '/activity-logs',  permissionCheck: permissions.canViewSettings },
         { icon: Clock,       label: 'Tarefas',      path: '/scheduled-tasks',permissionCheck: permissions.canViewSettings },
         { icon: FlaskConical,label: 'Beta',         path: '/feature-flags',  permissionCheck: permissions.canViewFeatureFlags },
+        { icon: BookOpen,    label: 'Documentos',   path: '/docs',           permissionCheck: () => true },
         { icon: SettingsIcon,label: 'Configurações',path: '/settings',       permissionCheck: permissions.canViewSettings },
       ],
     },

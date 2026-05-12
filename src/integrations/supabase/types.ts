@@ -3761,6 +3761,153 @@ export type Database = {
           },
         ]
       }
+      coupon_redemptions: {
+        Row: {
+          channel: string
+          checkout_session_id: string | null
+          checkout_token: string | null
+          coupon_id: string
+          created_at: string
+          customer_email: string | null
+          customer_phone: string | null
+          discount_cents: number
+          free_shipping: boolean
+          id: string
+          redeemed_at: string
+          tenant_id: string
+        }
+        Insert: {
+          channel?: string
+          checkout_session_id?: string | null
+          checkout_token?: string | null
+          coupon_id: string
+          created_at?: string
+          customer_email?: string | null
+          customer_phone?: string | null
+          discount_cents?: number
+          free_shipping?: boolean
+          id?: string
+          redeemed_at?: string
+          tenant_id: string
+        }
+        Update: {
+          channel?: string
+          checkout_session_id?: string | null
+          checkout_token?: string | null
+          coupon_id?: string
+          created_at?: string
+          customer_email?: string | null
+          customer_phone?: string | null
+          discount_cents?: number
+          free_shipping?: boolean
+          id?: string
+          redeemed_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_checkout_session_id_fkey"
+            columns: ["checkout_session_id"]
+            isOneToOne: false
+            referencedRelation: "store_checkout_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          applies_to: string
+          applies_to_ids: string[]
+          auto_apply: boolean
+          channels: string[]
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          exclude_promotional: boolean
+          excludes_ids: string[]
+          first_purchase_only: boolean
+          id: string
+          max_discount_cents: number | null
+          min_order_cents: number | null
+          rules: Json
+          stackable: boolean
+          starts_at: string | null
+          status: string
+          tenant_id: string
+          type: string
+          updated_at: string
+          usage_limit: number | null
+          usage_per_customer: number | null
+          used_count: number
+          value: number
+        }
+        Insert: {
+          applies_to?: string
+          applies_to_ids?: string[]
+          auto_apply?: boolean
+          channels?: string[]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          exclude_promotional?: boolean
+          excludes_ids?: string[]
+          first_purchase_only?: boolean
+          id?: string
+          max_discount_cents?: number | null
+          min_order_cents?: number | null
+          rules?: Json
+          stackable?: boolean
+          starts_at?: string | null
+          status?: string
+          tenant_id: string
+          type: string
+          updated_at?: string
+          usage_limit?: number | null
+          usage_per_customer?: number | null
+          used_count?: number
+          value?: number
+        }
+        Update: {
+          applies_to?: string
+          applies_to_ids?: string[]
+          auto_apply?: boolean
+          channels?: string[]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          exclude_promotional?: boolean
+          excludes_ids?: string[]
+          first_purchase_only?: boolean
+          id?: string
+          max_discount_cents?: number | null
+          min_order_cents?: number | null
+          rules?: Json
+          stackable?: boolean
+          starts_at?: string | null
+          status?: string
+          tenant_id?: string
+          type?: string
+          updated_at?: string
+          usage_limit?: number | null
+          usage_per_customer?: number | null
+          used_count?: number
+          value?: number
+        }
+        Relationships: []
+      }
       credit_debit_logs: {
         Row: {
           created_at: string | null
@@ -4224,6 +4371,8 @@ export type Database = {
           catalog_columns_mobile: number | null
           catalog_default_sort: string | null
           catalog_display_mode: string | null
+          coupon_field_collapsed_default: boolean | null
+          coupons_enabled: boolean | null
           created_at: string | null
           debit_card_discount_percent: number | null
           debit_card_enabled: boolean | null
@@ -4290,6 +4439,18 @@ export type Database = {
           require_wholesale_approval: boolean | null
           secondary_color: string | null
           share_image_url: string | null
+          shipping_default_height_cm: number | null
+          shipping_default_length_cm: number | null
+          shipping_default_mode: string | null
+          shipping_default_weight_grams: number | null
+          shipping_default_width_cm: number | null
+          shipping_enabled: boolean | null
+          shipping_max_options: number | null
+          shipping_origin_cep: string | null
+          shipping_required_at_checkout: boolean | null
+          shipping_required_before_checkout: boolean
+          shipping_show_all: boolean | null
+          shipping_sort_mode: string | null
           show_benefits_bar: boolean | null
           show_descriptions: boolean | null
           show_prices: boolean | null
@@ -4355,6 +4516,8 @@ export type Database = {
           catalog_columns_mobile?: number | null
           catalog_default_sort?: string | null
           catalog_display_mode?: string | null
+          coupon_field_collapsed_default?: boolean | null
+          coupons_enabled?: boolean | null
           created_at?: string | null
           debit_card_discount_percent?: number | null
           debit_card_enabled?: boolean | null
@@ -4421,6 +4584,18 @@ export type Database = {
           require_wholesale_approval?: boolean | null
           secondary_color?: string | null
           share_image_url?: string | null
+          shipping_default_height_cm?: number | null
+          shipping_default_length_cm?: number | null
+          shipping_default_mode?: string | null
+          shipping_default_weight_grams?: number | null
+          shipping_default_width_cm?: number | null
+          shipping_enabled?: boolean | null
+          shipping_max_options?: number | null
+          shipping_origin_cep?: string | null
+          shipping_required_at_checkout?: boolean | null
+          shipping_required_before_checkout?: boolean
+          shipping_show_all?: boolean | null
+          shipping_sort_mode?: string | null
           show_benefits_bar?: boolean | null
           show_descriptions?: boolean | null
           show_prices?: boolean | null
@@ -4486,6 +4661,8 @@ export type Database = {
           catalog_columns_mobile?: number | null
           catalog_default_sort?: string | null
           catalog_display_mode?: string | null
+          coupon_field_collapsed_default?: boolean | null
+          coupons_enabled?: boolean | null
           created_at?: string | null
           debit_card_discount_percent?: number | null
           debit_card_enabled?: boolean | null
@@ -4552,6 +4729,18 @@ export type Database = {
           require_wholesale_approval?: boolean | null
           secondary_color?: string | null
           share_image_url?: string | null
+          shipping_default_height_cm?: number | null
+          shipping_default_length_cm?: number | null
+          shipping_default_mode?: string | null
+          shipping_default_weight_grams?: number | null
+          shipping_default_width_cm?: number | null
+          shipping_enabled?: boolean | null
+          shipping_max_options?: number | null
+          shipping_origin_cep?: string | null
+          shipping_required_at_checkout?: boolean | null
+          shipping_required_before_checkout?: boolean
+          shipping_show_all?: boolean | null
+          shipping_sort_mode?: string | null
           show_benefits_bar?: boolean | null
           show_descriptions?: boolean | null
           show_prices?: boolean | null
@@ -9168,6 +9357,7 @@ export type Database = {
           embedding: string | null
           embedding_generated_at: string | null
           embedding_model: string | null
+          height_cm: number | null
           id: string
           image_url: string | null
           images: string[] | null
@@ -9176,6 +9366,7 @@ export type Database = {
           is_featured: boolean | null
           is_published: boolean | null
           item_type: string | null
+          length_cm: number | null
           low_stock_alert: number | null
           minimum_price: number | null
           name: string
@@ -9193,7 +9384,9 @@ export type Database = {
           track_stock: boolean | null
           updated_at: string | null
           visibility: string | null
+          weight_grams: number | null
           wholesale_price: number | null
+          width_cm: number | null
         }
         Insert: {
           ai_can_use_minimum_price?: boolean | null
@@ -9208,6 +9401,7 @@ export type Database = {
           embedding?: string | null
           embedding_generated_at?: string | null
           embedding_model?: string | null
+          height_cm?: number | null
           id?: string
           image_url?: string | null
           images?: string[] | null
@@ -9216,6 +9410,7 @@ export type Database = {
           is_featured?: boolean | null
           is_published?: boolean | null
           item_type?: string | null
+          length_cm?: number | null
           low_stock_alert?: number | null
           minimum_price?: number | null
           name: string
@@ -9233,7 +9428,9 @@ export type Database = {
           track_stock?: boolean | null
           updated_at?: string | null
           visibility?: string | null
+          weight_grams?: number | null
           wholesale_price?: number | null
+          width_cm?: number | null
         }
         Update: {
           ai_can_use_minimum_price?: boolean | null
@@ -9248,6 +9445,7 @@ export type Database = {
           embedding?: string | null
           embedding_generated_at?: string | null
           embedding_model?: string | null
+          height_cm?: number | null
           id?: string
           image_url?: string | null
           images?: string[] | null
@@ -9256,6 +9454,7 @@ export type Database = {
           is_featured?: boolean | null
           is_published?: boolean | null
           item_type?: string | null
+          length_cm?: number | null
           low_stock_alert?: number | null
           minimum_price?: number | null
           name?: string
@@ -9273,7 +9472,9 @@ export type Database = {
           track_stock?: boolean | null
           updated_at?: string | null
           visibility?: string | null
+          weight_grams?: number | null
           wholesale_price?: number | null
+          width_cm?: number | null
         }
         Relationships: [
           {
@@ -10728,6 +10929,119 @@ export type Database = {
           },
         ]
       }
+      shipping_methods: {
+        Row: {
+          config: Json
+          created_at: string
+          description: string | null
+          display_name: string
+          enabled: boolean
+          icon_emoji: string | null
+          id: string
+          internal_name: string | null
+          sort_order: number
+          tenant_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          description?: string | null
+          display_name: string
+          enabled?: boolean
+          icon_emoji?: string | null
+          id?: string
+          internal_name?: string | null
+          sort_order?: number
+          tenant_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          enabled?: boolean
+          icon_emoji?: string | null
+          id?: string
+          internal_name?: string | null
+          sort_order?: number
+          tenant_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      shipping_rules: {
+        Row: {
+          cep_end: string | null
+          cep_start: string | null
+          created_at: string
+          delivery_max_days: number | null
+          delivery_min_days: number | null
+          enabled: boolean
+          free_above_cents: number | null
+          id: string
+          max_total_cents: number | null
+          max_weight_grams: number | null
+          method_id: string
+          min_total_cents: number | null
+          price_cents: number
+          region_uf: string | null
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cep_end?: string | null
+          cep_start?: string | null
+          created_at?: string
+          delivery_max_days?: number | null
+          delivery_min_days?: number | null
+          enabled?: boolean
+          free_above_cents?: number | null
+          id?: string
+          max_total_cents?: number | null
+          max_weight_grams?: number | null
+          method_id: string
+          min_total_cents?: number | null
+          price_cents?: number
+          region_uf?: string | null
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          cep_end?: string | null
+          cep_start?: string | null
+          created_at?: string
+          delivery_max_days?: number | null
+          delivery_min_days?: number | null
+          enabled?: boolean
+          free_above_cents?: number | null
+          id?: string
+          max_total_cents?: number | null
+          max_weight_grams?: number | null
+          method_id?: string
+          min_total_cents?: number | null
+          price_cents?: number
+          region_uf?: string | null
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_rules_method_id_fkey"
+            columns: ["method_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sla_config: {
         Row: {
           auto_reassign: boolean | null
@@ -10929,6 +11243,10 @@ export type Database = {
           checkout_token: string
           confirmed_at: string | null
           conversation_id: string | null
+          coupon_code: string | null
+          coupon_discount_cents: number | null
+          coupon_free_shipping: boolean | null
+          coupon_id: string | null
           created_at: string
           currency: string
           customer_email: string | null
@@ -10957,6 +11275,13 @@ export type Database = {
           shipping_address: Json | null
           shipping_carrier: string | null
           shipping_cents: number
+          shipping_cep: string | null
+          shipping_display_name: string | null
+          shipping_eta_max_days: number | null
+          shipping_eta_min_days: number | null
+          shipping_method_id: string | null
+          shipping_price_cents: number | null
+          shipping_service: string | null
           shipping_tracking_code: string | null
           shipping_tracking_url: string | null
           status: string
@@ -10976,6 +11301,10 @@ export type Database = {
           checkout_token: string
           confirmed_at?: string | null
           conversation_id?: string | null
+          coupon_code?: string | null
+          coupon_discount_cents?: number | null
+          coupon_free_shipping?: boolean | null
+          coupon_id?: string | null
           created_at?: string
           currency?: string
           customer_email?: string | null
@@ -11004,6 +11333,13 @@ export type Database = {
           shipping_address?: Json | null
           shipping_carrier?: string | null
           shipping_cents?: number
+          shipping_cep?: string | null
+          shipping_display_name?: string | null
+          shipping_eta_max_days?: number | null
+          shipping_eta_min_days?: number | null
+          shipping_method_id?: string | null
+          shipping_price_cents?: number | null
+          shipping_service?: string | null
           shipping_tracking_code?: string | null
           shipping_tracking_url?: string | null
           status?: string
@@ -11023,6 +11359,10 @@ export type Database = {
           checkout_token?: string
           confirmed_at?: string | null
           conversation_id?: string | null
+          coupon_code?: string | null
+          coupon_discount_cents?: number | null
+          coupon_free_shipping?: boolean | null
+          coupon_id?: string | null
           created_at?: string
           currency?: string
           customer_email?: string | null
@@ -11051,6 +11391,13 @@ export type Database = {
           shipping_address?: Json | null
           shipping_carrier?: string | null
           shipping_cents?: number
+          shipping_cep?: string | null
+          shipping_display_name?: string | null
+          shipping_eta_max_days?: number | null
+          shipping_eta_min_days?: number | null
+          shipping_method_id?: string | null
+          shipping_price_cents?: number | null
+          shipping_service?: string | null
           shipping_tracking_code?: string | null
           shipping_tracking_url?: string | null
           status?: string
@@ -16363,6 +16710,7 @@ export type Database = {
       }
       cleanup_old_data: { Args: never; Returns: Json }
       cleanup_ops_health_data: { Args: never; Returns: undefined }
+      cleanup_store_events: { Args: never; Returns: Json }
       create_notification_if_enabled: {
         Args: {
           p_message: string
@@ -17234,6 +17582,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: Json
       }
+      rpc_restore_customer_cart: {
+        Args: { p_customer_email: string; p_tenant_id: string }
+        Returns: Json
+      }
       rpc_track_store_event: {
         Args: {
           p_ad_referral?: Json
@@ -17305,24 +17657,44 @@ export type Database = {
         Args: { p_items: Json; p_token: string }
         Returns: Json
       }
-      rpc_upsert_store_cart: {
-        Args: {
-          p_ad_referral?: Json
-          p_customer_name?: string
-          p_customer_phone?: string
-          p_existing_token?: string
-          p_items?: Json
-          p_seller_id?: string
-          p_session_id?: string
-          p_target_phone?: string
-          p_target_source?: string
-          p_tenant_id: string
-          p_total_cents?: number
-          p_utm?: Json
-          p_visitor_id: string
-        }
-        Returns: Json
-      }
+      rpc_upsert_store_cart:
+        | {
+            Args: {
+              p_ad_referral?: Json
+              p_customer_name?: string
+              p_customer_phone?: string
+              p_existing_token?: string
+              p_items?: Json
+              p_seller_id?: string
+              p_session_id?: string
+              p_target_phone?: string
+              p_target_source?: string
+              p_tenant_id: string
+              p_total_cents?: number
+              p_utm?: Json
+              p_visitor_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_ad_referral?: Json
+              p_customer_email?: string
+              p_customer_name?: string
+              p_customer_phone?: string
+              p_existing_token?: string
+              p_items?: Json
+              p_seller_id?: string
+              p_session_id?: string
+              p_target_phone?: string
+              p_target_source?: string
+              p_tenant_id: string
+              p_total_cents?: number
+              p_utm?: Json
+              p_visitor_id: string
+            }
+            Returns: Json
+          }
       run_whatsapp_inbound_integrity_monitor: {
         Args: { p_window_minutes?: number }
         Returns: Json

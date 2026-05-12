@@ -40,6 +40,7 @@ const CadastroLoja = lazy(() => import("./pages/CadastroLoja"));
 const AdminCadastros = lazy(() => import("./pages/AdminCadastros"));
 const Operations = lazy(() => import("./pages/Operations"));
 const Install = lazy(() => import("./pages/Install"));
+const Docs = lazy(() => import("./pages/Docs"));
 
 // FinOps pages (Master only)
 const FinOpsOverview = lazy(() => import("./pages/finops/FinOpsOverviewPage"));
@@ -129,6 +130,9 @@ const App = () => (
                 <Route path="/ai-diagnostics" element={<ProtectedRoute><AIDiagnostics /></ProtectedRoute>} />
                 <Route path="/operations" element={<ProtectedRoute><Operations /></ProtectedRoute>} />
                 <Route path="/admin/cadastros" element={<ProtectedRoute><AdminCadastros /></ProtectedRoute>} />
+                <Route path="/docs" element={<ProtectedRoute><Docs /></ProtectedRoute>} />
+                <Route path="/docs/:docId" element={<ProtectedRoute><Docs /></ProtectedRoute>} />
+                <Route path="/docs/:docId/:sectionId" element={<ProtectedRoute><Docs /></ProtectedRoute>} />
 
                 {/* FinOps / Unit Economics — Master only */}
                 <Route path="/finops" element={<ProtectedRoute><FinOpsOverview /></ProtectedRoute>} />
