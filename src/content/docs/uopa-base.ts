@@ -1454,4 +1454,6 @@ Da descoberta à recompra.`,
   ],
 };
 
-export const docsLibrary = [uopaBaseDoc];
+import { uopaArquiteturaDoc } from './uopa-arquitetura';
+
+export const docsLibrary = [uopaBaseDoc, uopaArquiteturaDoc];
