@@ -11,7 +11,7 @@ import { parseDocBody } from '@/content/docs/parseDocBody';
 import { DocBlockRenderer } from '@/components/docs/DocBlockRenderer';
 import { DocHero } from '@/components/docs/DocHero';
 import { ChapterNav } from '@/components/docs/ChapterNav';
-import { sectionInfographics } from '@/components/docs/sectionInfographicMap';
+import { sectionInfographics, variantFor } from '@/components/docs/sectionInfographicMap';
 
 const WORDS_PER_MIN = 220;
 
@@ -288,19 +288,54 @@ export default function Docs() {
             />
           </div>
 
-          <article className="space-y-16">
-            {filteredSections.map((s) => {
+          <article className="space-y-20">
+            {filteredSections.map((s, idx) => {
               const Info = sectionInfographics[s.id];
               const i = idxInDoc(s.id);
               const prev = i > 0 ? doc.sections[i - 1] : undefined;
               const next = i < doc.sections.length - 1 ? doc.sections[i + 1] : undefined;
-              return (
-                <section key={s.id} id={`sec-${s.id}`} className="scroll-mt-24">
+              const variant = variantFor(s.number, s.id);
+              const tinted = idx % 3 === 2; // a cada 3 seções, uma ganha tinta de fundo
+              const numStr = s.number !== null ? String(s.number).padStart(2, '0') : '';
+
+              const Header = () => {
+                if (variant === 'banner-num' && s.number !== null) {
+                  return (
+                    <div className="doc-chapter-banner" data-num={numStr}>
+                      <div className="relative">
+                        <div className="doc-eyebrow text-plasma mb-2">Capítulo {s.number}</div>
+                        <h2 className="text-3xl sm:text-4xl font-semibold text-ink tracking-tight leading-[1.1] max-w-2xl">
+                          {s.title}
+                        </h2>
+                      </div>
+                    </div>
+                  );
+                }
+                if (variant === 'split-eyebrow') {
+                  return (
+                    <div className="doc-chapter-split">
+                      <div className="flex items-center gap-3 mb-2">
+                        {s.number !== null ? (
+                          <span className="font-mono text-xs tabular text-plasma">{numStr}</span>
+                        ) : (
+                          <span className="text-plasma text-xs">★</span>
+                        )}
+                        <span className="doc-eyebrow text-plasma">
+                          {s.number !== null ? `Capítulo ${s.number}` : 'Abertura'}
+                        </span>
+                        <span className="flex-1 h-px bg-hairline" />
+                      </div>
+                      <h2 className="text-2xl sm:text-[28px] font-semibold text-ink tracking-tight leading-tight">
+                        {s.title}
+                      </h2>
+                    </div>
+                  );
+                }
+                // side-num (default)
+                return (
                   <div className="flex items-start gap-4 mb-5 pb-3 border-b border-hairline">
                     {s.number !== null ? (
-                      <div className="doc-chapter-num shrink-0">
-                        {String(s.number).padStart(2, '0')}
-                      </div>
+                      <div className="doc-chapter-num shrink-0">{numStr}</div>
                     ) : (
                       <div className="doc-eyebrow text-plasma mt-2 shrink-0">★</div>
                     )}
@@ -313,11 +348,18 @@ export default function Docs() {
                       </h2>
                     </div>
                   </div>
+                );
+              };
 
+              return (
+                <section
+                  key={s.id}
+                  id={`sec-${s.id}`}
+                  className={cn('scroll-mt-24', tinted && 'doc-section-tint')}
+                >
+                  <Header />
                   {Info && <Info />}
-
                   <DocBlockRenderer blocks={s.blocks} />
-
                   {!query.trim() && (
                     <ChapterNav prev={prev} next={next} onNavigate={goToSection} />
                   )}
