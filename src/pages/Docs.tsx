@@ -12,6 +12,56 @@ export default function Docs() {
   const { docId, sectionId } = useParams();
   const navigate = useNavigate();
 
+  const doc = useMemo(
+    () => docsLibrary.find((d) => d.id === docId) ?? docsLibrary[0],
+    [docId],
+  );
+  const [query, setQuery] = useState('');
+  const [activeId, setActiveId] = useState<string | undefined>(sectionId);
+  const [tocOpen, setTocOpen] = useState(false);
+
+  useEffect(() => {
+    if (!docId) return;
+    if (sectionId) {
+      const el = document.getElementById(`sec-${sectionId}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveId(sectionId);
+    } else {
+      window.scrollTo({ top: 0 });
+    }
+  }, [sectionId, doc.id, docId]);
+
+  useEffect(() => {
+    if (!docId) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (visible) setActiveId(visible.target.id.replace('sec-', ''));
+      },
+      { rootMargin: '-20% 0px -70% 0px', threshold: 0 },
+    );
+    doc.sections.forEach((s) => {
+      const el = document.getElementById(`sec-${s.id}`);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [doc, docId]);
+
+  const filteredSections = useMemo(() => {
+    if (!query.trim()) return doc.sections;
+    const q = query.toLowerCase();
+    return doc.sections.filter(
+      (s) => s.title.toLowerCase().includes(q) || s.body.toLowerCase().includes(q),
+    );
+  }, [query, doc]);
+
+  const goToSection = (id: string) => {
+    document.getElementById(`sec-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTocOpen(false);
+  };
+
   // ===== LIBRARY INDEX (no doc selected) =====
   if (!docId) {
     return (
