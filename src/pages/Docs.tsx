@@ -11,7 +11,7 @@ import { parseDocBody } from '@/content/docs/parseDocBody';
 import { DocBlockRenderer } from '@/components/docs/DocBlockRenderer';
 import { DocHero } from '@/components/docs/DocHero';
 import { ChapterNav } from '@/components/docs/ChapterNav';
-import { sectionInfographics } from '@/components/docs/sectionInfographicMap';
+import { sectionInfographics, variantFor } from '@/components/docs/sectionInfographicMap';
 
 const WORDS_PER_MIN = 220;
 
