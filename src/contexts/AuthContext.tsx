@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -99,6 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         return { error };
       }
+
+      await loadSessionProfile(data.session);
 
       return { error: null };
     } catch (err) {
