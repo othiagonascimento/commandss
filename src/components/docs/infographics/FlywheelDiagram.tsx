@@ -1,52 +1,62 @@
 const STAGES = [
-  'Mais contexto',
-  'Mais inteligência',
-  'Mais monetização',
-  'Mais retenção',
-  'Mais dados',
+  { title: 'Mais dados', desc: 'Cada conversa, venda e atendimento vira sinal.' },
+  { title: 'Mais contexto', desc: 'O sistema entende melhor cliente, produto e operação.' },
+  { title: 'Mais inteligência', desc: 'Decisões e respostas ficam mais precisas.' },
+  { title: 'Mais monetização', desc: 'Conversão sobe, ticket sobe, custo cai.' },
+  { title: 'Mais retenção', desc: 'Cliente fica, operação depende do sistema.' },
 ];
 
 export function FlywheelDiagram() {
-  const cx = 180;
-  const cy = 180;
-  const r = 110;
   return (
     <figure className="not-prose my-8 rounded-lg border border-hairline bg-surface-1/60 p-6">
-      <div className="doc-eyebrow mb-3">Flywheel · vantagem composta</div>
-      <div className="flex justify-center">
-        <svg viewBox="0 0 360 360" className="w-full max-w-[380px]">
-          <defs>
-            <linearGradient id="fw-grad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="hsl(var(--brand-purple))" />
-              <stop offset="100%" stopColor="hsl(var(--plasma))" />
-            </linearGradient>
-          </defs>
-          <circle cx={cx} cy={cy} r={r + 28} fill="none" stroke="hsl(var(--hairline))" strokeDasharray="2 5" />
-          <circle cx={cx} cy={cy} r={36} fill="url(#fw-grad)" opacity="0.85" />
-          <text x={cx} y={cy + 4} textAnchor="middle" fontFamily="Manrope" fontSize="11" fontWeight="700" fill="white">
-            FLYWHEEL
-          </text>
-          {STAGES.map((s, i) => {
-            const a = (i / STAGES.length) * Math.PI * 2 - Math.PI / 2;
-            const x = cx + Math.cos(a) * r;
-            const y = cy + Math.sin(a) * r;
-            const a2 = ((i + 1) / STAGES.length) * Math.PI * 2 - Math.PI / 2;
-            const x2 = cx + Math.cos(a2) * r;
-            const y2 = cy + Math.sin(a2) * r;
-            return (
-              <g key={s}>
-                <line x1={x} y1={y} x2={x2} y2={y2} stroke="hsl(var(--plasma))" strokeWidth="1" opacity="0.5" />
-                <circle cx={x} cy={y} r="20" fill="hsl(var(--surface-2))" stroke="hsl(var(--plasma))" />
-                <text x={x} y={y + 3} textAnchor="middle" fontSize="9" fontWeight="600" fontFamily="Manrope" fill="hsl(var(--ink-primary))">
-                  {String(i + 1).padStart(2, '0')}
-                </text>
-                <text x={x} y={y - 30} textAnchor="middle" fontSize="11" fontFamily="Manrope" fill="hsl(var(--ink-2))">
-                  {s}
-                </text>
-              </g>
-            );
-          })}
+      <div className="doc-eyebrow mb-2">Flywheel · vantagem composta</div>
+      <p className="text-sm text-ink-2 mb-6 max-w-2xl">
+        Cada etapa alimenta a próxima. Quanto mais o ciclo gira, mais difícil fica para um concorrente alcançar.
+      </p>
+
+      {/* Cadeia horizontal — leitura imediata da esquerda para a direita */}
+      <ol className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-6">
+        {STAGES.map((s, i) => (
+          <li
+            key={s.title}
+            className="relative rounded-lg border border-hairline bg-surface-2/60 p-4 flex flex-col gap-2"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[10px] tracking-widest text-ink-3">
+                ETAPA {String(i + 1).padStart(2, '0')}
+              </span>
+              <span className="h-1.5 w-1.5 rounded-full bg-plasma" />
+            </div>
+            <div className="font-semibold text-ink-1 text-sm leading-tight">{s.title}</div>
+            <div className="text-xs text-ink-2 leading-snug">{s.desc}</div>
+            {/* seta entre cards (desktop) */}
+            {i < STAGES.length - 1 && (
+              <span
+                aria-hidden
+                className="hidden md:flex absolute -right-2.5 top-1/2 -translate-y-1/2 z-10 h-5 w-5 items-center justify-center rounded-full bg-plasma text-[10px] font-bold text-white shadow"
+              >
+                ›
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      {/* Loop fechado — mostra que o final realimenta o início */}
+      <div className="flex items-center gap-3 rounded-md border border-dashed border-plasma/40 bg-plasma/5 px-4 py-3">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" className="shrink-0 text-plasma">
+          <path
+            d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
+        <p className="text-xs md:text-sm text-ink-2 leading-snug">
+          <span className="font-semibold text-ink-1">O ciclo se fecha:</span> mais retenção gera mais uso,
+          que gera mais dados — e o flywheel acelera de novo, com mais força.
+        </p>
       </div>
     </figure>
   );
