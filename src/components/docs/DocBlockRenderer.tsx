@@ -1,7 +1,43 @@
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Quote } from 'lucide-react';
 import type { DocBlock } from '@/content/docs/parseDocBody';
 
+const MANIFESTO_VARIANTS = ['quote', 'centered', 'side-bar', 'boxed'] as const;
+type ManifestoVariant = (typeof MANIFESTO_VARIANTS)[number];
+
+function ManifestoBlock({ text, variant }: { text: string; variant: ManifestoVariant }) {
+  if (variant === 'quote') {
+    return (
+      <div className="doc-manifesto-quote">
+        <Quote className="h-5 w-5 text-plasma/60 shrink-0 mt-1" />
+        <span>{text}</span>
+      </div>
+    );
+  }
+  if (variant === 'centered') {
+    return (
+      <div className="doc-manifesto-centered">
+        <span className="h-px w-12 bg-plasma" />
+        <span>{text}</span>
+        <span className="h-px w-12 bg-plasma" />
+      </div>
+    );
+  }
+  if (variant === 'boxed') {
+    return (
+      <div className="doc-manifesto-boxed">
+        <span>{text}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="doc-manifesto">
+      <span>{text}</span>
+    </div>
+  );
+}
+
 export function DocBlockRenderer({ blocks }: { blocks: DocBlock[] }) {
+  let manifestoCount = 0;
   return (
     <div className="space-y-5">
       {blocks.map((b, i) => {
@@ -12,12 +48,11 @@ export function DocBlockRenderer({ blocks }: { blocks: DocBlock[] }) {
                 {b.text}
               </p>
             );
-          case 'manifesto':
-            return (
-              <div key={i} className="doc-manifesto">
-                <span>{b.text}</span>
-              </div>
-            );
+          case 'manifesto': {
+            const variant = MANIFESTO_VARIANTS[manifestoCount % MANIFESTO_VARIANTS.length];
+            manifestoCount++;
+            return <ManifestoBlock key={i} text={b.text} variant={variant} />;
+          }
           case 'subheading':
             return (
               <div key={i} className="doc-subheading">
