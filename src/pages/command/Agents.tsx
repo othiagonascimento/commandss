@@ -374,6 +374,56 @@ function AgentDetail({
   );
 }
 
+function ModelSelector({ agent }: { agent: Agent }) {
+  const qc = useQueryClient();
+  const { data: models } = useQuery({
+    queryKey: ['command', 'available-models'],
+    queryFn: listAvailableModels,
+    staleTime: 5 * 60_000,
+  });
+
+  const current =
+    agent.provider && agent.model_id
+      ? `${agent.provider}/${agent.model_id}`
+      : agent.model ?? '';
+
+  const mut = useMutation({
+    mutationFn: ({ provider, model_id }: { provider: string; model_id: string }) =>
+      updateAgentModel(agent.id, provider, model_id),
+    onSuccess: () => {
+      toast.success('Modelo atualizado');
+      qc.invalidateQueries({ queryKey: ['command', 'agents', 'catalog'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="mt-2 flex items-center gap-1.5">
+      <Cpu className="w-3 h-3 text-[hsl(var(--ink-faint))]" />
+      <select
+        value={current}
+        onChange={(e) => {
+          const [provider, ...rest] = e.target.value.split('/');
+          const model_id = rest.join('/');
+          if (provider && model_id) mut.mutate({ provider, model_id });
+        }}
+        disabled={mut.isPending}
+        className="font-mono text-[10.5px] bg-transparent text-[hsl(var(--ink-muted))] hover:text-[hsl(var(--ink-primary))] border-0 focus:outline-none focus:ring-0 cursor-pointer disabled:opacity-50 max-w-[260px]"
+      >
+        {!current && <option value="">— escolher modelo —</option>}
+        {current && !models?.some((m) => `${m.provider}/${m.model_id}` === current) && (
+          <option value={current}>{current} (legado)</option>
+        )}
+        {(models ?? []).map((m: AvailableModel) => (
+          <option key={`${m.provider}/${m.model_id}`} value={`${m.provider}/${m.model_id}`}>
+            {m.provider} · {m.display_name} · ${m.cost_per_1k_input.toFixed(4)}/1k in · ${m.cost_per_1k_output.toFixed(4)}/1k out
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="px-6 py-5 border-b border-[hsl(var(--hairline))] last:border-b-0">
