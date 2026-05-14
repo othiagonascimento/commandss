@@ -5,6 +5,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { runNativeChat } from "../_shared/commandAiNative.ts";
 
 const MASTER_UUID = "cdc32c8f-32cd-439e-8103-e034d16eebf2";
 
@@ -19,7 +20,6 @@ const log = (s: string, d?: unknown) =>
 
 const REMOTE_URL = Deno.env.get("REMOTE_SUPABASE_URL")!;
 const REMOTE_SERVICE = Deno.env.get("REMOTE_SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
 const localAuth = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -97,33 +97,16 @@ serve(async (req) => {
     // Chama planner
     const userPrompt = `OBJETIVO: ${objective}${context ? `\n\nCONTEXTO: ${context}` : ""}\n\nAGENTES DISPONÍVEIS:\n${agentList}\n\nGere o plano em JSON.`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: PLANNER_SYSTEM },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
+    const aiJson = await runNativeChat({
+      model: "google/gemini-2.5-pro",
+      messages: [
+        { role: "system", content: PLANNER_SYSTEM },
+        { role: "user", content: userPrompt },
+      ],
+      responseFormat: "json_object",
     });
 
-    if (!aiRes.ok) {
-      const txt = await aiRes.text();
-      await remoteDb
-        .from("missions")
-        .update({ status: "failed", result: { error: txt.slice(0, 400) } })
-        .eq("id", missionId);
-      throw new Error(`ai_${aiRes.status}: ${txt.slice(0, 200)}`);
-    }
-
-    const aiJson = await aiRes.json();
-    const raw = aiJson.choices?.[0]?.message?.content ?? "{}";
+    const raw = aiJson.content || "{}";
     let parsed: { summary?: string; nodes?: Array<Record<string, unknown>> };
     try {
       parsed = JSON.parse(raw);
