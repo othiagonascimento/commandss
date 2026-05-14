@@ -175,3 +175,24 @@ function MiniStat({
     </div>
   );
 }
+
+function InfoChip({
+  label,
+  value,
+  sizes,
+}: {
+  label: string;
+  value: string;
+  sizes: { meta: string };
+}) {
+  return (
+    <div className="min-w-0 rounded-[4px] border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-1.5 py-1">
+      <div className="font-mono text-[5.5px] uppercase tracking-[0.16em] leading-none text-[hsl(var(--ink-faint))]">
+        {label}
+      </div>
+      <div className={`mt-0.5 truncate font-mono leading-tight text-[hsl(var(--ink-secondary))] ${sizes.meta}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
