@@ -1,7 +1,7 @@
 /**
  * UÔPA ARENA — Onda A (esqueleto vivo).
  *
- * - 9 arenas em grid 3×3, sem scroll.
+ * - 9 arenas em grid responsivo, sem cortes no modo TV.
  * - Modo TV: ?tv=1 → esconde sidebar/header, ativa câmera automática
  *   focando a arena com maior prioridade por 8s, depois rotaciona.
  * - Mock engine roda no cliente; substitui por Realtime na Onda B.
@@ -104,10 +104,10 @@ export default function Arena() {
         />
 
         <div
-          className={`relative h-full p-3 sm:p-4 lg:p-6 gap-3 lg:gap-4 ${
+          className={`relative h-full min-h-0 p-2 sm:p-3 lg:p-4 gap-2 sm:gap-3 ${
             tvMode
               ? 'grid grid-cols-3 grid-rows-3 overflow-hidden'
-              : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-3 overflow-y-auto lg:overflow-hidden auto-rows-fr'
+              : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 overflow-y-auto auto-rows-[minmax(250px,auto)] xl:auto-rows-[minmax(220px,auto)]'
           }`}
         >
           {ordered.map((arena, idx) => {
@@ -119,7 +119,7 @@ export default function Arena() {
                 snapshot={snap}
                 index={idx}
                 tv={tvMode}
-                fill={tvMode}
+                fill={tvMode || false}
                 focused={focusSlug === arena.slug}
                 onClick={() => setSpotlightSlug(arena.slug)}
               />
