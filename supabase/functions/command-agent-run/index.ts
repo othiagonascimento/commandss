@@ -92,13 +92,15 @@ serve(async (req) => {
     // Carrega agent
     const { data: agent, error: agErr } = await remoteDb
       .from("agents")
-      .select("id, slug, name, role, system_prompt, model, color_hex")
+      .select("id, slug, name, role, system_prompt, model, provider, model_id, color_hex")
       .eq("slug", agent_slug)
       .maybeSingle();
     if (agErr) throw agErr;
     if (!agent) throw new Error(`agent not found: ${agent_slug}`);
 
-    const model = modelOverride || agent.model || "google/gemini-2.5-flash";
+    const composed =
+      agent.provider && agent.model_id ? `${agent.provider}/${agent.model_id}` : agent.model;
+    const model = modelOverride || composed || "google/gemini-1.5-flash";
 
     // Cria run
     const startedAt = new Date().toISOString();

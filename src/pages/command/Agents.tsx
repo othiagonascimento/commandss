@@ -4,18 +4,22 @@
  * Click → drawer com bio, capacidades, prompt-base e atalho para briefar.
  */
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { toast } from 'sonner';
 import {
   listAgents,
   getAgentsStats,
   getAgentRecentRuns,
+  listAvailableModels,
+  updateAgentModel,
   type Agent,
   type AgentStats,
+  type AvailableModel,
 } from '@/lib/command/agents';
 import { useCommandStore } from '@/lib/command/store';
-import { Activity, CheckCircle2, AlertTriangle, Zap, Clock, Sparkles, X } from 'lucide-react';
+import { Activity, CheckCircle2, AlertTriangle, Zap, Clock, Sparkles, X, Cpu } from 'lucide-react';
 
 export default function CommandAgents() {
   const wsId = useCommandStore((s) => s.activeWorkspaceId);
@@ -229,11 +233,7 @@ function AgentDetail({
             <h2 className="text-[22px] font-display font-bold text-[hsl(var(--ink-primary))] leading-tight mt-0.5">
               {agent.name}
             </h2>
-            {agent.model && (
-              <div className="font-mono text-[10.5px] text-[hsl(var(--ink-muted))] mt-1">
-                {agent.model}
-              </div>
-            )}
+            <ModelSelector agent={agent} />
           </div>
           <button
             onClick={onClose}
@@ -370,6 +370,56 @@ function AgentDetail({
           )}
         </Section>
       </div>
+    </div>
+  );
+}
+
+function ModelSelector({ agent }: { agent: Agent }) {
+  const qc = useQueryClient();
+  const { data: models } = useQuery({
+    queryKey: ['command', 'available-models'],
+    queryFn: listAvailableModels,
+    staleTime: 5 * 60_000,
+  });
+
+  const current =
+    agent.provider && agent.model_id
+      ? `${agent.provider}/${agent.model_id}`
+      : agent.model ?? '';
+
+  const mut = useMutation({
+    mutationFn: ({ provider, model_id }: { provider: string; model_id: string }) =>
+      updateAgentModel(agent.id, provider, model_id),
+    onSuccess: () => {
+      toast.success('Modelo atualizado');
+      qc.invalidateQueries({ queryKey: ['command', 'agents', 'catalog'] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="mt-2 flex items-center gap-1.5">
+      <Cpu className="w-3 h-3 text-[hsl(var(--ink-faint))]" />
+      <select
+        value={current}
+        onChange={(e) => {
+          const [provider, ...rest] = e.target.value.split('/');
+          const model_id = rest.join('/');
+          if (provider && model_id) mut.mutate({ provider, model_id });
+        }}
+        disabled={mut.isPending}
+        className="font-mono text-[10.5px] bg-transparent text-[hsl(var(--ink-muted))] hover:text-[hsl(var(--ink-primary))] border-0 focus:outline-none focus:ring-0 cursor-pointer disabled:opacity-50 max-w-[260px]"
+      >
+        {!current && <option value="">— escolher modelo —</option>}
+        {current && !models?.some((m) => `${m.provider}/${m.model_id}` === current) && (
+          <option value={current}>{current} (legado)</option>
+        )}
+        {(models ?? []).map((m: AvailableModel) => (
+          <option key={`${m.provider}/${m.model_id}`} value={`${m.provider}/${m.model_id}`}>
+            {m.provider} · {m.display_name} · ${m.cost_per_1k_input.toFixed(4)}/1k in · ${m.cost_per_1k_output.toFixed(4)}/1k out
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
