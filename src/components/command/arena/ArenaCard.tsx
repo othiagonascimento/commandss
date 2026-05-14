@@ -106,7 +106,7 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.6, repeat: Infinity }}
               />
-              <span className={`text-[hsl(var(--ink-primary))] truncate ${t.stateLabel} uppercase tracking-[0.18em] font-mono`}>
+              <span className={`text-[hsl(var(--ink-primary))] ${t.stateLabel} uppercase tracking-[0.18em] font-mono leading-tight break-words`}>
                 {tone.label}
               </span>
             </div>
@@ -190,7 +190,7 @@ function InfoChip({
       <div className="font-mono text-[5.5px] uppercase tracking-[0.16em] leading-none text-[hsl(var(--ink-faint))]">
         {label}
       </div>
-      <div className={`mt-0.5 truncate font-mono leading-tight text-[hsl(var(--ink-secondary))] ${sizes.meta}`}>
+      <div className={`mt-0.5 font-mono leading-tight text-[hsl(var(--ink-secondary))] ${sizes.meta}`}>
         {value}
       </div>
     </div>
