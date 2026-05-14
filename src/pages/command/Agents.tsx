@@ -12,6 +12,7 @@ import {
   getAgentsStats,
   getAgentRecentRuns,
   type Agent,
+  type AgentStats,
 } from '@/lib/command/agents';
 import { useCommandStore } from '@/lib/command/store';
 import { Activity, CheckCircle2, AlertTriangle, Zap, Clock, Sparkles, X } from 'lucide-react';
@@ -183,7 +184,7 @@ function AgentDetail({
   onBrief,
 }: {
   agent: Agent;
-  stats: ReturnType<typeof useCommandStore> extends never ? never : ReturnType<typeof Map.prototype.get> | undefined;
+  stats: AgentStats | undefined;
   onClose: () => void;
   onBrief: () => void;
 }) {
