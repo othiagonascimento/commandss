@@ -4,18 +4,22 @@
  * Click → drawer com bio, capacidades, prompt-base e atalho para briefar.
  */
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { toast } from 'sonner';
 import {
   listAgents,
   getAgentsStats,
   getAgentRecentRuns,
+  listAvailableModels,
+  updateAgentModel,
   type Agent,
   type AgentStats,
+  type AvailableModel,
 } from '@/lib/command/agents';
 import { useCommandStore } from '@/lib/command/store';
-import { Activity, CheckCircle2, AlertTriangle, Zap, Clock, Sparkles, X } from 'lucide-react';
+import { Activity, CheckCircle2, AlertTriangle, Zap, Clock, Sparkles, X, Cpu } from 'lucide-react';
 
 export default function CommandAgents() {
   const wsId = useCommandStore((s) => s.activeWorkspaceId);
