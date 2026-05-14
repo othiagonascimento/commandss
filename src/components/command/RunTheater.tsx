@@ -203,7 +203,11 @@ export function RunTheater() {
 
             {/* Footer */}
             <div className="border-t border-[hsl(var(--hairline))] px-6 py-2.5 flex items-center justify-between font-mono text-[10px] text-[hsl(var(--ink-faint))] uppercase tracking-widest shrink-0">
-              <span>{run?.model ?? '—'}</span>
+              <span>
+                {run?.tokens_in || run?.tokens_out
+                  ? `${(run.tokens_in ?? 0) + (run.tokens_out ?? 0)} tokens`
+                  : '—'}
+              </span>
               <span>
                 {run?.duration_ms ? `${(run.duration_ms / 1000).toFixed(1)}s` : 'em curso'}
               </span>
