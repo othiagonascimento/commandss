@@ -50,6 +50,8 @@ const CommandMissions = lazy(() => import("./pages/command/Missions"));
 const CommandMissionDetail = lazy(() => import("./pages/command/MissionDetail"));
 const CommandContent = lazy(() => import("./pages/command/Content"));
 const CommandContentDetail = lazy(() => import("./pages/command/ContentDetail"));
+const CommandInbox = lazy(() => import("./pages/command/Inbox"));
+const CommandAutomations = lazy(() => import("./pages/command/Automations"));
 
 // FinOps pages (Master only)
 const FinOpsOverview = lazy(() => import("./pages/finops/FinOpsOverviewPage"));
