@@ -59,6 +59,10 @@ const CommandCommercial = lazy(() => import("./pages/command/Commercial"));
 const CommandAgents = lazy(() => import("./pages/command/Agents"));
 const CommandGrants = lazy(() => import("./pages/command/Grants"));
 const CommandTimeline = lazy(() => import("./pages/command/Timeline"));
+const CommandDivisions = lazy(() => import("./pages/command/Divisions"));
+const CommandToolCatalog = lazy(() => import("./pages/command/ToolCatalog"));
+const CommandLayer = lazy(() => import("./pages/command/Layer"));
+const CommandQA = lazy(() => import("./pages/command/QA"));
 
 // FinOps pages (Master only)
 const FinOpsOverview = lazy(() => import("./pages/finops/FinOpsOverviewPage"));
@@ -169,6 +173,12 @@ const App = () => (
                   <Route index element={<CommandCockpit />} />
                   <Route path="missions" element={<CommandMissions />} />
                   <Route path="missions/:id" element={<CommandMissionDetail />} />
+                  {/* Novas áreas — arquitetura por camada */}
+                  <Route path="layers/:slug" element={<CommandLayer />} />
+                  <Route path="divisions" element={<CommandDivisions />} />
+                  <Route path="tools" element={<CommandToolCatalog />} />
+                  <Route path="qa" element={<CommandQA />} />
+                  {/* Áreas legadas (acessíveis via camadas correspondentes) */}
                   <Route path="content" element={<CommandContent />} />
                   <Route path="content/:id" element={<CommandContentDetail />} />
                   <Route path="inbox" element={<CommandInbox />} />
