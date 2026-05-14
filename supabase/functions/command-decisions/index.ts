@@ -56,6 +56,9 @@ serve(async (req) => {
       }).eq("id", decision_id).select("*").single();
       if (error) throw error;
 
+      let toolResult: unknown = null;
+      let toolStatus: string | null = null;
+
       // Se aprovou e a decision tem `options.execute_job`, agendamos pra agora
       if (status === "approved" && data.options?.execute_job) {
         await db.from("scheduled_jobs").insert({
@@ -67,14 +70,54 @@ serve(async (req) => {
         });
       }
 
+      // Se aprovou e o preview tem tool/args/target_tenant_id, executa de verdade
+      if (status === "approved" && data.preview?.tool && data.preview?.target_tenant_id) {
+        const toolName = String(data.preview.tool);
+        const tool = findTool(toolName);
+        const targetTenant = String(data.preview.target_tenant_id);
+        const args = (data.preview.args ?? {}) as Record<string, unknown>;
+        const start = Date.now();
+        try {
+          if (!tool) throw new Error(`unknown_tool:${toolName}`);
+          toolResult = await executeRealTool(pub, db, tool.name, args, targetTenant);
+          toolStatus = "ok";
+          await recordExec(db, {
+            workspace_id: data.workspace_id,
+            run_id: data.run_id,
+            agent_id: data.agent_id,
+            decision_id: data.id,
+            target_tenant_id: targetTenant,
+            tool_name: tool.name,
+            args,
+            result: toolResult,
+            status: "ok",
+            duration_ms: Date.now() - start,
+          });
+        } catch (e) {
+          toolStatus = "error";
+          await recordExec(db, {
+            workspace_id: data.workspace_id,
+            run_id: data.run_id,
+            agent_id: data.agent_id,
+            decision_id: data.id,
+            target_tenant_id: targetTenant,
+            tool_name: toolName,
+            args,
+            status: "error",
+            error: String((e as Error).message ?? e),
+            duration_ms: Date.now() - start,
+          });
+        }
+      }
+
       await db.from("command_log").insert({
         workspace_id: data.workspace_id,
         kind: "decision_resolved",
         actor: "master",
-        payload: { decision_id, status },
+        payload: { decision_id, status, tool_status: toolStatus },
       });
 
-      return new Response(JSON.stringify({ ok: true, decision: data }), {
+      return new Response(JSON.stringify({ ok: true, decision: data, tool_status: toolStatus, tool_result: toolResult }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
