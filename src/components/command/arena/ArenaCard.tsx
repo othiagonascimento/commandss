@@ -73,7 +73,7 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
       </div>
 
       {/* ─────── CORPO SPLIT ─────── */}
-      <div className="grid flex-1 min-h-0 grid-cols-[1.3fr_1fr]">
+      <div className="grid flex-1 min-h-0 grid-cols-[minmax(0,0.82fr)_minmax(0,1fr)] sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)]">
         {/* Cena */}
         <div className="relative min-h-0 overflow-hidden border-r border-[hsl(var(--hairline))]">
           <div
@@ -93,7 +93,7 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
         </div>
 
         {/* Painel de dados */}
-        <div className={`flex min-h-0 flex-col gap-2.5 ${t.bodyPad} bg-[hsl(var(--surface-1))] overflow-hidden`}>
+        <div className={`flex min-h-0 flex-col ${t.bodyGap} ${t.bodyPad} bg-[hsl(var(--surface-1))] overflow-hidden`}>
           {/* Estado */}
           <div className="min-w-0">
             <div className={`font-mono uppercase tracking-[0.22em] text-[hsl(var(--ink-faint))] leading-none mb-1 ${t.fieldLabel}`}>
@@ -113,11 +113,11 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
           </div>
 
           {/* Missão atual */}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <div className={`font-mono uppercase tracking-[0.22em] text-[hsl(var(--ink-faint))] leading-none mb-1 ${t.fieldLabel}`}>
               {hasMission ? 'missão atual' : 'sem missão'}
             </div>
-            <div className={`text-[hsl(var(--ink-primary))] leading-snug line-clamp-2 ${t.mission}`}>
+            <div className={`text-[hsl(var(--ink-primary))] leading-snug break-words ${t.mission}`}>
               {hasMission ? snapshot.currentMission : `${snapshot.streak}d sem crítico`}
             </div>
             {hasMission && (
@@ -130,6 +130,11 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
                 />
               </div>
             )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5 min-w-0">
+            <InfoChip label="tempo" value={hasMission ? formatElapsed(snapshot.elapsedSec) : '—'} sizes={t} />
+            <InfoChip label="próximo" value={snapshot.nextEvent ?? '—'} sizes={t} />
           </div>
 
           {/* Mini stats */}
