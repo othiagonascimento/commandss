@@ -14,10 +14,12 @@ interface Props {
   snapshot: ArenaSnapshot;
   index: number;
   focused?: boolean;
+  tv?: boolean;
+  fill?: boolean;
   onClick?: () => void;
 }
 
-export function ArenaCard({ arena, snapshot, index, focused, onClick }: Props) {
+export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }: Props) {
   const tone = STATE_TONE[snapshot.state];
   const isCritical = snapshot.state === 'critical';
   const hasMission = !!snapshot.currentMission;
@@ -32,7 +34,9 @@ export function ArenaCard({ arena, snapshot, index, focused, onClick }: Props) {
           : `0 0 0 1px ${tone.border}`,
       }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="relative aspect-[16/10] rounded-xl bg-[hsl(var(--surface-1))] overflow-hidden text-left group flex flex-col"
+      className={`relative rounded-xl bg-[hsl(var(--surface-1))] overflow-hidden text-left group flex flex-col w-full ${
+        fill ? 'h-full min-h-0' : 'aspect-[16/10]'
+      }`}
       style={{ borderColor: tone.border }}
     >
       {/* ─────── CENA (60%) ─────── */}
