@@ -46,6 +46,8 @@ const Docs = lazy(() => import("./pages/Docs"));
 const CommandShell = lazy(() => import("./components/command/CommandShell").then(m => ({ default: m.CommandShell })));
 const CommandCockpit = lazy(() => import("./pages/command/Cockpit"));
 const CommandPlaceholder = lazy(() => import("./pages/command/Placeholder"));
+const CommandMissions = lazy(() => import("./pages/command/Missions"));
+const CommandMissionDetail = lazy(() => import("./pages/command/MissionDetail"));
 
 // FinOps pages (Master only)
 const FinOpsOverview = lazy(() => import("./pages/finops/FinOpsOverviewPage"));
@@ -154,6 +156,8 @@ const App = () => (
                 {/* Command AI — operação executiva privada */}
                 <Route path="/command" element={<CommandShell />}>
                   <Route index element={<CommandCockpit />} />
+                  <Route path="missions" element={<CommandMissions />} />
+                  <Route path="missions/:id" element={<CommandMissionDetail />} />
                   <Route path=":module" element={<CommandPlaceholder />} />
                 </Route>
 

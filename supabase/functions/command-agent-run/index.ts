@@ -67,13 +67,15 @@ serve(async (req) => {
       agent_slug,
       workspace_id,
       input,
-      context,
+      mission_id,
+      trigger,
       model: modelOverride,
     } = body as {
       agent_slug: string;
       workspace_id: string;
       input: string;
-      context?: Record<string, unknown>;
+      mission_id?: string;
+      trigger?: string;
       model?: string;
     };
 
@@ -87,13 +89,13 @@ serve(async (req) => {
     // Carrega agent
     const { data: agent, error: agErr } = await remoteDb
       .from("agents")
-      .select("id, slug, name, role, system_prompt, default_model, color_hex")
+      .select("id, slug, name, role, system_prompt, model, color_hex")
       .eq("slug", agent_slug)
       .maybeSingle();
     if (agErr) throw agErr;
     if (!agent) throw new Error(`agent not found: ${agent_slug}`);
 
-    const model = modelOverride || agent.default_model || "google/gemini-2.5-flash";
+    const model = modelOverride || agent.model || "google/gemini-2.5-flash";
 
     // Cria run
     const startedAt = new Date().toISOString();
@@ -105,11 +107,11 @@ serve(async (req) => {
       .insert({
         agent_id: agent.id,
         workspace_id,
+        mission_id: mission_id ?? null,
         status: "thinking",
+        trigger: trigger ?? "manual",
         input,
-        context: context ?? {},
         steps: initialSteps,
-        model,
         started_at: startedAt,
       })
       .select("id")
@@ -172,7 +174,9 @@ serve(async (req) => {
 
         const aiJson = await aiRes.json();
         const output = aiJson.choices?.[0]?.message?.content ?? "";
-        const usage = aiJson.usage ?? null;
+        const usage = aiJson.usage ?? {};
+        const tokensIn = usage.prompt_tokens ?? 0;
+        const tokensOut = usage.completion_tokens ?? 0;
 
         const finishedAt = new Date().toISOString();
         const durationMs = Date.now() - new Date(startedAt).getTime();
@@ -190,7 +194,8 @@ serve(async (req) => {
             status: "completed",
             output,
             steps,
-            usage,
+            tokens_in: tokensIn,
+            tokens_out: tokensOut,
             duration_ms: durationMs,
             finished_at: finishedAt,
           })

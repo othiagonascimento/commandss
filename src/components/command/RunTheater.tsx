@@ -21,11 +21,12 @@ interface RunRow {
   input: string;
   output: string | null;
   steps: RunStep[] | null;
-  model: string | null;
   duration_ms: number | null;
   error: string | null;
   agent_id: string;
   started_at: string;
+  tokens_in: number | null;
+  tokens_out: number | null;
 }
 
 interface AgentMeta {
@@ -53,7 +54,7 @@ export function RunTheater() {
     const fetchRun = async () => {
       const { data } = await commandDb
         .from('agent_runs')
-        .select('id,status,input,output,steps,model,duration_ms,error,agent_id,started_at')
+        .select('id,status,input,output,steps,duration_ms,error,agent_id,started_at,tokens_in,tokens_out')
         .eq('id', runId)
         .maybeSingle();
       if (!cancelled && data) {
@@ -202,7 +203,11 @@ export function RunTheater() {
 
             {/* Footer */}
             <div className="border-t border-[hsl(var(--hairline))] px-6 py-2.5 flex items-center justify-between font-mono text-[10px] text-[hsl(var(--ink-faint))] uppercase tracking-widest shrink-0">
-              <span>{run?.model ?? '—'}</span>
+              <span>
+                {run?.tokens_in || run?.tokens_out
+                  ? `${(run.tokens_in ?? 0) + (run.tokens_out ?? 0)} tokens`
+                  : '—'}
+              </span>
               <span>
                 {run?.duration_ms ? `${(run.duration_ms / 1000).toFixed(1)}s` : 'em curso'}
               </span>
