@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Activity, Brain, Calculator, Trophy,
   CreditCard, Link2, ClipboardList, Bell, BarChart3, Cog, UserCog,
   FileText, Clock, Package, FlaskConical, DollarSign, Settings as SettingsIcon,
-  Radio, BookOpen,
+  Radio, BookOpen, Command as CommandIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
