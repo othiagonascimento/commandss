@@ -6,6 +6,7 @@ import { Search } from 'lucide-react';
 const NAV = [
   { to: '/command', label: 'Cockpit', end: true },
   { to: '/command/agents', label: 'Agentes' },
+  { to: '/command/timeline', label: 'Timeline' },
   { to: '/command/missions', label: 'Missões' },
   { to: '/command/content', label: 'Conteúdo' },
   { to: '/command/calendar', label: 'Calendário' },
