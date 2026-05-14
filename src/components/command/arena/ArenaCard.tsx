@@ -14,10 +14,12 @@ interface Props {
   snapshot: ArenaSnapshot;
   index: number;
   focused?: boolean;
+  tv?: boolean;
+  fill?: boolean;
   onClick?: () => void;
 }
 
-export function ArenaCard({ arena, snapshot, index, focused, onClick }: Props) {
+export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }: Props) {
   const tone = STATE_TONE[snapshot.state];
   const isCritical = snapshot.state === 'critical';
   const hasMission = !!snapshot.currentMission;
@@ -32,7 +34,9 @@ export function ArenaCard({ arena, snapshot, index, focused, onClick }: Props) {
           : `0 0 0 1px ${tone.border}`,
       }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="relative aspect-[16/10] rounded-xl bg-[hsl(var(--surface-1))] overflow-hidden text-left group flex flex-col"
+      className={`relative rounded-xl bg-[hsl(var(--surface-1))] overflow-hidden text-left group flex flex-col w-full ${
+        fill ? 'h-full min-h-0' : 'aspect-[16/10]'
+      }`}
       style={{ borderColor: tone.border }}
     >
       {/* ─────── CENA (60%) ─────── */}
@@ -69,14 +73,20 @@ export function ArenaCard({ arena, snapshot, index, focused, onClick }: Props) {
       </div>
 
       {/* ─────── DADOS (40%) ─────── */}
-      <div className="relative h-[40%] flex flex-col justify-between px-3 py-2.5 border-t border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))]">
+      <div className={`relative h-[40%] flex flex-col justify-between border-t border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] ${
+        tv ? 'px-5 py-4' : 'px-3 py-2.5'
+      }`}>
         {/* Linha A — esporte / divisão */}
         <div className="flex items-baseline justify-between gap-2 min-w-0">
           <div className="min-w-0">
-            <div className="font-mono text-[8.5px] uppercase tracking-[0.22em] text-[hsl(var(--ink-faint))] leading-none">
+            <div className={`font-mono uppercase tracking-[0.22em] text-[hsl(var(--ink-faint))] leading-none ${
+              tv ? 'text-[11px]' : 'text-[8.5px]'
+            }`}>
               {arena.sportLabel}
             </div>
-            <div className="font-display text-[13px] leading-tight tracking-tight text-[hsl(var(--ink-primary))] mt-0.5 truncate">
+            <div className={`font-display leading-tight tracking-tight text-[hsl(var(--ink-primary))] mt-0.5 truncate ${
+              tv ? 'text-[20px]' : 'text-[13px]'
+            }`}>
               {arena.division}
             </div>
           </div>
@@ -85,15 +95,21 @@ export function ArenaCard({ arena, snapshot, index, focused, onClick }: Props) {
         {/* Linha B — missão atual + tempo */}
         <div className="flex items-end justify-between gap-2 min-w-0">
           <div className="min-w-0 flex-1">
-            <div className="font-mono text-[8px] uppercase tracking-[0.18em] text-[hsl(var(--ink-faint))] leading-none mb-0.5">
+            <div className={`font-mono uppercase tracking-[0.18em] text-[hsl(var(--ink-faint))] leading-none mb-0.5 ${
+              tv ? 'text-[10px]' : 'text-[8px]'
+            }`}>
               {hasMission ? 'missão' : 'streak'}
             </div>
-            <div className="text-[11px] text-[hsl(var(--ink-secondary))] leading-tight truncate">
+            <div className={`text-[hsl(var(--ink-secondary))] leading-tight truncate ${
+              tv ? 'text-[14px]' : 'text-[11px]'
+            }`}>
               {hasMission ? snapshot.currentMission : `${snapshot.streak}d sem crítico`}
             </div>
           </div>
           {hasMission && (
-            <div className="font-mono tabular-nums text-[10px] text-[hsl(var(--ink-muted))] shrink-0">
+            <div className={`font-mono tabular-nums text-[hsl(var(--ink-muted))] shrink-0 ${
+              tv ? 'text-[13px]' : 'text-[10px]'
+            }`}>
               {formatElapsed(snapshot.elapsedSec)}
             </div>
           )}
@@ -101,7 +117,7 @@ export function ArenaCard({ arena, snapshot, index, focused, onClick }: Props) {
 
         {/* Linha C — progresso + W/F + próximo */}
         <div className="space-y-1.5">
-          <div className="h-[2px] w-full bg-[hsl(var(--hairline))] rounded-full overflow-hidden">
+          <div className={`w-full bg-[hsl(var(--hairline))] rounded-full overflow-hidden ${tv ? 'h-[3px]' : 'h-[2px]'}`}>
             <motion.div
               className="h-full rounded-full"
               style={{ background: tone.border }}
@@ -109,7 +125,9 @@ export function ArenaCard({ arena, snapshot, index, focused, onClick }: Props) {
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             />
           </div>
-          <div className="flex items-center justify-between gap-2 font-mono text-[8.5px] uppercase tracking-[0.14em] text-[hsl(var(--ink-faint))]">
+          <div className={`flex items-center justify-between gap-2 font-mono uppercase tracking-[0.14em] text-[hsl(var(--ink-faint))] ${
+            tv ? 'text-[11px]' : 'text-[8.5px]'
+          }`}>
             <div className="flex items-center gap-2 shrink-0">
               <span>
                 W <span className="text-[hsl(var(--ink-primary))] tabular-nums ml-0.5">
