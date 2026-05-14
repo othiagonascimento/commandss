@@ -95,7 +95,7 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
         {/* Painel de dados */}
         <div className={`flex min-h-0 flex-col ${t.bodyGap} ${t.bodyPad} bg-[hsl(var(--surface-1))] overflow-hidden`}>
           {/* Estado */}
-          <div className="min-w-0">
+          <div>
             <div className={`font-mono uppercase tracking-[0.22em] text-[hsl(var(--ink-faint))] leading-none mb-1 ${t.fieldLabel}`}>
               estado
             </div>
@@ -134,7 +134,7 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
 
           <div className="grid grid-cols-2 gap-1.5 min-w-0">
             <InfoChip label="tempo" value={hasMission ? formatElapsed(snapshot.elapsedSec) : '—'} sizes={t} />
-            <InfoChip label="próximo" value={snapshot.nextEvent ?? '—'} sizes={t} />
+            <InfoChip label="progresso" value={hasMission ? `${Math.round(snapshot.progress * 100)}%` : '—'} sizes={t} />
           </div>
 
           {/* Mini stats */}
