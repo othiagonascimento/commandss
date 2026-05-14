@@ -5,7 +5,7 @@
  * Inspirado no SpotlightSheet — mesma hierarquia, sem cortes.
  */
 import { motion } from 'framer-motion';
-import { Arena, ArenaSnapshot, STATE_TONE } from '@/lib/command/arena';
+import { Arena, ArenaSnapshot, STATE_TONE, formatElapsed } from '@/lib/command/arena';
 import { ArenaScene } from './ArenaScenes';
 
 interface Props {
@@ -22,43 +22,46 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
   const tone = STATE_TONE[snapshot.state];
   const isCritical = snapshot.state === 'critical';
   const hasMission = !!snapshot.currentMission;
+  const compact = tv || fill;
 
-  // Sizing tokens — TV mode amplia tudo proporcionalmente
+  // Sizing tokens — modo TV prioriza informação completa sem depender de clique.
   const t = {
-    headerH: tv ? 'h-12' : 'h-10',
-    pad: tv ? 'px-4' : 'px-3',
-    bodyPad: tv ? 'p-4' : 'p-2.5',
-    sport: tv ? 'text-[9px]' : 'text-[7.5px]',
-    division: tv ? 'text-[18px]' : 'text-[13px]',
-    stateLabel: tv ? 'text-[9px]' : 'text-[7.5px]',
-    fieldLabel: tv ? 'text-[8.5px]' : 'text-[7px]',
-    mission: tv ? 'text-[14px]' : 'text-[11px]',
-    statLabel: tv ? 'text-[8px]' : 'text-[6.5px]',
-    statValue: tv ? 'text-[20px]' : 'text-[15px]',
+    header: compact ? 'min-h-8 px-2 py-1' : 'min-h-10 px-3 py-1.5',
+    bodyPad: compact ? 'p-1.5' : 'p-2.5',
+    bodyGap: compact ? 'gap-1.5' : 'gap-2.5',
+    sport: compact ? 'text-[6px] sm:text-[6.5px]' : 'text-[7.5px]',
+    division: compact ? 'text-[11px] sm:text-[12px]' : 'text-[14px] sm:text-[15px]',
+    stateLabel: compact ? 'text-[6.5px]' : 'text-[7.5px]',
+    fieldLabel: compact ? 'text-[6px]' : 'text-[7px]',
+    mission: compact ? 'text-[10px]' : 'text-[12px]',
+    meta: compact ? 'text-[7px]' : 'text-[9px]',
+    statLabel: compact ? 'text-[5.5px]' : 'text-[6.5px]',
+    statValue: compact ? 'text-[11px]' : 'text-[15px]',
+    statBox: compact ? 'px-1 py-0.5 rounded-[4px]' : 'px-1.5 py-1 rounded-md',
   };
 
   return (
     <motion.button
       onClick={onClick}
       animate={{
-        scale: focused ? 1.015 : 1,
+        scale: 1,
         boxShadow: focused
           ? `0 30px 80px -20px ${tone.glow}, 0 0 0 1px ${tone.border}`
           : `0 0 0 1px ${tone.border}`,
       }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className={`relative rounded-xl bg-[hsl(var(--surface-1))] overflow-hidden text-left group flex w-full flex-col ${
-        fill ? 'h-full min-h-0' : 'aspect-[16/10] min-h-[240px]'
+        fill ? 'h-full min-h-0' : 'min-h-[250px] sm:min-h-[220px]'
       }`}
       style={{ borderColor: tone.border }}
     >
       {/* ─────── HEADER ─────── */}
-      <div className={`flex items-center justify-between gap-2 ${t.pad} ${t.headerH} border-b border-[hsl(var(--hairline))] shrink-0`}>
+      <div className={`flex items-center justify-between gap-2 ${t.header} border-b border-[hsl(var(--hairline))] shrink-0`}>
         <div className="min-w-0">
           <div className={`font-mono uppercase tracking-[0.22em] text-[hsl(var(--ink-faint))] leading-none ${t.sport}`}>
             bastidores · {arena.sportLabel}
           </div>
-          <div className={`font-display leading-tight tracking-tight text-[hsl(var(--ink-primary))] mt-0.5 truncate ${t.division}`}>
+          <div className={`font-display leading-tight text-[hsl(var(--ink-primary))] mt-0.5 truncate ${t.division}`}>
             {arena.division}
           </div>
         </div>
