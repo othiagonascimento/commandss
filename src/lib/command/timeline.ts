@@ -76,7 +76,7 @@ export async function fetchTimeline(filter: TimelineFilter = {}): Promise<Timeli
   const limit = filter.limit ?? 80;
   const want = filter.source ?? 'all';
 
-  const promises: Array<Promise<TimelineEvent[]>> = [];
+  const promises: Array<PromiseLike<TimelineEvent[]>> = [];
 
   if (want === 'all' || want === 'run') {
     let qr = commandDb
