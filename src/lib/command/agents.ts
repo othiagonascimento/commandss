@@ -3,6 +3,7 @@
  * Lê o catálogo global (8 agentes) e agrega métricas de runs por agente.
  */
 import { commandDb } from './db';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Agent {
   id: string;
