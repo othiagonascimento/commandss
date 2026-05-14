@@ -4,6 +4,7 @@ import { commandDb } from '@/lib/command/db';
 import { motion } from 'framer-motion';
 import { useCommandStore } from '@/lib/command/store';
 import { RecentRuns } from '@/components/command/RecentRuns';
+import { listRecentExecutions } from '@/lib/command/grants';
 
 interface PulseStats {
   publishedToday: number;
