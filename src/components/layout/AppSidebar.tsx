@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Activity, Brain, Calculator, Trophy,
   CreditCard, Link2, ClipboardList, Bell, BarChart3, Cog, UserCog,
   FileText, Clock, Package, FlaskConical, DollarSign, Settings as SettingsIcon,
-  Radio, BookOpen,
+  Radio, BookOpen, Command as CommandIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -33,6 +33,7 @@ export function AppSidebar({ mobileOpen, onMobileClose }: Props) {
       id: 'comando', label: 'Comando',
       permissionCheck: permissions.canViewDashboard,
       items: [
+        { icon: CommandIcon,     label: 'Command',             path: '/command',         permissionCheck: permissions.canViewDashboard },
         { icon: LayoutDashboard, label: 'Dashboard',           path: '/',                permissionCheck: permissions.canViewDashboard },
         { icon: Radio,           label: 'Operações',           path: '/operations',      permissionCheck: permissions.canViewDashboard },
         { icon: Activity,        label: 'Saúde dos Tenants',   path: '/tenant-health',   permissionCheck: permissions.canViewTenants },
