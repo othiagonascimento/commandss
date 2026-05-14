@@ -151,6 +151,12 @@ const App = () => (
                 <Route path="/finops/settings/pricing" element={<ProtectedRoute><FinOpsPricing /></ProtectedRoute>} />
                 <Route path="/finops/settings/budgets" element={<ProtectedRoute><FinOpsBudgets /></ProtectedRoute>} />
 
+                {/* Command AI — operação executiva privada */}
+                <Route path="/command" element={<CommandShell />}>
+                  <Route index element={<CommandCockpit />} />
+                  <Route path=":module" element={<CommandPlaceholder />} />
+                </Route>
+
                 {/* Public onboarding route - URL curta e amigável */}
                 <Route path="/cadastro" element={<CadastroLoja />} />
                 <Route path="/install" element={<Install />} />
