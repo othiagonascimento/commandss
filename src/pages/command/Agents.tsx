@@ -233,11 +233,7 @@ function AgentDetail({
             <h2 className="text-[22px] font-display font-bold text-[hsl(var(--ink-primary))] leading-tight mt-0.5">
               {agent.name}
             </h2>
-            {agent.model && (
-              <div className="font-mono text-[10.5px] text-[hsl(var(--ink-muted))] mt-1">
-                {agent.model}
-              </div>
-            )}
+            <ModelSelector agent={agent} />
           </div>
           <button
             onClick={onClose}
