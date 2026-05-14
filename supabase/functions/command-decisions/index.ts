@@ -1,7 +1,9 @@
 // Command AI — Decision resolve / schedule helpers
-// Recebe ações do Inbox: approve / reject / snooze, e cria scheduled_jobs.
+// Recebe ações do Inbox: approve / reject / snooze, agenda jobs e executa
+// tool_calls aprovados (preview.tool + preview.args + preview.target_tenant_id).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { executeRealTool, recordExec, makeRemoteClients, findTool } from "../_shared/commandTools.ts";
 
 const MASTER_UUID = "cdc32c8f-32cd-439e-8103-e034d16eebf2";
 const corsHeaders = {
@@ -10,18 +12,12 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const REMOTE_URL = Deno.env.get("REMOTE_SUPABASE_URL")!;
-const REMOTE_SERVICE = Deno.env.get("REMOTE_SUPABASE_SERVICE_ROLE_KEY")!;
-
 const localAuth = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   { auth: { persistSession: false } },
 );
-const db = createClient(REMOTE_URL, REMOTE_SERVICE, {
-  db: { schema: "command_ai" as never },
-  auth: { persistSession: false },
-});
+const { cmd: db, pub } = makeRemoteClients();
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
