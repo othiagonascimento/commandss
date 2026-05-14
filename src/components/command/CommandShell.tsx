@@ -5,6 +5,7 @@ import { BootSequence } from './BootSequence';
 import { Topbar } from './Topbar';
 import { LiveOpsDock } from './LiveOpsDock';
 import { CommandBar } from './CommandBar';
+import { RunTheater } from './RunTheater';
 import { useCommandStore } from '@/lib/command/store';
 
 export function CommandShell() {
@@ -37,6 +38,7 @@ export function CommandShell() {
           <LiveOpsDock />
         </div>
         <CommandBar />
+        <RunTheater />
       </div>
     </CommandGuard>
   );

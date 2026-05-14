@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { commandDb } from '@/lib/command/db';
 import { motion } from 'framer-motion';
 import { Activity } from 'lucide-react';
+import { useCommandStore } from '@/lib/command/store';
 
 interface Agent {
   id: string;
@@ -20,6 +21,7 @@ interface Run {
 }
 
 export function LiveOpsDock() {
+  const openRun = useCommandStore((s) => s.openRun);
   const { data: agents } = useQuery({
     queryKey: ['command', 'agents'],
     queryFn: async (): Promise<Agent[]> => {
@@ -74,10 +76,12 @@ export function LiveOpsDock() {
           const run = activeByAgent.get(agent.id);
           const isLive = !!run;
           return (
-            <motion.div
+            <motion.button
               key={agent.id}
               layout
-              className="relative rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3 overflow-hidden"
+              onClick={() => run && openRun(run.id)}
+              disabled={!isLive}
+              className="relative w-full text-left rounded-lg border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] p-3 overflow-hidden enabled:hover:bg-[hsl(var(--surface-3))] transition-colors disabled:cursor-default"
             >
               {isLive && (
                 <motion.div
@@ -112,7 +116,7 @@ export function LiveOpsDock() {
                   }}
                 />
               </div>
-            </motion.div>
+            </motion.button>
           );
         })}
       </div>
