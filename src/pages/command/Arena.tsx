@@ -103,7 +103,13 @@ export default function Arena() {
           }}
         />
 
-        <div className="relative h-full p-4 lg:p-6 grid grid-cols-3 grid-rows-3 gap-3 lg:gap-4">
+        <div
+          className={`relative h-full p-3 sm:p-4 lg:p-6 gap-3 lg:gap-4 ${
+            tvMode
+              ? 'grid grid-cols-3 grid-rows-3 overflow-hidden'
+              : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:grid-rows-3 overflow-y-auto lg:overflow-hidden auto-rows-fr'
+          }`}
+        >
           {ordered.map((arena, idx) => {
             const snap = data.arenas[arena.slug];
             return (
@@ -112,6 +118,8 @@ export default function Arena() {
                 arena={arena}
                 snapshot={snap}
                 index={idx}
+                tv={tvMode}
+                fill={tvMode}
                 focused={focusSlug === arena.slug}
                 onClick={() => setSpotlightSlug(arena.slug)}
               />
