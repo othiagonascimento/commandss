@@ -34,13 +34,15 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
           : `0 0 0 1px ${tone.border}`,
       }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className={`relative rounded-xl bg-[hsl(var(--surface-1))] overflow-hidden text-left group flex flex-col w-full ${
-        fill ? 'h-full min-h-0' : 'aspect-[16/10]'
+      className={`relative rounded-xl bg-[hsl(var(--surface-1))] overflow-hidden text-left group grid w-full ${
+        fill
+          ? 'h-full min-h-0 grid-rows-[minmax(72px,1fr)_auto]'
+          : 'aspect-[16/10] grid-rows-[minmax(92px,1fr)_auto]'
       }`}
       style={{ borderColor: tone.border }}
     >
       {/* ─────── CENA (60%) ─────── */}
-      <div className="relative h-[60%] w-full overflow-hidden">
+      <div className="relative min-h-0 w-full overflow-hidden">
         {/* Ambient glow — só sob a cena */}
         <div
           className="absolute inset-0 pointer-events-none transition-opacity duration-700"
@@ -73,19 +75,19 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
       </div>
 
       {/* ─────── DADOS (40%) ─────── */}
-      <div className={`relative h-[40%] flex flex-col justify-between border-t border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] ${
-        tv ? 'px-5 py-4' : 'px-3 py-2.5'
+      <div className={`relative flex min-h-0 flex-col gap-1.5 border-t border-[hsl(var(--hairline))] bg-[hsl(var(--surface-1))] ${
+        tv ? 'px-4 py-2.5' : 'px-3 py-2'
       }`}>
         {/* Linha A — esporte / divisão */}
         <div className="flex items-baseline justify-between gap-2 min-w-0">
           <div className="min-w-0">
             <div className={`font-mono uppercase tracking-[0.22em] text-[hsl(var(--ink-faint))] leading-none ${
-              tv ? 'text-[11px]' : 'text-[8.5px]'
+              tv ? 'text-[9px]' : 'text-[7.5px]'
             }`}>
               {arena.sportLabel}
             </div>
             <div className={`font-display leading-tight tracking-tight text-[hsl(var(--ink-primary))] mt-0.5 truncate ${
-              tv ? 'text-[20px]' : 'text-[13px]'
+              tv ? 'text-[18px]' : 'text-[12px]'
             }`}>
               {arena.division}
             </div>
@@ -96,19 +98,19 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
         <div className="flex items-end justify-between gap-2 min-w-0">
           <div className="min-w-0 flex-1">
             <div className={`font-mono uppercase tracking-[0.18em] text-[hsl(var(--ink-faint))] leading-none mb-0.5 ${
-              tv ? 'text-[10px]' : 'text-[8px]'
+              tv ? 'text-[8.5px]' : 'text-[7.5px]'
             }`}>
               {hasMission ? 'missão' : 'streak'}
             </div>
             <div className={`text-[hsl(var(--ink-secondary))] leading-tight truncate ${
-              tv ? 'text-[14px]' : 'text-[11px]'
+              tv ? 'text-[12px]' : 'text-[10px]'
             }`}>
               {hasMission ? snapshot.currentMission : `${snapshot.streak}d sem crítico`}
             </div>
           </div>
           {hasMission && (
             <div className={`font-mono tabular-nums text-[hsl(var(--ink-muted))] shrink-0 ${
-              tv ? 'text-[13px]' : 'text-[10px]'
+              tv ? 'text-[11px]' : 'text-[9px]'
             }`}>
               {formatElapsed(snapshot.elapsedSec)}
             </div>
