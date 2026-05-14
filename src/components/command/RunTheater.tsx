@@ -21,11 +21,12 @@ interface RunRow {
   input: string;
   output: string | null;
   steps: RunStep[] | null;
-  model: string | null;
   duration_ms: number | null;
   error: string | null;
   agent_id: string;
   started_at: string;
+  tokens_in: number | null;
+  tokens_out: number | null;
 }
 
 interface AgentMeta {
@@ -53,7 +54,7 @@ export function RunTheater() {
     const fetchRun = async () => {
       const { data } = await commandDb
         .from('agent_runs')
-        .select('id,status,input,output,steps,model,duration_ms,error,agent_id,started_at')
+        .select('id,status,input,output,steps,duration_ms,error,agent_id,started_at,tokens_in,tokens_out')
         .eq('id', runId)
         .maybeSingle();
       if (!cancelled && data) {
