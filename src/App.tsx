@@ -164,6 +164,8 @@ const App = () => (
                   <Route path="missions/:id" element={<CommandMissionDetail />} />
                   <Route path="content" element={<CommandContent />} />
                   <Route path="content/:id" element={<CommandContentDetail />} />
+                  <Route path="inbox" element={<CommandInbox />} />
+                  <Route path="automations" element={<CommandAutomations />} />
                   <Route path=":module" element={<CommandPlaceholder />} />
                 </Route>
 
