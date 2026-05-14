@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { CommandGuard } from './CommandGuard';
 import { BootSequence } from './BootSequence';
-import { Topbar } from './Topbar';
+import { CommandSidebar } from './CommandSidebar';
+import { CommandHeader } from './CommandHeader';
 import { LiveOpsDock } from './LiveOpsDock';
 import { CommandBar } from './CommandBar';
 import { RunTheater } from './RunTheater';
@@ -28,14 +29,17 @@ export function CommandShell() {
 
   return (
     <CommandGuard>
-      <div className="min-h-screen bg-[hsl(var(--canvas))] text-[hsl(var(--ink-primary))] flex flex-col">
+      <div className="min-h-screen bg-[hsl(var(--canvas))] text-[hsl(var(--ink-primary))] flex">
         {!bootDone && <BootSequence onDone={() => setBootDone(true)} />}
-        <Topbar />
-        <div className="flex flex-1 min-h-0">
-          <main className="flex-1 min-w-0 overflow-y-auto">
-            <Outlet />
-          </main>
-          <LiveOpsDock />
+        <CommandSidebar />
+        <div className="flex-1 min-w-0 flex flex-col">
+          <CommandHeader />
+          <div className="flex flex-1 min-h-0">
+            <main className="flex-1 min-w-0 overflow-y-auto">
+              <Outlet />
+            </main>
+            <LiveOpsDock />
+          </div>
         </div>
         <CommandBar />
         <RunTheater />
