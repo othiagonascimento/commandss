@@ -180,6 +180,7 @@ const App = () => (
                   <Route path="commercial" element={<CommandCommercial />} />
                   <Route path="agents" element={<CommandAgents />} />
                   <Route path="timeline" element={<CommandTimeline />} />
+                  <Route path="grants" element={<CommandGrants />} />
                   <Route path=":module" element={<CommandPlaceholder />} />
                 </Route>
 
