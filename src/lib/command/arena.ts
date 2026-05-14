@@ -145,18 +145,34 @@ export function generateMockSnapshot(now: number): {
   const heatedStates: ArenaState[] = ['high', 'attention', 'critical', 'recovery', 'queue'];
   const calmStates: ArenaState[] = ['standby', 'standby', 'standby', 'active'];
 
+  const NEXT_BY_SPORT: Record<SportSlug, string[]> = {
+    tennis:  ['PR Review', 'Deploy staging', 'Sync de devs', 'Code review #482'],
+    boxing:  ['Playbook checkout', 'Regressão login', 'QA review', 'Smoke test'],
+    f1:      ['Call Paróquia', 'Pit stop CRM', 'Demo Magnata', 'Pipeline review'],
+    surf:    ['Drop carrossel', 'A/B teste hero', 'Lançar série', 'Recapagem reels'],
+    volley:  ['Ticket #1240', 'Onboarding call', 'Health check trimestral', 'NPS push'],
+    rowing:  ['Scheduler tick', 'Sync 8/8', 'Job de billing', 'Janela manutenção'],
+    fencing: ['MRR snapshot', 'Cobrança recorrente', 'Ajuste de cycle', 'Auditoria fiscal'],
+    chess:   ['Decisão Onda 4', 'Roadmap review', 'RFC #009', 'Spec checkout v3'],
+    hockey:  ['Alerta DB', 'Edge fn timeout', 'Latência p99', 'Healthcheck cron'],
+  };
+
   const arenas: Record<string, ArenaSnapshot> = {};
   for (const arena of ARENAS) {
     const isFocus = focusArenas.has(arena.slug);
     const state = isFocus ? pick(heatedStates, rng) : pick(calmStates, rng);
+    const mission = isFocus
+      ? pick(['Retenção Q2', 'Série editorial', 'Onboarding fix', 'Checkout patch', 'Coaching Paróquia'], rng)
+      : null;
     arenas[arena.slug] = {
       state,
       intensity: isFocus ? 0.55 + rng() * 0.45 : 0.05 + rng() * 0.25,
       scoreToday: Math.floor(rng() * 14),
       scoreOpponent: Math.floor(rng() * (state === 'critical' ? 5 : 2)),
-      currentMission: isFocus
-        ? pick(['Retenção Q2', 'Série editorial', 'Onboarding fix', 'Checkout patch', 'Coaching Paróquia'], rng)
-        : null,
+      currentMission: mission,
+      progress: mission ? 0.15 + rng() * 0.8 : 0,
+      elapsedSec: mission ? Math.floor(60 + rng() * 7200) : 0,
+      nextEvent: pick(NEXT_BY_SPORT[arena.sport], rng),
       lastEvent: null,
       streak: 1 + Math.floor(rng() * 30),
     };
