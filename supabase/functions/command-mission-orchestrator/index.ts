@@ -120,8 +120,10 @@ Deno.serve(async (req) => {
 
     const reportRes = await runNativeChat({
       model: reporter.default_model,
-      system: reporter.manual,
-      messages: [{ role: "user", content: reportPrompt }],
+      messages: [
+        { role: "system", content: reporter.manual },
+        { role: "user", content: reportPrompt },
+      ],
     });
 
     let reportJson: any = {
