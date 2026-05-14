@@ -33,6 +33,7 @@ export function AppSidebar({ mobileOpen, onMobileClose }: Props) {
       id: 'comando', label: 'Comando',
       permissionCheck: permissions.canViewDashboard,
       items: [
+        { icon: CommandIcon,     label: 'Command',             path: '/command',         permissionCheck: permissions.canViewDashboard },
         { icon: LayoutDashboard, label: 'Dashboard',           path: '/',                permissionCheck: permissions.canViewDashboard },
         { icon: Radio,           label: 'Operações',           path: '/operations',      permissionCheck: permissions.canViewDashboard },
         { icon: Activity,        label: 'Saúde dos Tenants',   path: '/tenant-health',   permissionCheck: permissions.canViewTenants },
