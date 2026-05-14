@@ -68,8 +68,8 @@ async function runDivision(
 
     const second = await runNativeChat({
       model: division.default_model,
-      system: sys,
       messages: [
+        { role: "system", content: sys },
         { role: "user", content: user },
         { role: "assistant", content: `Resultados das tools:\n${JSON.stringify(results)}` },
         { role: "user", content: `Agora gere findings finais em markdown curto.` },
