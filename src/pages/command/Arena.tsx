@@ -104,10 +104,10 @@ export default function Arena() {
         />
 
         <div
-          className={`relative h-full min-h-0 p-2 sm:p-3 lg:p-4 gap-2 sm:gap-3 ${
+          className={`relative h-full min-h-0 gap-2 sm:gap-3 ${
             tvMode
-              ? 'grid grid-cols-3 grid-rows-3 overflow-hidden'
-              : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 overflow-y-auto auto-rows-[minmax(250px,auto)] xl:auto-rows-[minmax(220px,auto)]'
+              ? 'p-2 sm:p-3 lg:p-4 grid grid-cols-3 grid-rows-3 overflow-hidden'
+              : 'pt-16 sm:pt-3 lg:pt-4 px-2 sm:px-3 lg:px-4 pb-2 sm:pb-3 lg:pb-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 overflow-y-auto auto-rows-[minmax(250px,auto)] xl:auto-rows-[minmax(220px,auto)]'
           }`}
         >
           {ordered.map((arena, idx) => {
