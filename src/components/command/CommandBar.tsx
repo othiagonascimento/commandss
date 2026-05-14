@@ -79,12 +79,20 @@ export function CommandBar() {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, close, toggle]);
 
+  const consumePrefill = useCommandStore((s) => s.consumeBarPrefill);
+
   useEffect(() => {
     if (!open) {
       setText('');
       setBusy(false);
+      return;
     }
-  }, [open]);
+    const p = consumePrefill();
+    if (p) {
+      if (p.agentSlug) setAgentSlug(p.agentSlug);
+      if (typeof p.text === 'string') setText(p.text);
+    }
+  }, [open, consumePrefill]);
 
   const fire = async (slug: string, prompt: string) => {
     if (!wsId) {
