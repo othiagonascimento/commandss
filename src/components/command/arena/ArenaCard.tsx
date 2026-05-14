@@ -157,16 +157,16 @@ function MiniStat({
 }: {
   label: string;
   value: string | number;
-  sizes: { statLabel: string; statValue: string };
+  sizes: { statLabel: string; statValue: string; statBox: string };
   accent?: boolean;
 }) {
   return (
-    <div className="rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] px-1.5 py-1 min-w-0">
+    <div className={`border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] min-w-0 ${sizes.statBox}`}>
       <div className={`font-mono uppercase tracking-[0.16em] text-[hsl(var(--ink-faint))] leading-none ${sizes.statLabel}`}>
         {label}
       </div>
       <div
-        className={`mt-0.5 font-display tabular-nums leading-none tracking-tight truncate ${sizes.statValue} ${
+        className={`mt-0.5 font-display tabular-nums leading-none truncate ${sizes.statValue} ${
           accent ? 'text-[hsl(var(--brand-magenta))]' : 'text-[hsl(var(--ink-primary))]'
         }`}
       >
