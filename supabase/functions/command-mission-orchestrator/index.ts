@@ -10,7 +10,7 @@ import { z } from "npm:zod";
 import { DIVISIONS, type DivisionDef } from "../_shared/divisions.ts";
 import { TOOLS, makeRemoteClients, runReadTool } from "../_shared/commandTools.ts";
 import { collectGroundTruth } from "../_shared/groundTruth.ts";
-import { callNativeAI } from "../_shared/commandAiNative.ts";
+import { runNativeChat } from "../_shared/commandAiNative.ts";
 
 const Body = z.object({
   mission_id: z.string().uuid(),
@@ -44,7 +44,7 @@ async function runDivision(
   let toolsUsed: string[] = [];
   let raw = "";
   try {
-    const first = await callNativeAI({
+    const first = await runNativeChat({
       model: division.default_model,
       system: sys,
       messages: [{ role: "user", content: `${user}\n\nResponda em JSON: {"plan_tools": ["nome.da.tool", ...]}` }],
@@ -64,7 +64,7 @@ async function runDivision(
       } catch (e) { results[tn] = { error: String(e) }; }
     }
 
-    const second = await callNativeAI({
+    const second = await runNativeChat({
       model: division.default_model,
       system: sys,
       messages: [
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
     const reporter = DIVISIONS.find((d) => d.slug === "reporter")!;
     const reportPrompt = `${reporter.manual}\n\nProblema: ${problem}\nGround Truth: ${JSON.stringify(gt)}\n\nContribuições das divisões:\n${contributions.map((c) => `### ${c.division}\nTools: ${c.tools_used.join(", ")}\n${c.findings}`).join("\n\n")}\n\nGere o diagnostic_report em JSON estrito.`;
 
-    const reportRes = await callNativeAI({
+    const reportRes = await runNativeChat({
       model: reporter.default_model,
       system: reporter.manual,
       messages: [{ role: "user", content: reportPrompt }],
