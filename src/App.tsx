@@ -48,6 +48,8 @@ const CommandCockpit = lazy(() => import("./pages/command/Cockpit"));
 const CommandPlaceholder = lazy(() => import("./pages/command/Placeholder"));
 const CommandMissions = lazy(() => import("./pages/command/Missions"));
 const CommandMissionDetail = lazy(() => import("./pages/command/MissionDetail"));
+const CommandContent = lazy(() => import("./pages/command/Content"));
+const CommandContentDetail = lazy(() => import("./pages/command/ContentDetail"));
 
 // FinOps pages (Master only)
 const FinOpsOverview = lazy(() => import("./pages/finops/FinOpsOverviewPage"));
@@ -158,6 +160,8 @@ const App = () => (
                   <Route index element={<CommandCockpit />} />
                   <Route path="missions" element={<CommandMissions />} />
                   <Route path="missions/:id" element={<CommandMissionDetail />} />
+                  <Route path="content" element={<CommandContent />} />
+                  <Route path="content/:id" element={<CommandContentDetail />} />
                   <Route path=":module" element={<CommandPlaceholder />} />
                 </Route>
 
