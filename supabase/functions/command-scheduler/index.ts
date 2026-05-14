@@ -4,6 +4,7 @@
 // Também expira decisões com expires_at vencido.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { runNativeChat } from "../_shared/commandAiNative.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,24 +57,14 @@ async function runJob(job: Job): Promise<{ ok: boolean; result?: unknown; error?
       }).select("id").single();
       if (runErr) throw runErr;
 
-      const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: model || agent.model || "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: agent.system_prompt || `Você é ${agent.name}, ${agent.role}.` },
-            { role: "user", content: input },
-          ],
-        }),
+      const ai = await runNativeChat({
+        model: model || agent.model || "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: agent.system_prompt || `Você é ${agent.name}, ${agent.role}.` },
+          { role: "user", content: input },
+        ],
       });
-      if (!aiRes.ok) throw new Error(`gateway_${aiRes.status}`);
-      const aiJson = await aiRes.json();
-      const output = aiJson.choices?.[0]?.message?.content ?? "";
-      const usage = aiJson.usage ?? {};
+      const output = ai.content;
 
       await db.from("agent_runs").update({
         status: "completed", output,
@@ -81,8 +72,8 @@ async function runJob(job: Job): Promise<{ ok: boolean; result?: unknown; error?
           { t: Date.now(), kind: "thought", label: "agendado", content: "Disparado por scheduler." },
           { t: Date.now(), kind: "final", label: "entregue", content: output.slice(0, 240) },
         ],
-        tokens_in: usage.prompt_tokens ?? 0,
-        tokens_out: usage.completion_tokens ?? 0,
+        tokens_in: ai.usage.input_tokens,
+        tokens_out: ai.usage.output_tokens,
         duration_ms: Date.now() - new Date(startedAt).getTime(),
         finished_at: new Date().toISOString(),
       }).eq("id", run.id);

@@ -5,6 +5,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { runNativeChat } from "../_shared/commandAiNative.ts";
 
 const MASTER_UUID = "cdc32c8f-32cd-439e-8103-e034d16eebf2";
 
@@ -30,7 +31,6 @@ interface RunStep {
 
 const REMOTE_URL = Deno.env.get("REMOTE_SUPABASE_URL")!;
 const REMOTE_SERVICE = Deno.env.get("REMOTE_SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
 // Cliente para validar o JWT (no Supabase deste projeto)
 const localAuth = createClient(
@@ -42,6 +42,9 @@ const localAuth = createClient(
 // Cliente para escrever no Supabase remoto (CRM), schema command_ai
 const remoteDb = createClient(REMOTE_URL, REMOTE_SERVICE, {
   db: { schema: "command_ai" as never },
+  auth: { persistSession: false },
+});
+const remotePublic = createClient(REMOTE_URL, REMOTE_SERVICE, {
   auth: { persistSession: false },
 });
 
@@ -149,34 +152,23 @@ serve(async (req) => {
           "acting",
         );
 
-        // Chama Lovable AI Gateway
-        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: "system", content: agent.system_prompt || `Você é ${agent.name}, ${agent.role}.` },
-              { role: "user", content: input },
-            ],
-          }),
+        const ai = await runNativeChat({
+          model,
+          messages: [
+            { role: "system", content: agent.system_prompt || `Você é ${agent.name}, ${agent.role}.` },
+            { role: "user", content: input },
+          ],
         });
-
-        if (aiRes.status === 429) throw new Error("rate_limited");
-        if (aiRes.status === 402) throw new Error("payment_required");
-        if (!aiRes.ok) {
-          const errTxt = await aiRes.text();
-          throw new Error(`ai_gateway_${aiRes.status}: ${errTxt.slice(0, 200)}`);
-        }
-
-        const aiJson = await aiRes.json();
-        const output = aiJson.choices?.[0]?.message?.content ?? "";
-        const usage = aiJson.usage ?? {};
-        const tokensIn = usage.prompt_tokens ?? 0;
-        const tokensOut = usage.completion_tokens ?? 0;
+        const output = ai.content;
+        const tokensIn = ai.usage.input_tokens;
+        const tokensOut = ai.usage.output_tokens;
+        const { data: pricing } = await remotePublic
+          .from("ai_available_models")
+          .select("cost_per_1k_tokens")
+          .eq("provider", ai.provider)
+          .eq("model_id", ai.model)
+          .maybeSingle();
+        const costUsd = Number(pricing?.cost_per_1k_tokens ?? 0) * ((tokensIn + tokensOut) / 1000);
 
         const finishedAt = new Date().toISOString();
         const durationMs = Date.now() - new Date(startedAt).getTime();
@@ -196,6 +188,7 @@ serve(async (req) => {
             steps,
             tokens_in: tokensIn,
             tokens_out: tokensOut,
+            cost_usd: costUsd,
             duration_ms: durationMs,
             finished_at: finishedAt,
           })
