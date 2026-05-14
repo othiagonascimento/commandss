@@ -104,13 +104,14 @@ export default function Arena() {
         />
 
         <div className="relative h-full p-4 lg:p-6 grid grid-cols-3 grid-rows-3 gap-3 lg:gap-4">
-          {ordered.map((arena) => {
+          {ordered.map((arena, idx) => {
             const snap = data.arenas[arena.slug];
             return (
               <ArenaCard
                 key={arena.slug}
                 arena={arena}
                 snapshot={snap}
+                index={idx}
                 focused={focusSlug === arena.slug}
                 onClick={() => setSpotlightSlug(arena.slug)}
               />
