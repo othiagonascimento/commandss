@@ -277,16 +277,9 @@ ${mission.context ?? "(sem contexto adicional)"}`,
           const observations: string[] = [];
 
           for (const call of calls) {
-            const tool = TOOLS.find((t) => t.name === call.name);
-            if (!tool) {
-              steps.push({ t: Date.now(), kind: "tool_result", data: { name: call.name, error: "unknown_tool" } });
-              observations.push(`${call.name}: unknown_tool`);
-              continue;
-            }
             steps.push({ t: Date.now(), kind: "tool_call", data: { name: call.name, args: call.args } });
             const out = await executeTool({
               call,
-              tool,
               workspaceId: workspace_id,
               runId,
               agentId: agent.id,
