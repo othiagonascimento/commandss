@@ -5,6 +5,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { generateNativeGoogleImage, runNativeChat } from "../_shared/commandAiNative.ts";
 
 const MASTER_UUID = "cdc32c8f-32cd-439e-8103-e034d16eebf2";
 const BUCKET = "command_ai_assets";
@@ -20,7 +21,6 @@ const log = (s: string, d?: unknown) =>
 
 const REMOTE_URL = Deno.env.get("REMOTE_SUPABASE_URL")!;
 const REMOTE_SERVICE = Deno.env.get("REMOTE_SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
 const localAuth = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -88,30 +88,18 @@ serve(async (req) => {
 
     // 1) SCRIBE — copy
     log("scribe_start");
-    const copyRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SCRIBE_SYSTEM + brandCtx },
-          {
-            role: "user",
-            content: `Canal: ${channel} (${format}).\nBrief: ${brief}\n\nDevolva JSON com 3 variantes diferentes (ângulos distintos).`,
-          },
-        ],
-        response_format: { type: "json_object" },
-      }),
+    const copyJson = await runNativeChat({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: SCRIBE_SYSTEM + brandCtx },
+        {
+          role: "user",
+          content: `Canal: ${channel} (${format}).\nBrief: ${brief}\n\nDevolva JSON com 3 variantes diferentes (ângulos distintos).`,
+        },
+      ],
+      responseFormat: "json_object",
     });
-    if (!copyRes.ok) {
-      const t = await copyRes.text();
-      throw new Error(`scribe_${copyRes.status}: ${t.slice(0, 200)}`);
-    }
-    const copyJson = await copyRes.json();
-    const raw = copyJson.choices?.[0]?.message?.content ?? "{}";
+    const raw = copyJson.content || "{}";
     let parsed: { variants?: Array<{ label?: string; caption?: string; hashtags?: string[] }> };
     try {
       parsed = JSON.parse(raw);
@@ -127,35 +115,21 @@ serve(async (req) => {
     let imagePath: string | null = null;
     if (with_image) {
       log("atelier_start");
-      const imgRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-image-preview",
-          messages: [
-            { role: "system", content: ATELIER_SYSTEM + brandCtx },
-            {
-              role: "user",
-              content: `Brief visual para ${channel} ${format}: ${brief}\nVariante guia: ${variants[0].caption}`,
-            },
-          ],
-          modalities: ["image", "text"],
-        }),
+      const img = await generateNativeGoogleImage({
+        model: "google/gemini-2.5-flash-image-preview",
+        messages: [
+          { role: "system", content: ATELIER_SYSTEM + brandCtx },
+          {
+            role: "user",
+            content: `Brief visual para ${channel} ${format}: ${brief}\nVariante guia: ${variants[0].caption}`,
+          },
+        ],
       });
-      if (imgRes.ok) {
-        const j = await imgRes.json();
-        const b64 =
-          j.choices?.[0]?.message?.images?.[0]?.image_url?.url ??
-          j.choices?.[0]?.message?.images?.[0]?.url ??
-          null;
-        if (b64 && typeof b64 === "string" && b64.startsWith("data:image")) {
-          const [meta, data] = b64.split(",");
-          const mime = meta.match(/data:(.+);base64/)?.[1] ?? "image/png";
+      const firstImage = img.images[0];
+      if (firstImage) {
+          const mime = firstImage.mimeType;
           const ext = mime.split("/")[1] ?? "png";
-          const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+          const bytes = Uint8Array.from(atob(firstImage.base64), (c) => c.charCodeAt(0));
           const path = `${workspace_id}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
           const { error: upErr } = await remoteStorage.storage
             .from(BUCKET)
@@ -171,11 +145,8 @@ serve(async (req) => {
           } else {
             log("image_upload_failed", { err: upErr.message });
           }
-        } else {
-          log("atelier_no_image_in_response");
-        }
       } else {
-        log("atelier_failed", { status: imgRes.status });
+        log("atelier_no_image_in_response", { text: img.text?.slice(0, 120) });
       }
     }
 
