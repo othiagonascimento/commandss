@@ -60,12 +60,34 @@ export async function getAgentBySlug(slug: string): Promise<Agent | null> {
   const { data, error } = await commandDb
     .from('agents')
     .select(
-      'id,slug,name,role,description,avatar_emoji,avatar_url,color_hex,model,system_prompt,capabilities,is_active,is_global,sort_order',
+      'id,slug,name,role,description,avatar_emoji,avatar_url,color_hex,model,provider,model_id,system_prompt,capabilities,is_active,is_global,sort_order',
     )
     .eq('slug', slug)
     .maybeSingle();
   if (error) throw error;
   return (data as Agent) ?? null;
+}
+
+/** Catálogo de modelos disponíveis (com tool-calling) — alimenta o seletor por agente. */
+export async function listAvailableModels(): Promise<AvailableModel[]> {
+  const { data, error } = await supabase
+    .from('ai_available_models')
+    .select('provider,model_id,display_name,cost_per_1k_input,cost_per_1k_output,supports_tools')
+    .eq('is_active', true)
+    .eq('supports_tools', true)
+    .order('provider', { ascending: true })
+    .order('model_id', { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as AvailableModel[];
+}
+
+/** Persiste provider+model_id (e o legado `model = provider/model_id`) em command_ai.agents. */
+export async function updateAgentModel(agentId: string, provider: string, modelId: string) {
+  const { error } = await commandDb
+    .from('agents')
+    .update({ provider, model_id: modelId, model: `${provider}/${modelId}` })
+    .eq('id', agentId);
+  if (error) throw error;
 }
 
 interface RunRow {
