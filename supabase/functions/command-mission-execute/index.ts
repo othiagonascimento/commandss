@@ -9,6 +9,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { runNativeChat } from "../_shared/commandAiNative.ts";
+import {
+  TOOLS,
+  findTool,
+  loadGrant,
+  recordExec,
+  executeRealTool,
+  makeRemoteClients,
+} from "../_shared/commandTools.ts";
 
 const MASTER_UUID = "cdc32c8f-32cd-439e-8103-e034d16eebf2";
 
@@ -24,101 +32,29 @@ const log = (step: string, details?: unknown) => {
   console.log(`[command-mission-execute] ${step}${d}`);
 };
 
-const REMOTE_URL = Deno.env.get("REMOTE_SUPABASE_URL")!;
-const REMOTE_SERVICE = Deno.env.get("REMOTE_SUPABASE_SERVICE_ROLE_KEY")!;
-
 const localAuth = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   { auth: { persistSession: false } },
 );
 
-const remoteCmd = createClient(REMOTE_URL, REMOTE_SERVICE, {
-  db: { schema: "command_ai" as never },
-  auth: { persistSession: false },
-});
-const remotePub = createClient(REMOTE_URL, REMOTE_SERVICE, {
-  auth: { persistSession: false },
-});
+const { cmd: remoteCmd, pub: remotePub } = makeRemoteClients();
 
-// ---- Tool catalog --------------------------------------------------------
-type ToolKind = "read" | "write_low" | "write_high";
-interface ToolDef {
-  name: string;
-  scope: string; // matches tenant_grants.scopes entry
-  kind: ToolKind;
-  description: string;
-  schema: Record<string, string>; // arg -> type hint
-}
-
-const TOOLS: ToolDef[] = [
-  {
-    name: "tenant.leads.list",
-    scope: "leads:read",
-    kind: "read",
-    description: "Lista leads do tenant (filtros opcionais por stage/temperature).",
-    schema: { stage: "string?", temperature: "string?", limit: "number?" },
-  },
-  {
-    name: "tenant.leads.message",
-    scope: "leads:message",
-    kind: "write_high",
-    description: "Envia mensagem WhatsApp para um lead. Requer aprovação humana.",
-    schema: { lead_id: "uuid", text: "string" },
-  },
-  {
-    name: "tenant.products.update_price",
-    scope: "products:write",
-    kind: "write_high",
-    description: "Atualiza preço de um produto. Requer aprovação humana.",
-    schema: { product_id: "uuid", new_price: "number" },
-  },
-  {
-    name: "tenant.campaigns.create",
-    scope: "campaigns:write",
-    kind: "write_low",
-    description: "Cria uma campanha (rascunho) no tenant.",
-    schema: { name: "string", channel: "string", payload: "object?" },
-  },
-];
-
-// ---- Grants --------------------------------------------------------------
-async function loadGrant(targetTenant: string) {
-  const { data } = await remoteCmd
-    .from("tenant_grants")
-    .select("scopes, expires_at, revoked_at")
-    .eq("target_tenant_id", targetTenant)
-    .is("revoked_at", null)
-    .maybeSingle();
-  if (!data) return { scopes: [] as string[] };
-  if (data.expires_at && new Date(data.expires_at) < new Date()) return { scopes: [] };
-  return { scopes: (data.scopes ?? []) as string[] };
-}
-
-// ---- Tool runner ---------------------------------------------------------
 interface ToolCall {
   name: string;
   args: Record<string, unknown>;
 }
 
-async function recordExec(row: Record<string, unknown>) {
-  const { data } = await remoteCmd
-    .from("tool_executions")
-    .insert(row)
-    .select("id")
-    .single();
-  return data?.id as string | undefined;
-}
-
 async function executeTool(opts: {
   call: ToolCall;
-  tool: ToolDef;
   workspaceId: string;
   runId: string;
   agentId: string;
   missionId: string;
   targetTenant: string;
-}): Promise<{ status: "ok" | "denied" | "queued_for_decision" | "error"; result?: unknown; decisionId?: string; error?: string }> {
+}): Promise<{ status: string; result?: unknown; decisionId?: string; error?: string }> {
+  const tool = findTool(opts.call.name);
+  if (!tool) return { status: "error", error: "unknown_tool" };
   const start = Date.now();
   const baseRow = {
     workspace_id: opts.workspaceId,
@@ -126,35 +62,28 @@ async function executeTool(opts: {
     agent_id: opts.agentId,
     mission_id: opts.missionId,
     target_tenant_id: opts.targetTenant,
-    tool_name: opts.tool.name,
+    tool_name: tool.name,
     args: opts.call.args,
   };
 
-  // Scope check
-  const { scopes } = await loadGrant(opts.targetTenant);
-  if (!scopes.includes(opts.tool.scope)) {
-    await recordExec({
+  const { scopes } = await loadGrant(remoteCmd, opts.targetTenant);
+  if (!scopes.includes(tool.scope)) {
+    await recordExec(remoteCmd, {
       ...baseRow,
       status: "denied",
-      error: `missing_scope:${opts.tool.scope}`,
+      error: `missing_scope:${tool.scope}`,
       duration_ms: Date.now() - start,
     });
-    return { status: "denied", error: `missing_scope:${opts.tool.scope}` };
+    return { status: "denied", error: `missing_scope:${tool.scope}` };
   }
 
-  // Read tools execute immediately
-  if (opts.tool.kind === "read") {
+  if (tool.kind === "read" || tool.kind === "write_low") {
     try {
-      const result = await runReadTool(opts.tool.name, opts.call.args, opts.targetTenant);
-      await recordExec({
-        ...baseRow,
-        status: "ok",
-        result,
-        duration_ms: Date.now() - start,
-      });
+      const result = await executeRealTool(remotePub, remoteCmd, tool.name, opts.call.args, opts.targetTenant);
+      await recordExec(remoteCmd, { ...baseRow, status: "ok", result, duration_ms: Date.now() - start });
       return { status: "ok", result };
     } catch (e) {
-      await recordExec({
+      await recordExec(remoteCmd, {
         ...baseRow,
         status: "error",
         error: String((e as Error).message ?? e),
@@ -164,29 +93,7 @@ async function executeTool(opts: {
     }
   }
 
-  // write_low: execute but record
-  if (opts.tool.kind === "write_low") {
-    try {
-      const result = await runWriteLowTool(opts.tool.name, opts.call.args, opts.targetTenant);
-      await recordExec({
-        ...baseRow,
-        status: "ok",
-        result,
-        duration_ms: Date.now() - start,
-      });
-      return { status: "ok", result };
-    } catch (e) {
-      await recordExec({
-        ...baseRow,
-        status: "error",
-        error: String((e as Error).message ?? e),
-        duration_ms: Date.now() - start,
-      });
-      return { status: "error", error: String((e as Error).message ?? e) };
-    }
-  }
-
-  // write_high: queue decision instead of executing
+  // write_high → vira decisão
   const { data: dec } = await remoteCmd
     .from("decisions")
     .insert({
@@ -194,20 +101,21 @@ async function executeTool(opts: {
       agent_id: opts.agentId,
       run_id: opts.runId,
       kind: "tool_call",
-      title: `${opts.tool.name} no tenant ${opts.targetTenant.slice(0, 8)}`,
-      summary: opts.tool.description,
+      title: `${tool.name} no tenant ${opts.targetTenant.slice(0, 8)}`,
+      summary: tool.description,
       reasoning: `Argumentos propostos: ${JSON.stringify(opts.call.args)}`,
-      preview: { tool: opts.tool.name, args: opts.call.args, target_tenant_id: opts.targetTenant },
+      preview: { tool: tool.name, args: opts.call.args, target_tenant_id: opts.targetTenant },
       options: [
         { id: "approve", label: "Aprovar e executar" },
         { id: "reject", label: "Rejeitar" },
       ],
       status: "pending",
+      expires_at: new Date(Date.now() + 24 * 60 * 60_000).toISOString(),
     })
     .select("id")
     .single();
 
-  await recordExec({
+  await recordExec(remoteCmd, {
     ...baseRow,
     status: "queued_for_decision",
     decision_id: dec?.id ?? null,
@@ -216,45 +124,7 @@ async function executeTool(opts: {
   return { status: "queued_for_decision", decisionId: dec?.id };
 }
 
-async function runReadTool(name: string, args: Record<string, unknown>, tenantId: string): Promise<unknown> {
-  if (name === "tenant.leads.list") {
-    let q = remotePub
-      .from("leads")
-      .select("id,name,phone,stage,temperature,value,created_at")
-      .eq("tenant_id", tenantId)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(Number(args.limit ?? 25));
-    if (args.stage) q = q.eq("stage", String(args.stage));
-    if (args.temperature) q = q.eq("temperature", String(args.temperature));
-    const { data, error } = await q;
-    if (error) throw error;
-    return { count: data?.length ?? 0, leads: data ?? [] };
-  }
-  throw new Error(`unknown_read_tool:${name}`);
-}
-
-async function runWriteLowTool(name: string, args: Record<string, unknown>, tenantId: string): Promise<unknown> {
-  if (name === "tenant.campaigns.create") {
-    const { data, error } = await remoteCmd
-      .from("campaigns")
-      .insert({
-        workspace_id: null,
-        name: String(args.name ?? "Sem nome"),
-        status: "draft",
-        channel: String(args.channel ?? "whatsapp"),
-        payload: (args.payload as Record<string, unknown>) ?? { proposed_for_tenant: tenantId },
-      })
-      .select("id")
-      .single();
-    if (error) throw error;
-    return { campaign_id: data.id };
-  }
-  throw new Error(`unknown_write_low_tool:${name}`);
-}
-
-// ---- Agent loop ----------------------------------------------------------
-function toolsManifest(): string {
+function toolsManifest() {
   return TOOLS.map(
     (t) => `- ${t.name} (${t.kind}, scope=${t.scope}): ${t.description}\n  args: ${JSON.stringify(t.schema)}`,
   ).join("\n");
