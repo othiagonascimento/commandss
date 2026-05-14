@@ -82,7 +82,7 @@ export default function Arena() {
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-[hsl(var(--canvas))]">
-      <GlobalPulse snapshots={data.arenas} now={now} tvMode={tvMode} />
+      {!tvMode && <GlobalPulse snapshots={data.arenas} now={now} tvMode={tvMode} />}
 
       {/* Skybox / clima global */}
       <div
@@ -147,7 +147,7 @@ export default function Arena() {
         </div>
       </div>
 
-      <EventTicker events={data.events} />
+      {!tvMode && <EventTicker events={data.events} />}
 
       {/* Spotlight modal */}
       <AnimatePresence>
