@@ -46,8 +46,10 @@ async function runDivision(
   try {
     const first = await runNativeChat({
       model: division.default_model,
-      system: sys,
-      messages: [{ role: "user", content: `${user}\n\nResponda em JSON: {"plan_tools": ["nome.da.tool", ...]}` }],
+      messages: [
+        { role: "system", content: sys },
+        { role: "user", content: `${user}\n\nResponda em JSON: {"plan_tools": ["nome.da.tool", ...]}` },
+      ],
     });
     const planMatch = first.content.match(/\{[\s\S]*\}/);
     const plan = planMatch ? JSON.parse(planMatch[0]) : { plan_tools: [] };
