@@ -53,35 +53,85 @@ export function ArenaScene({ sport, state, intensity }: { sport: SportSlug } & S
 
 function TennisScene({ state, intensity }: SceneProps) {
   const dur = speed(state, intensity);
+  const ballColor = state === 'critical' ? ACCENT : 'hsl(var(--jade))';
   return (
     <svg viewBox="0 0 200 120" className="w-full h-full">
-      {/* quadra */}
-      <rect x="20" y="25" width="160" height="70" fill="none" stroke={COURT} strokeWidth="0.6" />
-      <line x1="100" y1="25" x2="100" y2="95" stroke={COURT} strokeWidth="0.4" strokeDasharray="2 2" />
-      <line x1="20" y1="60" x2="180" y2="60" stroke={COURT_BRIGHT} strokeWidth="0.5" />
-      {/* atleta esq */}
-      <motion.circle
-        cx="50" cy="60" r="2.5" fill="hsl(var(--ink-primary))"
-        animate={isLive(state) ? { cy: [55, 65, 55] } : { cy: [58, 62, 58] }}
-        transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut' }}
+      {/* Subtle clay underlay */}
+      <defs>
+        <linearGradient id="tennis-clay" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="hsl(13 50% 30%)" stopOpacity="0" />
+          <stop offset="100%" stopColor="hsl(13 50% 30%)" stopOpacity="0.18" />
+        </linearGradient>
+        <linearGradient id="tennis-trail" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor={ballColor} stopOpacity="0" />
+          <stop offset="100%" stopColor={ballColor} stopOpacity="0.55" />
+        </linearGradient>
+      </defs>
+      <polygon points="50,30 150,30 185,100 15,100" fill="url(#tennis-clay)" />
+
+      {/* Quadra em perspectiva (trapézio) */}
+      <polygon
+        points="50,30 150,30 185,100 15,100"
+        fill="none"
+        stroke={COURT}
+        strokeWidth="0.7"
       />
-      {/* atleta dir */}
-      <motion.circle
-        cx="150" cy="60" r="2.5" fill="hsl(var(--ink-secondary))"
-        animate={isLive(state) ? { cy: [65, 55, 65] } : { cy: [62, 58, 62] }}
+      {/* Linhas internas (corredor) */}
+      <line x1="60" y1="30" x2="35" y2="100" stroke={COURT} strokeWidth="0.4" />
+      <line x1="140" y1="30" x2="165" y2="100" stroke={COURT} strokeWidth="0.4" />
+      {/* Linha de saque (atrás) */}
+      <line x1="68" y1="50" x2="132" y2="50" stroke={COURT} strokeWidth="0.4" />
+      {/* Linha de saque (à frente) */}
+      <line x1="50" y1="78" x2="150" y2="78" stroke={COURT} strokeWidth="0.4" />
+      {/* Linha central de saque */}
+      <line x1="100" y1="50" x2="100" y2="78" stroke={COURT} strokeWidth="0.3" strokeDasharray="2 2" />
+      {/* Rede */}
+      <line x1="40" y1="65" x2="160" y2="65" stroke={COURT_BRIGHT} strokeWidth="0.7" />
+      <line x1="40" y1="63" x2="40" y2="67" stroke={COURT_BRIGHT} strokeWidth="0.6" />
+      <line x1="160" y1="63" x2="160" y2="67" stroke={COURT_BRIGHT} strokeWidth="0.6" />
+
+      {/* Atleta longe (cápsula menor, mais opaca/clara) */}
+      <motion.g
+        animate={isLive(state) ? { x: [-4, 4, -4] } : { x: [-1, 1, -1] }}
         transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      {/* bola */}
-      <motion.circle
-        r="1.6"
-        fill={state === 'critical' ? ACCENT : 'hsl(var(--jade))'}
+      >
+        <ellipse cx="100" cy="42" rx="2" ry="1.2" fill="hsl(var(--ink-primary)/0.08)" />
+        <rect x="98.5" y="36" width="3" height="6" rx="1.5" fill="hsl(var(--ink-secondary))" opacity="0.7" />
+        <circle cx="100" cy="34.5" r="1.2" fill="hsl(var(--ink-secondary))" opacity="0.7" />
+      </motion.g>
+
+      {/* Atleta perto (cápsula maior, com mais peso) */}
+      <motion.g
+        animate={isLive(state) ? { x: [4, -4, 4] } : { x: [1, -1, 1] }}
+        transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <ellipse cx="100" cy="92" rx="3.5" ry="1.6" fill="hsl(var(--ink-primary)/0.18)" />
+        <rect x="97.5" y="80" width="5" height="11" rx="2.5" fill="hsl(var(--ink-primary))" />
+        <circle cx="100" cy="78" r="2" fill="hsl(var(--ink-primary))" />
+      </motion.g>
+
+      {/* Bola + rastro diagonal */}
+      <motion.g
         animate={
           isLive(state)
-            ? { cx: [50, 150, 50], cy: [60, 50, 60] }
-            : { cx: [50, 60, 50], cy: [60, 55, 60] }
+            ? { x: [-30, 30, -30], y: [10, -10, 10] }
+            : { x: [-6, 6, -6], y: [2, -2, 2] }
         }
         transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut' }}
-      />
+        style={{ transformOrigin: '100px 65px' }}
+      >
+        {/* Rastro */}
+        <line
+          x1="100" y1="65"
+          x2={isLive(state) ? '88' : '96'}
+          y2={isLive(state) ? '69' : '67'}
+          stroke="url(#tennis-trail)"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+        <circle r="1.6" cx="100" cy="65" fill={ballColor} />
+        <circle r="3.5" cx="100" cy="65" fill={ballColor} opacity="0.18" />
+      </motion.g>
     </svg>
   );
 }
