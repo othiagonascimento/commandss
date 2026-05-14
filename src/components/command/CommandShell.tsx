@@ -78,13 +78,16 @@ export function CommandShell() {
 
         <div className="flex-1 min-w-0 flex flex-col">
           {/* Topbar mobile */}
-          <div className="md:hidden h-12 flex items-center gap-2 px-3 border-b border-[hsl(var(--hairline))] bg-[hsl(var(--canvas)/0.85)] backdrop-blur-xl">
+          <div
+            className="md:hidden flex items-center gap-2 px-3 border-b border-[hsl(var(--hairline))] bg-[hsl(var(--canvas)/0.85)] backdrop-blur-xl"
+            style={{ paddingTop: 'max(env(safe-area-inset-top), 8px)', paddingBottom: '8px' }}
+          >
             <button
               onClick={() => setMobileNavOpen(true)}
-              className="h-8 w-8 rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] flex items-center justify-center text-[hsl(var(--ink-secondary))]"
+              className="h-10 w-10 rounded-md border border-[hsl(var(--hairline))] bg-[hsl(var(--surface-2))] flex items-center justify-center text-[hsl(var(--ink-secondary))] active:scale-95 transition-transform"
               aria-label="Abrir menu"
             >
-              <Menu className="w-4 h-4" />
+              <Menu className="w-5 h-5" />
             </button>
             <span className="font-display text-[15px] tracking-tighter text-[hsl(var(--ink-primary))]">
               U<span className="text-[hsl(var(--brand-magenta))]">·</span>
