@@ -55,8 +55,21 @@ export interface ArenaSnapshot {
   scoreToday: number;         // pontos do dia (missões concluídas)
   scoreOpponent: number;      // falhas/incidentes do dia
   currentMission: string | null;
+  progress: number;           // 0..1 da missão atual
+  elapsedSec: number;         // tempo decorrido na missão (segundos)
+  nextEvent: string | null;   // próximo evento previsto
   lastEvent: string | null;
   streak: number;             // dias consecutivos sem crítico
+}
+
+/** Formata segundos em HH:MM:SS ou MM:SS */
+export function formatElapsed(sec: number): string {
+  if (!sec || sec < 0) return '00:00';
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
 export const STATE_TONE: Record<ArenaState, { border: string; glow: string; label: string }> = {
