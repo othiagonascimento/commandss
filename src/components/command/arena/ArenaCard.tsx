@@ -118,7 +118,7 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
         </div>
 
         {/* Linha C — progresso + W/F + próximo */}
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <div className={`w-full bg-[hsl(var(--hairline))] rounded-full overflow-hidden ${tv ? 'h-[3px]' : 'h-[2px]'}`}>
             <motion.div
               className="h-full rounded-full"
@@ -128,7 +128,7 @@ export function ArenaCard({ arena, snapshot, index, focused, tv, fill, onClick }
             />
           </div>
           <div className={`flex items-center justify-between gap-2 font-mono uppercase tracking-[0.14em] text-[hsl(var(--ink-faint))] ${
-            tv ? 'text-[11px]' : 'text-[8.5px]'
+            tv ? 'text-[9px]' : 'text-[7.5px]'
           }`}>
             <div className="flex items-center gap-2 shrink-0">
               <span>
