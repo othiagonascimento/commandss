@@ -57,6 +57,7 @@ const CommandCampaigns = lazy(() => import("./pages/command/Campaigns"));
 const CommandBrandIntel = lazy(() => import("./pages/command/BrandIntel"));
 const CommandCommercial = lazy(() => import("./pages/command/Commercial"));
 const CommandAgents = lazy(() => import("./pages/command/Agents"));
+const CommandGrants = lazy(() => import("./pages/command/Grants"));
 const CommandTimeline = lazy(() => import("./pages/command/Timeline"));
 
 // FinOps pages (Master only)
@@ -179,6 +180,7 @@ const App = () => (
                   <Route path="commercial" element={<CommandCommercial />} />
                   <Route path="agents" element={<CommandAgents />} />
                   <Route path="timeline" element={<CommandTimeline />} />
+                  <Route path="grants" element={<CommandGrants />} />
                   <Route path=":module" element={<CommandPlaceholder />} />
                 </Route>
 
