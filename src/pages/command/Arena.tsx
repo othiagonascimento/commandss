@@ -128,20 +128,20 @@ export default function Arena() {
         </div>
 
         {/* TV controls */}
-        <div className="absolute top-3 right-3 flex items-center gap-2">
+        <div className="absolute top-4 right-3 sm:top-3 sm:right-3 flex items-center gap-2 z-20">
           {tvMode ? (
             <button
               onClick={exitTv}
-              className="h-8 px-3 rounded-md bg-[hsl(var(--surface-2)/0.7)] backdrop-blur-md border border-[hsl(var(--hairline))] text-[11px] text-[hsl(var(--ink-secondary))] hover:text-[hsl(var(--ink-primary))] flex items-center gap-1.5 transition-colors"
+              className="h-10 sm:h-8 px-3.5 sm:px-3 rounded-md bg-[hsl(var(--surface-2)/0.85)] backdrop-blur-md border border-[hsl(var(--hairline))] text-[12px] sm:text-[11px] text-[hsl(var(--ink-secondary))] hover:text-[hsl(var(--ink-primary))] flex items-center gap-1.5 transition-colors shadow-sm"
             >
-              <Minimize2 className="w-3 h-3" /> sair tv
+              <Minimize2 className="w-3.5 h-3.5 sm:w-3 sm:h-3" /> sair tv
             </button>
           ) : (
             <button
               onClick={enterTv}
-              className="h-8 px-3 rounded-md bg-[hsl(var(--surface-2)/0.7)] backdrop-blur-md border border-[hsl(var(--hairline))] text-[11px] text-[hsl(var(--ink-secondary))] hover:text-[hsl(var(--ink-primary))] flex items-center gap-1.5 transition-colors"
+              className="h-10 sm:h-8 px-3.5 sm:px-3 rounded-md bg-[hsl(var(--surface-2)/0.85)] backdrop-blur-md border border-[hsl(var(--hairline))] text-[12px] sm:text-[11px] text-[hsl(var(--ink-secondary))] hover:text-[hsl(var(--ink-primary))] flex items-center gap-1.5 transition-colors shadow-sm"
             >
-              <Maximize2 className="w-3 h-3" /> modo tv
+              <Maximize2 className="w-3.5 h-3.5 sm:w-3 sm:h-3" /> modo tv
             </button>
           )}
         </div>
