@@ -42,6 +42,11 @@ const Operations = lazy(() => import("./pages/Operations"));
 const Install = lazy(() => import("./pages/Install"));
 const Docs = lazy(() => import("./pages/Docs"));
 
+// Command AI — área operacional executiva privada (apenas master)
+const CommandShell = lazy(() => import("./components/command/CommandShell").then(m => ({ default: m.CommandShell })));
+const CommandCockpit = lazy(() => import("./pages/command/Cockpit"));
+const CommandPlaceholder = lazy(() => import("./pages/command/Placeholder"));
+
 // FinOps pages (Master only)
 const FinOpsOverview = lazy(() => import("./pages/finops/FinOpsOverviewPage"));
 const FinOpsTenants = lazy(() => import("./pages/finops/FinOpsTenantsPage"));
