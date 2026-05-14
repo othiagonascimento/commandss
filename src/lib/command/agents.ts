@@ -15,11 +15,22 @@ export interface Agent {
   avatar_url: string | null;
   color_hex: string;
   model: string | null;
+  provider: string | null;
+  model_id: string | null;
   system_prompt: string | null;
   capabilities: string[] | Record<string, unknown> | null;
   is_active: boolean;
   is_global: boolean;
   sort_order: number;
+}
+
+export interface AvailableModel {
+  provider: string;
+  model_id: string;
+  display_name: string;
+  cost_per_1k_input: number;
+  cost_per_1k_output: number;
+  supports_tools: boolean;
 }
 
 export interface AgentStats {
