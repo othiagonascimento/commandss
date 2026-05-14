@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Activity,
+  Trophy,
   Target,
   MessageSquare,
   Brain,
@@ -29,6 +30,7 @@ const LAYER_ICONS: Record<string, typeof MessageSquare> = {
 
 const TOP = [
   { to: '/command', label: 'Cockpit', icon: Activity, end: true },
+  { to: '/command/arena', label: 'Arena', icon: Trophy },
   { to: '/command/missions', label: 'Missões', icon: Target },
 ];
 

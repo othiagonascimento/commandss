@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useSearchParams, useLocation } from 'react-router-dom';
 import { CommandGuard } from './CommandGuard';
 import { BootSequence } from './BootSequence';
 import { CommandSidebar } from './CommandSidebar';
@@ -11,7 +11,11 @@ import { useCommandStore } from '@/lib/command/store';
 
 export function CommandShell() {
   const bootSeenAt = useCommandStore((s) => s.bootSeenAt);
-  // Replay boot once per session: if bootSeenAt is older than 30 min, show again.
+  const [params] = useSearchParams();
+  const { pathname } = useLocation();
+  // Modo TV / wallboard — esconde sidebar, header, dock e qualquer chrome.
+  const tvMode = params.get('tv') === '1' && pathname.startsWith('/command/arena');
+
   const [bootDone, setBootDone] = useState(() => {
     if (!bootSeenAt) return false;
     return Date.now() - bootSeenAt < 30 * 60 * 1000;
@@ -26,6 +30,16 @@ export function CommandShell() {
       };
     }
   }, [bootDone]);
+
+  if (tvMode) {
+    return (
+      <CommandGuard>
+        <div className="fixed inset-0 bg-[hsl(var(--canvas))] text-[hsl(var(--ink-primary))] overflow-hidden">
+          <Outlet />
+        </div>
+      </CommandGuard>
+    );
+  }
 
   return (
     <CommandGuard>
