@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { commandDb } from '@/lib/command/db';
 import { motion } from 'framer-motion';
 import { useCommandStore } from '@/lib/command/store';
+import { RecentRuns } from '@/components/command/RecentRuns';
 
 interface PulseStats {
   publishedToday: number;
@@ -109,6 +110,11 @@ export default function CommandCockpit() {
         <Tile label="Missões" value={stats?.activeMissions ?? 0} hint="em execução" to="/command/missions" />
         <Tile label="Decisões" value={stats?.pendingDecisions ?? 0} hint="aguardando você" to="/command/inbox" accent />
         <Tile label="Agentes" value={stats?.liveAgents ?? 0} hint="trabalhando agora" to="/command/agents" />
+      </div>
+
+      {/* Recent agent activity */}
+      <div className="mt-16">
+        <RecentRuns />
       </div>
 
       {/* Footer */}
