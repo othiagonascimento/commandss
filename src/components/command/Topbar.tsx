@@ -16,6 +16,7 @@ const NAV = [
   { to: '/command/automations', label: 'Automações' },
   { to: '/command/intel', label: 'Intel' },
   { to: '/command/inbox', label: 'Inbox' },
+  { to: '/command/grants', label: 'Grants' },
 ];
 
 export function Topbar() {
