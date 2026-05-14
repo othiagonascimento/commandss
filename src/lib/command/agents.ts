@@ -49,7 +49,7 @@ export async function listAgents(): Promise<Agent[]> {
   const { data, error } = await commandDb
     .from('agents')
     .select(
-      'id,slug,name,role,description,avatar_emoji,avatar_url,color_hex,model,system_prompt,capabilities,is_active,is_global,sort_order',
+      'id,slug,name,role,description,avatar_emoji,avatar_url,color_hex,model,provider,model_id,system_prompt,capabilities,is_active,is_global,sort_order',
     )
     .order('sort_order', { ascending: true });
   if (error) throw error;
