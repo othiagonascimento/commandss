@@ -1,3 +1,4 @@
+// v2025-06-06.2 — removes legacy maxTimestamp (stack overflow fix)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { makeV2Envelope } from "../_shared/v2Envelope.ts";
