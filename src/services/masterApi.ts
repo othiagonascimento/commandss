@@ -51,7 +51,11 @@ async function callMasterApi<T>(
       const realMessage = bodyError || error.message;
       const status = response?.status;
 
-      console.error('[MasterAPI] Error:', {
+      // 400 (rota desconhecida na versão deployada) e 504 (timeout) são tratados
+      // como "endpoint indisponível" — log info, sem toast vermelho.
+      const isSoftUnavailable = status === 400 || status === 504;
+      const logFn = isSoftUnavailable ? console.info : console.error;
+      logFn('[MasterAPI]', isSoftUnavailable ? 'Unavailable:' : 'Error:', {
         name: (error as Error).name,
         error: (error as Error).message,
         status,

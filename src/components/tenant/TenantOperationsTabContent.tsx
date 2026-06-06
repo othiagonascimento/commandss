@@ -7,13 +7,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function TenantOperationsTab({ tenantId }: { tenantId: string }) {
-  const { data: tenantOps, isLoading: opsLoading } = useQuery({
+  const { data: tenantOps, isLoading: opsLoading, isError: opsError } = useQuery({
     queryKey: ['tenant-ops', tenantId],
     queryFn: async () => {
       const res = await opsHealthApi.getTenantOps(tenantId);
-      if (res.error) throw new Error(res.error);
+      // Trata "endpoint indisponível" (400/404/sem snapshot) como dado vazio,
+      // não como erro: a aba renderiza empty state limpo.
+      if (res.error) return null;
       return res.data;
     },
+    retry: false,
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
@@ -90,10 +93,14 @@ export default function TenantOperationsTab({ tenantId }: { tenantId: string }) 
   return (
     <div className="space-y-6">
       {noData && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="py-4 text-center">
-            <p className="text-sm text-muted-foreground">Sem dados operacionais detalhados.</p>
-          </CardContent>
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle className="text-base">Sem dados de Ops ainda</CardTitle>
+            <CardDescription>
+              Este tenant ainda não enviou um snapshot operacional (filas, latência IA, conversas ativas).
+              Os dados aparecem aqui automaticamente assim que o CRM publicar um <code>ops_health_sync</code>.
+            </CardDescription>
+          </CardHeader>
         </Card>
       )}
 
