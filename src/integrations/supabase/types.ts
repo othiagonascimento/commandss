@@ -1394,6 +1394,90 @@ export type Database = {
           },
         ]
       }
+      ai_signal_dismissals: {
+        Row: {
+          dismissed_at: string
+          expires_at: string
+          id: string
+          kind: string
+          lead_id: string
+          reason: string | null
+          tenant_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          expires_at?: string
+          id?: string
+          kind?: string
+          lead_id: string
+          reason?: string | null
+          tenant_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          expires_at?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          reason?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      ai_summary_quota: {
+        Row: {
+          count: number
+          created_at: string
+          date: string
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          date?: string
+          id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          date?: string
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_telemetry: {
+        Row: {
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          operation: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          operation: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          operation?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       api_cost_config: {
         Row: {
           audio_cost_per_minute_usd: number | null
@@ -2640,6 +2724,36 @@ export type Database = {
           },
         ]
       }
+      cci_signals: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          lead_id: string
+          payload: Json
+          tenant_id: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          lead_id: string
+          payload?: Json
+          tenant_id: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          payload?: Json
+          tenant_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       channels: {
         Row: {
           access_token: string | null
@@ -3356,7 +3470,7 @@ export type Database = {
       }
       conversation_observers: {
         Row: {
-          added_by: string
+          added_by: string | null
           can_send_messages: boolean | null
           conversation_id: string
           created_at: string | null
@@ -3369,7 +3483,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
-          added_by: string
+          added_by?: string | null
           can_send_messages?: boolean | null
           conversation_id: string
           created_at?: string | null
@@ -3382,7 +3496,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
-          added_by?: string
+          added_by?: string | null
           can_send_messages?: boolean | null
           conversation_id?: string
           created_at?: string | null
@@ -5823,6 +5937,42 @@ export type Database = {
           },
         ]
       }
+      instance_warmup_schedule: {
+        Row: {
+          created_at: string | null
+          current_day: number | null
+          id: string
+          instance_id: string
+          max_messages_per_day: number | null
+          started_at: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_day?: number | null
+          id?: string
+          instance_id: string
+          max_messages_per_day?: number | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_day?: number | null
+          id?: string
+          instance_id?: string
+          max_messages_per_day?: number | null
+          started_at?: string | null
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       integration_sync_logs: {
         Row: {
           completed_at: string | null
@@ -5991,7 +6141,7 @@ export type Database = {
           conversation_id: string
           created_at: string | null
           id: string
-          sender_id: string
+          sender_id: string | null
           tenant_id: string
           updated_at: string | null
         }
@@ -6000,7 +6150,7 @@ export type Database = {
           conversation_id: string
           created_at?: string | null
           id?: string
-          sender_id: string
+          sender_id?: string | null
           tenant_id: string
           updated_at?: string | null
         }
@@ -6009,7 +6159,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string | null
           id?: string
-          sender_id?: string
+          sender_id?: string | null
           tenant_id?: string
           updated_at?: string | null
         }
@@ -6939,6 +7089,10 @@ export type Database = {
           assigned_to: string | null
           avatar: string | null
           birth_date: string | null
+          cci_classified_at: string | null
+          cci_score: number | null
+          cci_temperature: string | null
+          cci_zone: string | null
           checkout_token: string | null
           created_at: string | null
           created_by: string | null
@@ -6981,6 +7135,10 @@ export type Database = {
           assigned_to?: string | null
           avatar?: string | null
           birth_date?: string | null
+          cci_classified_at?: string | null
+          cci_score?: number | null
+          cci_temperature?: string | null
+          cci_zone?: string | null
           checkout_token?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -7023,6 +7181,10 @@ export type Database = {
           assigned_to?: string | null
           avatar?: string | null
           birth_date?: string | null
+          cci_classified_at?: string | null
+          cci_score?: number | null
+          cci_temperature?: string | null
+          cci_zone?: string | null
           checkout_token?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -8231,7 +8393,7 @@ export type Database = {
           tenant_id: string
           title: string | null
           type: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -8244,7 +8406,7 @@ export type Database = {
           tenant_id: string
           title?: string | null
           type: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -8257,7 +8419,7 @@ export type Database = {
           tenant_id?: string
           title?: string | null
           type?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -9858,7 +10020,7 @@ export type Database = {
           p256dh_key: string
           tenant_id: string
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           auth_key: string
@@ -9872,7 +10034,7 @@ export type Database = {
           p256dh_key: string
           tenant_id: string
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           auth_key?: string
@@ -9886,7 +10048,7 @@ export type Database = {
           p256dh_key?: string
           tenant_id?: string
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -11879,7 +12041,7 @@ export type Database = {
           last_read_at: string | null
           role: string | null
           tenant_id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           channel_id: string
@@ -11889,7 +12051,7 @@ export type Database = {
           last_read_at?: string | null
           role?: string | null
           tenant_id: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           channel_id?: string
@@ -11899,7 +12061,7 @@ export type Database = {
           last_read_at?: string | null
           role?: string | null
           tenant_id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -12078,7 +12240,7 @@ export type Database = {
           created_at: string | null
           id: string
           reply_to_id: string | null
-          sender_id: string
+          sender_id: string | null
           tenant_id: string
           type: string | null
           updated_at: string | null
@@ -12090,7 +12252,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           reply_to_id?: string | null
-          sender_id: string
+          sender_id?: string | null
           tenant_id: string
           type?: string | null
           updated_at?: string | null
@@ -12102,7 +12264,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           reply_to_id?: string | null
-          sender_id?: string
+          sender_id?: string | null
           tenant_id?: string
           type?: string | null
           updated_at?: string | null
@@ -13550,6 +13712,965 @@ export type Database = {
         }
         Relationships: []
       }
+      uoclub_accounts: {
+        Row: {
+          balance: number
+          created_at: string
+          email: string | null
+          id: string
+          last_activity_at: string | null
+          lead_id: string | null
+          name: string | null
+          phone: string | null
+          program_id: string
+          public_token: string
+          tenant_id: string
+          tier_id: string | null
+          total_earned: number
+          total_redeemed: number
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_activity_at?: string | null
+          lead_id?: string | null
+          name?: string | null
+          phone?: string | null
+          program_id: string
+          public_token?: string
+          tenant_id: string
+          tier_id?: string | null
+          total_earned?: number
+          total_redeemed?: number
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_activity_at?: string | null
+          lead_id?: string | null
+          name?: string | null
+          phone?: string | null
+          program_id?: string
+          public_token?: string
+          tenant_id?: string
+          tier_id?: string | null
+          total_earned?: number
+          total_redeemed?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_accounts_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_executive_metrics"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "uoclub_accounts_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uoclub_accounts_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          diff: Json | null
+          entity: string
+          entity_id: string | null
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          diff?: Json | null
+          entity: string
+          entity_id?: string | null
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          diff?: Json | null
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      uoclub_ledger_events: {
+        Row: {
+          account_id: string | null
+          amount_brl: number
+          created_at: string
+          event_type: string
+          external_ref: string | null
+          id: string
+          idempotency_key: string | null
+          metadata: Json
+          points: number
+          program_id: string | null
+          source: string
+          tenant_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount_brl?: number
+          created_at?: string
+          event_type: string
+          external_ref?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          points?: number
+          program_id?: string | null
+          source?: string
+          tenant_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount_brl?: number
+          created_at?: string
+          event_type?: string
+          external_ref?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          points?: number
+          program_id?: string | null
+          source?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      uoclub_message_log: {
+        Row: {
+          account_id: string
+          body: string | null
+          channel: string
+          created_at: string
+          error: string | null
+          event: Database["public"]["Enums"]["uoclub_trigger_event"]
+          id: string
+          media_url: string | null
+          phone: string | null
+          program_id: string | null
+          reference_id: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          vars: Json
+        }
+        Insert: {
+          account_id: string
+          body?: string | null
+          channel?: string
+          created_at?: string
+          error?: string | null
+          event: Database["public"]["Enums"]["uoclub_trigger_event"]
+          id?: string
+          media_url?: string | null
+          phone?: string | null
+          program_id?: string | null
+          reference_id?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          vars?: Json
+        }
+        Update: {
+          account_id?: string
+          body?: string | null
+          channel?: string
+          created_at?: string
+          error?: string | null
+          event?: Database["public"]["Enums"]["uoclub_trigger_event"]
+          id?: string
+          media_url?: string | null
+          phone?: string | null
+          program_id?: string | null
+          reference_id?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          vars?: Json
+        }
+        Relationships: []
+      }
+      uoclub_message_templates: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          event: Database["public"]["Enums"]["uoclub_trigger_event"]
+          id: string
+          is_active: boolean
+          media_url: string | null
+          program_id: string
+          tenant_id: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          body: string
+          channel?: string
+          created_at?: string
+          event: Database["public"]["Enums"]["uoclub_trigger_event"]
+          id?: string
+          is_active?: boolean
+          media_url?: string | null
+          program_id: string
+          tenant_id: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          event?: Database["public"]["Enums"]["uoclub_trigger_event"]
+          id?: string
+          is_active?: boolean
+          media_url?: string | null
+          program_id?: string
+          tenant_id?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_message_templates_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_executive_metrics"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "uoclub_message_templates_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_nps_surveys: {
+        Row: {
+          account_id: string
+          bonus_credited: number | null
+          classification: string | null
+          comment: string | null
+          created_at: string
+          google_review_published: boolean
+          google_review_requested: boolean
+          id: string
+          program_id: string
+          responded_at: string | null
+          review_at: string | null
+          review_bonus_credited: number | null
+          sale_id: string | null
+          score: number | null
+          tenant_id: string
+        }
+        Insert: {
+          account_id: string
+          bonus_credited?: number | null
+          classification?: string | null
+          comment?: string | null
+          created_at?: string
+          google_review_published?: boolean
+          google_review_requested?: boolean
+          id?: string
+          program_id: string
+          responded_at?: string | null
+          review_at?: string | null
+          review_bonus_credited?: number | null
+          sale_id?: string | null
+          score?: number | null
+          tenant_id: string
+        }
+        Update: {
+          account_id?: string
+          bonus_credited?: number | null
+          classification?: string | null
+          comment?: string | null
+          created_at?: string
+          google_review_published?: boolean
+          google_review_requested?: boolean
+          id?: string
+          program_id?: string
+          responded_at?: string | null
+          review_at?: string | null
+          review_bonus_credited?: number | null
+          sale_id?: string | null
+          score?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_nps_surveys_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uoclub_nps_surveys_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_executive_metrics"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "uoclub_nps_surveys_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uoclub_nps_surveys_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_programs: {
+        Row: {
+          billing_enabled: boolean
+          conversion_rate: number
+          created_at: string
+          currency: string
+          default_expire_days: number
+          default_whatsapp_instance_id: string | null
+          id: string
+          is_active: boolean
+          max_redeem_pct: number
+          min_redeem_points: number
+          name: string
+          points_label: string
+          settings: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          billing_enabled?: boolean
+          conversion_rate?: number
+          created_at?: string
+          currency?: string
+          default_expire_days?: number
+          default_whatsapp_instance_id?: string | null
+          id?: string
+          is_active?: boolean
+          max_redeem_pct?: number
+          min_redeem_points?: number
+          name?: string
+          points_label?: string
+          settings?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          billing_enabled?: boolean
+          conversion_rate?: number
+          created_at?: string
+          currency?: string
+          default_expire_days?: number
+          default_whatsapp_instance_id?: string | null
+          id?: string
+          is_active?: boolean
+          max_redeem_pct?: number
+          min_redeem_points?: number
+          name?: string
+          points_label?: string
+          settings?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_programs_default_whatsapp_instance_id_fkey"
+            columns: ["default_whatsapp_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_redemption_codes: {
+        Row: {
+          account_id: string
+          amount: number
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          status: string
+          tenant_id: string
+          used_at: string | null
+          used_sale_id: string | null
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          status?: string
+          tenant_id: string
+          used_at?: string | null
+          used_sale_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          status?: string
+          tenant_id?: string
+          used_at?: string | null
+          used_sale_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_redemption_codes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uoclub_redemption_codes_used_sale_id_fkey"
+            columns: ["used_sale_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_referrals: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          metadata: Json
+          program_id: string
+          qualified_at: string | null
+          referred_account_id: string | null
+          referred_bonus: number | null
+          referrer_account_id: string
+          referrer_bonus: number | null
+          rewarded_at: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          program_id: string
+          qualified_at?: string | null
+          referred_account_id?: string | null
+          referred_bonus?: number | null
+          referrer_account_id: string
+          referrer_bonus?: number | null
+          rewarded_at?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          program_id?: string
+          qualified_at?: string | null
+          referred_account_id?: string | null
+          referred_bonus?: number | null
+          referrer_account_id?: string
+          referrer_bonus?: number | null
+          rewarded_at?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_referrals_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_executive_metrics"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "uoclub_referrals_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uoclub_referrals_referred_account_id_fkey"
+            columns: ["referred_account_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uoclub_referrals_referrer_account_id_fkey"
+            columns: ["referrer_account_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_reservations: {
+        Row: {
+          account_id: string
+          amount_brl: number
+          committed_transaction_id: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          idempotency_key: string | null
+          metadata: Json | null
+          order_amount_brl: number
+          order_ref: string | null
+          points: number
+          program_id: string | null
+          source: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          amount_brl?: number
+          committed_transaction_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json | null
+          order_amount_brl?: number
+          order_ref?: string | null
+          points?: number
+          program_id?: string | null
+          source?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          amount_brl?: number
+          committed_transaction_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json | null
+          order_amount_brl?: number
+          order_ref?: string | null
+          points?: number
+          program_id?: string | null
+          source?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_reservations_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_rules: {
+        Row: {
+          base_pct: number
+          cci_modifier: boolean
+          created_at: string
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          max_cashback: number | null
+          min_ticket: number | null
+          name: string
+          priority: number
+          program_id: string
+          scope: string
+          scope_value: string | null
+          starts_at: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_pct?: number
+          cci_modifier?: boolean
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_cashback?: number | null
+          min_ticket?: number | null
+          name: string
+          priority?: number
+          program_id: string
+          scope?: string
+          scope_value?: string | null
+          starts_at?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_pct?: number
+          cci_modifier?: boolean
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_cashback?: number | null
+          min_ticket?: number | null
+          name?: string
+          priority?: number
+          program_id?: string
+          scope?: string
+          scope_value?: string | null
+          starts_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_rules_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_executive_metrics"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "uoclub_rules_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_sales: {
+        Row: {
+          account_id: string | null
+          amount: number
+          cashback_amount: number
+          cci_score: number | null
+          created_at: string
+          currency: string
+          external_id: string | null
+          id: string
+          items: Json
+          metadata: Json
+          occurred_at: string
+          origin: Database["public"]["Enums"]["uoclub_sale_origin"]
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          cashback_amount?: number
+          cci_score?: number | null
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          id?: string
+          items?: Json
+          metadata?: Json
+          occurred_at?: string
+          origin: Database["public"]["Enums"]["uoclub_sale_origin"]
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          cashback_amount?: number
+          cci_score?: number | null
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          id?: string
+          items?: Json
+          metadata?: Json
+          occurred_at?: string
+          origin?: Database["public"]["Enums"]["uoclub_sale_origin"]
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_sales_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_tiers: {
+        Row: {
+          color: string | null
+          created_at: string
+          icon: string | null
+          id: string
+          level: number
+          min_spent_90d: number
+          multiplier: number
+          name: string
+          perks: Json
+          program_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          level: number
+          min_spent_90d?: number
+          multiplier?: number
+          name: string
+          perks?: Json
+          program_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          icon?: string | null
+          id?: string
+          level?: number
+          min_spent_90d?: number
+          multiplier?: number
+          name?: string
+          perks?: Json
+          program_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_tiers_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_executive_metrics"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "uoclub_tiers_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_transactions: {
+        Row: {
+          account_id: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          idempotency_key: string | null
+          metadata: Json
+          nps_id: string | null
+          referral_id: string | null
+          sale_id: string | null
+          tenant_id: string
+          type: Database["public"]["Enums"]["uoclub_tx_type"]
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          nps_id?: string | null
+          referral_id?: string | null
+          sale_id?: string | null
+          tenant_id: string
+          type: Database["public"]["Enums"]["uoclub_tx_type"]
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          nps_id?: string | null
+          referral_id?: string | null
+          sale_id?: string | null
+          tenant_id?: string
+          type?: Database["public"]["Enums"]["uoclub_tx_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_triggers: {
+        Row: {
+          conditions: Json
+          created_at: string
+          delay_minutes: number
+          event: Database["public"]["Enums"]["uoclub_trigger_event"]
+          id: string
+          is_active: boolean
+          program_id: string
+          tenant_id: string
+          updated_at: string
+          whatsapp_instance_id: string | null
+        }
+        Insert: {
+          conditions?: Json
+          created_at?: string
+          delay_minutes?: number
+          event: Database["public"]["Enums"]["uoclub_trigger_event"]
+          id?: string
+          is_active?: boolean
+          program_id: string
+          tenant_id: string
+          updated_at?: string
+          whatsapp_instance_id?: string | null
+        }
+        Update: {
+          conditions?: Json
+          created_at?: string
+          delay_minutes?: number
+          event?: Database["public"]["Enums"]["uoclub_trigger_event"]
+          id?: string
+          is_active?: boolean
+          program_id?: string
+          tenant_id?: string
+          updated_at?: string
+          whatsapp_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_triggers_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_executive_metrics"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "uoclub_triggers_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uoclub_triggers_whatsapp_instance_id_fkey"
+            columns: ["whatsapp_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_usage_counters: {
+        Row: {
+          active_accounts: number
+          cashback_credited: number
+          cashback_redeemed: number
+          id: string
+          period_month: string
+          sales_count: number
+          tenant_id: string
+          tx_count: number
+          updated_at: string
+        }
+        Insert: {
+          active_accounts?: number
+          cashback_credited?: number
+          cashback_redeemed?: number
+          id?: string
+          period_month: string
+          sales_count?: number
+          tenant_id: string
+          tx_count?: number
+          updated_at?: string
+        }
+        Update: {
+          active_accounts?: number
+          cashback_credited?: number
+          cashback_redeemed?: number
+          id?: string
+          period_month?: string
+          sales_count?: number
+          tenant_id?: string
+          tx_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       uopa_context: {
         Row: {
           content: string
@@ -13897,17 +15018,20 @@ export type Database = {
           audience_filters: Json
           audience_summary: Json
           channel: string
+          completed_at: string | null
           created_at: string
           created_by: string | null
           estimated_credits: number
           focus_summary: string | null
           governance_config: Json
           id: string
+          launched_at: string | null
           message_config: Json
           metrics: Json
           mode: string
           name: string
           objective: string
+          paused_at: string | null
           status: string
           strategy_config: Json
           tenant_id: string
@@ -13917,17 +15041,20 @@ export type Database = {
           audience_filters?: Json
           audience_summary?: Json
           channel?: string
+          completed_at?: string | null
           created_at?: string
           created_by?: string | null
           estimated_credits?: number
           focus_summary?: string | null
           governance_config?: Json
           id?: string
+          launched_at?: string | null
           message_config?: Json
           metrics?: Json
           mode?: string
           name: string
           objective: string
+          paused_at?: string | null
           status?: string
           strategy_config?: Json
           tenant_id: string
@@ -13937,17 +15064,20 @@ export type Database = {
           audience_filters?: Json
           audience_summary?: Json
           channel?: string
+          completed_at?: string | null
           created_at?: string
           created_by?: string | null
           estimated_credits?: number
           focus_summary?: string | null
           governance_config?: Json
           id?: string
+          launched_at?: string | null
           message_config?: Json
           metrics?: Json
           mode?: string
           name?: string
           objective?: string
+          paused_at?: string | null
           status?: string
           strategy_config?: Json
           tenant_id?: string
@@ -15643,6 +16773,7 @@ export type Database = {
           is_active: boolean | null
           is_primary: boolean | null
           last_connected_at: string | null
+          last_connection_error: string | null
           last_health_check: string | null
           main_instance_id: string | null
           messages_sent_today: number | null
@@ -15682,6 +16813,7 @@ export type Database = {
           is_active?: boolean | null
           is_primary?: boolean | null
           last_connected_at?: string | null
+          last_connection_error?: string | null
           last_health_check?: string | null
           main_instance_id?: string | null
           messages_sent_today?: number | null
@@ -15721,6 +16853,7 @@ export type Database = {
           is_active?: boolean | null
           is_primary?: boolean | null
           last_connected_at?: string | null
+          last_connection_error?: string | null
           last_health_check?: string | null
           main_instance_id?: string | null
           messages_sent_today?: number | null
@@ -15798,6 +16931,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_send_jobs: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          conversation_id: string | null
+          created_at: string
+          dedupe_key: string | null
+          id: string
+          instance_id: string
+          items: Json
+          last_error: string | null
+          lead_phone: string
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          progress: Json
+          status: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          id?: string
+          instance_id: string
+          items: Json
+          last_error?: string | null
+          lead_phone: string
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          progress?: Json
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          id?: string
+          instance_id?: string
+          items?: Json
+          last_error?: string | null
+          lead_phone?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          progress?: Json
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
@@ -16318,6 +17514,19 @@ export type Database = {
           },
         ]
       }
+      uoclub_executive_metrics: {
+        Row: {
+          accounts_count: number | null
+          cashback_issued_brl: number | null
+          cashback_redeemed_brl: number | null
+          open_liability_brl: number | null
+          program_id: string | null
+          redemptions_count: number | null
+          reserved_liability_brl: number | null
+          tenant_id: string | null
+        }
+        Relationships: []
+      }
       v_ai_diagnostics: {
         Row: {
           avg_confidence: number | null
@@ -16672,6 +17881,17 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: Json
       }
+      cci_classify: { Args: { p_lead_id: string }; Returns: undefined }
+      cci_emit_signal: {
+        Args: {
+          p_kind: string
+          p_lead_id: string
+          p_payload?: Json
+          p_tenant_id: string
+          p_weight: number
+        }
+        Returns: undefined
+      }
       check_copilot_daily_debit: {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: boolean
@@ -16773,6 +17993,7 @@ export type Database = {
             }[]
           }
       debug_jwt_claims: { Args: never; Returns: Json }
+      elite_data_hygiene: { Args: never; Returns: undefined }
       enqueue_message: {
         Args: {
           p_campaign_id?: string
@@ -16789,6 +18010,14 @@ export type Database = {
           p_whatsapp_instance_id?: string
         }
         Returns: string
+      }
+      fn_cci_classify_single_lead: {
+        Args: { p_lead_id: string }
+        Returns: {
+          score: number
+          temperature: string
+          zone: string
+        }[]
       }
       fn_phone_variants: { Args: { p_phone: string }; Returns: string[] }
       gen_short_token: { Args: { len?: number }; Returns: string }
@@ -17529,6 +18758,46 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_batch_engagement_scores: {
+        Args: { p_lead_ids: string[] }
+        Returns: {
+          lead_id: string
+          level: string
+          score: number
+        }[]
+      }
+      rpc_cci_classify: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          ai_closing_attempted: boolean
+          ai_objection_handled: boolean
+          awaiting_response: boolean
+          best_contact_hour: number
+          conv_status: string
+          deal_won_count: number
+          has_active_checkout: boolean
+          has_conversation: boolean
+          has_paid_payment: boolean
+          has_pending_payment: boolean
+          has_pending_task: boolean
+          hours_since_lead_msg: number
+          human_response_delay_minutes: number
+          is_rotation_stagnant: boolean
+          last_campaign_replied_at: string
+          last_store_visit_at: string
+          lead_id: string
+          message_count: number
+          score: number
+          stage_sort_order: number
+          temperature: string
+          tenant_credits: number
+          total_ltv: number
+          unread_count: number
+          urgency_level: string
+          win_probability: number
+          zone: string
+        }[]
+      }
       rpc_get_store_order: {
         Args: { p_tenant_id: string; p_token: string }
         Returns: Json
@@ -17800,7 +19069,51 @@ export type Database = {
         Returns: undefined
       }
       trigger_process_event_queue: { Args: never; Returns: undefined }
+      try_lock_int: { Args: { key: number }; Returns: boolean }
       unaccent: { Args: { "": string }; Returns: string }
+      uoclub_available_brl: { Args: { p_account_id: string }; Returns: number }
+      uoclub_cancel_reservation: {
+        Args: {
+          p_metadata?: Json
+          p_reason?: string
+          p_reservation_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      uoclub_commit_reservation: {
+        Args: {
+          p_commit_ref?: string
+          p_metadata?: Json
+          p_reservation_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      uoclub_expire_reservations: { Args: { p_limit?: number }; Returns: Json }
+      uoclub_redeem_quote: {
+        Args: {
+          p_account_id: string
+          p_order_amount_brl: number
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      uoclub_reserve_cashback: {
+        Args: {
+          p_account_id: string
+          p_idempotency_key: string
+          p_metadata?: Json
+          p_order_amount_brl: number
+          p_order_ref: string
+          p_redeem_brl: number
+          p_source?: string
+          p_tenant_id: string
+          p_ttl_minutes?: number
+        }
+        Returns: Json
+      }
+      uoclub_seed_defaults: { Args: { p_tenant_id: string }; Returns: string }
       update_message_status: {
         Args: {
           p_error_message?: string
@@ -17948,6 +19261,37 @@ export type Database = {
       task_priority: "low" | "medium" | "high" | "urgent"
       task_recurrence: "none" | "daily" | "weekly" | "monthly"
       task_status: "pending" | "in_progress" | "completed" | "cancelled"
+      uoclub_sale_origin:
+        | "storefront"
+        | "whatsapp_confirmed"
+        | "pdv_api"
+        | "csv_import"
+        | "manual"
+      uoclub_trigger_event:
+        | "sale_registered"
+        | "points_credited"
+        | "points_expiring"
+        | "points_expired"
+        | "tier_up"
+        | "tier_down"
+        | "referral_completed"
+        | "nps_request"
+        | "nps_promoter"
+        | "nps_detractor"
+        | "review_published"
+        | "redemption_done"
+        | "welcome"
+        | "earn"
+        | "redeem"
+        | "expire_warning"
+      uoclub_tx_type:
+        | "earn"
+        | "redeem"
+        | "expire"
+        | "adjust"
+        | "referral_bonus"
+        | "nps_bonus"
+        | "review_bonus"
       user_status: "online" | "away" | "timed_break"
       webhook_event_status:
         | "PENDING"
@@ -18197,6 +19541,40 @@ export const Constants = {
       task_priority: ["low", "medium", "high", "urgent"],
       task_recurrence: ["none", "daily", "weekly", "monthly"],
       task_status: ["pending", "in_progress", "completed", "cancelled"],
+      uoclub_sale_origin: [
+        "storefront",
+        "whatsapp_confirmed",
+        "pdv_api",
+        "csv_import",
+        "manual",
+      ],
+      uoclub_trigger_event: [
+        "sale_registered",
+        "points_credited",
+        "points_expiring",
+        "points_expired",
+        "tier_up",
+        "tier_down",
+        "referral_completed",
+        "nps_request",
+        "nps_promoter",
+        "nps_detractor",
+        "review_published",
+        "redemption_done",
+        "welcome",
+        "earn",
+        "redeem",
+        "expire_warning",
+      ],
+      uoclub_tx_type: [
+        "earn",
+        "redeem",
+        "expire",
+        "adjust",
+        "referral_bonus",
+        "nps_bonus",
+        "review_bonus",
+      ],
       user_status: ["online", "away", "timed_break"],
       webhook_event_status: [
         "PENDING",
