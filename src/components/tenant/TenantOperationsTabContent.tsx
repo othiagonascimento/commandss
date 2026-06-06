@@ -7,13 +7,16 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function TenantOperationsTab({ tenantId }: { tenantId: string }) {
-  const { data: tenantOps, isLoading: opsLoading } = useQuery({
+  const { data: tenantOps, isLoading: opsLoading, isError: opsError } = useQuery({
     queryKey: ['tenant-ops', tenantId],
     queryFn: async () => {
       const res = await opsHealthApi.getTenantOps(tenantId);
-      if (res.error) throw new Error(res.error);
+      // Trata "endpoint indisponível" (400/404/sem snapshot) como dado vazio,
+      // não como erro: a aba renderiza empty state limpo.
+      if (res.error) return null;
       return res.data;
     },
+    retry: false,
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
