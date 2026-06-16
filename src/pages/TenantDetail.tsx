@@ -24,7 +24,7 @@ import {
 import {
   Loader2, Building2, CreditCard, Settings2, Brain, Users, Radio, Crown,
   Handshake, Gift, Ban, ExternalLink, TrendingUp, TrendingDown, XCircle,
-  RefreshCw, Palette, Globe, ClipboardList, DollarSign, Briefcase,
+  RefreshCw, Palette, Globe, ClipboardList, DollarSign, Briefcase, Coins,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
