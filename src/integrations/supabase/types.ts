@@ -9656,6 +9656,57 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_billing_actuals: {
+        Row: {
+          amount_brl: number
+          amount_usd: number | null
+          billing_month: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          invoice_ref: string | null
+          metadata: Json
+          notes: string | null
+          product: string | null
+          source: string
+          updated_at: string | null
+          usd_brl_rate: number | null
+          vendor: string
+        }
+        Insert: {
+          amount_brl?: number
+          amount_usd?: number | null
+          billing_month: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          invoice_ref?: string | null
+          metadata?: Json
+          notes?: string | null
+          product?: string | null
+          source?: string
+          updated_at?: string | null
+          usd_brl_rate?: number | null
+          vendor: string
+        }
+        Update: {
+          amount_brl?: number
+          amount_usd?: number | null
+          billing_month?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          invoice_ref?: string | null
+          metadata?: Json
+          notes?: string | null
+          product?: string | null
+          source?: string
+          updated_at?: string | null
+          usd_brl_rate?: number | null
+          vendor?: string
+        }
+        Relationships: []
+      }
       platform_cost_allocations: {
         Row: {
           allocation_strategy: string
