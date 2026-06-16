@@ -443,9 +443,27 @@ Deno.serve(async (req) => {
         });
       }
 
+      // 4c) Custo variável por mensagem (Meta Cloud / templates)
+      const waJobs = await safeSelect(
+        supabase.from("whatsapp_send_jobs").select("cost_brl,message_category,created_at")
+          .gte("created_at", from).lte("created_at", to),
+      );
+      const waVarTotal = waJobs.reduce((a: number, j: any) => a + Number(j.cost_brl || 0), 0);
+      if (waVarTotal > 0) {
+        rows.push({
+          service: "WhatsApp — mensagens (Meta Cloud)",
+          sku: "wa_message_variable",
+          amount_brl: waVarTotal,
+          allocation_strategy: "per_message",
+          attribution_confidence: "high",
+          category: "whatsapp",
+          metadata: { jobs: waJobs.length },
+        });
+      }
 
       return rows;
     }
+
 
     // Real GCS variable cost for the period (sum of cost_total_brl) — used
     // by overview/tenants/media to replace the R$/GB estimate when present.
