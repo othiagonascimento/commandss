@@ -13,8 +13,9 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Trash2, Pencil, ShieldCheck, Cloud, MessageSquare, Server, RefreshCw, Info } from 'lucide-react';
+import { Plus, Trash2, Pencil, ShieldCheck, Cloud, MessageSquare, Server, RefreshCw, Info, Scale } from 'lucide-react';
 import { brl } from '@/lib/finops/format';
+import { BillingReconciliationTab } from '@/components/finops/BillingReconciliationTab';
 
 type AnyRow = Record<string, any>;
 
