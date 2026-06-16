@@ -218,6 +218,7 @@ export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps
                   </TooltipProvider>
                 </TableHead>
                 <TableHead className="w-[120px] hidden sm:table-cell">Proporção</TableHead>
+                <TableHead className="w-[180px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
