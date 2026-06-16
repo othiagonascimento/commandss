@@ -457,7 +457,11 @@ Deno.serve(async (req) => {
           last_ingest_at: last_ingest,
           avg_confidence: logs.length > 100 ? "high" : logs.length > 10 ? "medium" : "low",
           api_usage_logs_empty: logs.length === 0,
-          notes: cost_infra === 0 ? ["platform_cost_allocations vazia para o período"] : [],
+          notes: [
+            ...(cost_infra === 0 ? ["Sem custos de infra/SaaS no período (platform_cost_allocations + platform_fixed_costs)"] : []),
+            ...(gcsRealCost === 0 ? ["GCS billing real ausente — usando estimativa R$/GB. Popule public.gcs_billing_daily para precisão."] : []),
+          ],
+
         },
       };
     }
