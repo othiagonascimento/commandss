@@ -23,7 +23,14 @@ interface Props {
 
 export function ProfitProjectionCard({ data }: Props) {
   const baseline = useMemo(() => deriveBaseline(data), [data]);
-  const [growthPct, setGrowthPct] = useState(50);
+  const [mode, setMode] = useState<'pct' | 'abs'>('abs');
+  const [growthPct, setGrowthPct] = useState(100);
+  const [targetUsers, setTargetUsers] = useState<number>(() => {
+    const base = data.cost_per_active_user?.value && data.cost_total_brl?.value
+      ? Math.max(1, Math.round((data.cost_total_brl.value / data.cost_per_active_user.value)))
+      : 100;
+    return Math.max(base * 2, 500);
+  });
 
   if (!baseline) {
     return (
@@ -37,7 +44,10 @@ export function ProfitProjectionCard({ data }: Props) {
   }
 
   const { activeUsers, arpu, variablePerUser, fixedCost } = baseline;
-  const projUsers = Math.round(activeUsers * (1 + growthPct / 100));
+  const projUsers = mode === 'pct'
+    ? Math.round(activeUsers * (1 + growthPct / 100))
+    : Math.max(0, Math.round(targetUsers));
+  const effectiveGrowthPct = activeUsers > 0 ? ((projUsers - activeUsers) / activeUsers) * 100 : 0;
   const projRevenue = projUsers * arpu;
   const projVariable = projUsers * variablePerUser;
   const projCost = projVariable + fixedCost;
@@ -46,9 +56,9 @@ export function ProfitProjectionCard({ data }: Props) {
 
   const breakEvenUsers = arpu > variablePerUser ? Math.ceil(fixedCost / (arpu - variablePerUser)) : null;
 
-  // Build scenarios curve: from current to 4x users
-  const maxUsers = Math.max(activeUsers * 4, (breakEvenUsers ?? 0) * 1.5, projUsers * 1.2);
-  const steps = 20;
+  // Build scenarios curve: extend to cover launch-scale projections
+  const maxUsers = Math.max(activeUsers * 10, (breakEvenUsers ?? 0) * 1.5, projUsers * 1.2, 1000);
+  const steps = 30;
   const curve = Array.from({ length: steps + 1 }, (_, i) => {
     const u = Math.round((maxUsers * i) / steps);
     const rev = u * arpu;
@@ -62,15 +72,17 @@ export function ProfitProjectionCard({ data }: Props) {
   });
 
   const scenarios = [
-    { label: 'Conservador', growth: 25 },
-    { label: 'Base', growth: 50 },
-    { label: 'Otimista', growth: 100 },
+    { label: 'Conservador', users: Math.max(activeUsers * 2, 100) },
+    { label: 'Lançamento', users: Math.max(activeUsers * 5, 500) },
+    { label: 'Escala', users: Math.max(activeUsers * 10, 1000) },
+    { label: 'Hipercrescimento', users: Math.max(activeUsers * 25, 5000) },
   ].map((s) => {
-    const u = Math.round(activeUsers * (1 + s.growth / 100));
+    const u = Math.round(s.users);
     const rev = u * arpu;
     const cost = u * variablePerUser + fixedCost;
     const margin = rev - cost;
-    return { ...s, users: u, revenue: rev, cost, margin, marginPct: rev > 0 ? (margin / rev) * 100 : 0 };
+    const growth = activeUsers > 0 ? ((u - activeUsers) / activeUsers) * 100 : 0;
+    return { ...s, users: u, growth, revenue: rev, cost, margin, marginPct: rev > 0 ? (margin / rev) * 100 : 0 };
   });
 
   return (
@@ -97,24 +109,84 @@ export function ProfitProjectionCard({ data }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Simulator */}
         <div className="space-y-3 rounded-md border border-border/60 bg-muted/20 p-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 text-xs font-medium">
               <Users className="h-3.5 w-3.5 text-primary" />
               Simulador interativo
             </div>
-            <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">+{growthPct}%</Badge>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setMode('abs')}
+                className={`text-[10px] px-2 py-0.5 rounded border ${mode === 'abs' ? 'bg-primary/15 text-primary border-primary/30' : 'border-border/60 text-muted-foreground hover:bg-muted'}`}
+              >
+                Nº usuários
+              </button>
+              <button
+                onClick={() => setMode('pct')}
+                className={`text-[10px] px-2 py-0.5 rounded border ${mode === 'pct' ? 'bg-primary/15 text-primary border-primary/30' : 'border-border/60 text-muted-foreground hover:bg-muted'}`}
+              >
+                % crescimento
+              </button>
+            </div>
           </div>
 
-          <Slider
-            value={[growthPct]}
-            min={-50}
-            max={300}
-            step={5}
-            onValueChange={(v) => setGrowthPct(v[0])}
-          />
+          {mode === 'pct' ? (
+            <>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Crescimento sobre base</span>
+                <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px]">
+                  {growthPct >= 0 ? '+' : ''}{num(growthPct)}%
+                </Badge>
+              </div>
+              <Slider
+                value={[growthPct]}
+                min={-50}
+                max={5000}
+                step={10}
+                onValueChange={(v) => setGrowthPct(v[0])}
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>-50%</span><span>+1.000%</span><span>+5.000%</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Usuários ativos no cenário</span>
+                <Badge className="bg-primary/15 text-primary border-primary/30 text-[10px] tabular-nums">
+                  {num(projUsers)}
+                </Badge>
+              </div>
+              <Slider
+                value={[Math.min(targetUsers, Math.max(activeUsers * 50, 10000))]}
+                min={0}
+                max={Math.max(activeUsers * 50, 10000)}
+                step={Math.max(1, Math.round(Math.max(activeUsers * 50, 10000) / 200))}
+                onValueChange={(v) => setTargetUsers(v[0])}
+              />
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex justify-between flex-1 text-[10px] text-muted-foreground">
+                  <span>0</span>
+                  <span>{num(Math.round(Math.max(activeUsers * 50, 10000) / 2))}</span>
+                  <span>{num(Math.max(activeUsers * 50, 10000))}</span>
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  value={targetUsers}
+                  onChange={(e) => setTargetUsers(Math.max(0, Number(e.target.value) || 0))}
+                  className="w-24 text-right text-xs px-2 py-1 rounded border border-border/60 bg-background/60 tabular-nums"
+                />
+              </div>
+            </>
+          )}
 
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <MiniMetric label="Usuários projetados" value={num(projUsers)} delta={`${growthPct >= 0 ? '+' : ''}${num(projUsers - activeUsers)}`} />
+            <MiniMetric
+              label="Usuários projetados"
+              value={num(projUsers)}
+              delta={`${projUsers - activeUsers >= 0 ? '+' : ''}${num(projUsers - activeUsers)} (${effectiveGrowthPct >= 0 ? '+' : ''}${num(effectiveGrowthPct, 0)}%)`}
+            />
             <MiniMetric label="Receita" value={brl(projRevenue)} tone="success" />
             <MiniMetric label="Custo total" value={brl(projCost)} sub={`var ${brl(projVariable)} + fixo ${brl(fixedCost)}`} />
             <MiniMetric
@@ -136,12 +208,12 @@ export function ProfitProjectionCard({ data }: Props) {
             {scenarios.map((s) => (
               <button
                 key={s.label}
-                onClick={() => setGrowthPct(s.growth)}
+                onClick={() => { setMode('abs'); setTargetUsers(s.users); }}
                 className="w-full flex items-center justify-between rounded-md border border-border/60 hover:border-primary/40 hover:bg-muted/40 p-2 text-left text-xs transition-colors"
               >
                 <div>
-                  <div className="font-medium">{s.label} <span className="text-muted-foreground">(+{s.growth}%)</span></div>
-                  <div className="text-[10px] text-muted-foreground">{num(s.users)} users · receita {brl(s.revenue)}</div>
+                  <div className="font-medium">{s.label} <span className="text-muted-foreground">({num(s.users)} users · +{num(s.growth, 0)}%)</span></div>
+                  <div className="text-[10px] text-muted-foreground">receita {brl(s.revenue)} · custo {brl(s.cost)}</div>
                 </div>
                 <div className="text-right tabular-nums">
                   <div className={s.margin >= 0 ? 'text-success font-semibold' : 'text-destructive font-semibold'}>
@@ -154,6 +226,7 @@ export function ProfitProjectionCard({ data }: Props) {
           </div>
         </div>
       </div>
+
 
       {/* Curve */}
       <div className="h-56">
