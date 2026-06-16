@@ -36,16 +36,17 @@ function useTable(table: string, orderBy: string, asc = false) {
 }
 
 async function upsert(table: string, payload: AnyRow, id?: string) {
+  const client = supabase as any;
   if (id) {
-    const { error } = await supabase.from(table as never).update(payload).eq('id', id);
+    const { error } = await client.from(table).update(payload).eq('id', id);
     if (error) throw error;
   } else {
-    const { error } = await supabase.from(table as never).insert(payload);
+    const { error } = await client.from(table).insert(payload);
     if (error) throw error;
   }
 }
 async function remove(table: string, id: string) {
-  const { error } = await supabase.from(table as never).delete().eq('id', id);
+  const { error } = await (supabase as any).from(table).delete().eq('id', id);
   if (error) throw error;
 }
 
