@@ -195,36 +195,29 @@ Deno.serve(async (req) => {
       return { ok: true };
     }
 
-    // Estimate (from api_usage_logs + platform_cost_allocations) vs Actual (manual invoices) by vendor.
+    // Reconciliação SOMENTE de custos FIXOS de plataforma
+    // (Supabase, Lovable, Uazapi, Cloudflare, GCP infra, etc.).
+    // Custos VARIÁVEIS de IA por uso (OpenAI/Anthropic/Google API) NÃO entram aqui —
+    // são acompanhados em /finops/ai pois são repassados via consumo do usuário.
     async function actualsReconciliation(monthStr?: string) {
       const m = monthStr || new Date().toISOString().slice(0, 7);
       const monthDate = m + "-01";
       const [y, mo] = m.split("-").map(Number);
-      const from = new Date(Date.UTC(y, mo - 1, 1)).toISOString();
       const to = new Date(Date.UTC(y, mo, 0, 23, 59, 59, 999)).toISOString();
 
-      // estimates per vendor
-      const aiLogs = await fetchAll<any>(
-        supabase.from("api_usage_logs").select("provider,cost_brl")
-          .gte("created_at", from).lte("created_at", to),
-      );
       const estByVendor: Record<string, number> = {};
-      aiLogs.forEach((l) => {
-        const v = String(l.provider || "unknown").toLowerCase();
-        estByVendor[v] = (estByVendor[v] || 0) + Number(l.cost_brl || 0);
-      });
 
-      // GCP estimate from gcp_billing_daily if present
+      // GCP infra (Cloud Run, LB, Storage…) — usa export do BigQuery
       const gcp = await safeSelect<any>(
         supabase.from("gcp_billing_daily").select("cost_brl,usage_date")
           .gte("usage_date", m + "-01").lte("usage_date", to.slice(0, 10)),
       );
       if (gcp.length) {
-        estByVendor.google = (estByVendor.google || 0) +
+        estByVendor.gcp = (estByVendor.gcp || 0) +
           gcp.reduce((s, r) => s + Number(r.cost_brl || 0), 0);
       }
 
-      // Supabase / SaaS estimate from platform_fixed_costs (prorated to month = monthly value)
+      // Custos fixos cadastrados manualmente (Supabase, Lovable, Uazapi, Cloudflare…)
       const fixed = await safeSelect<any>(
         supabase.from("platform_fixed_costs").select("vendor,monthly_brl,is_active,starts_on,ends_on")
           .eq("is_active", true),
@@ -234,6 +227,7 @@ Deno.serve(async (req) => {
         if (!v) return;
         estByVendor[v] = (estByVendor[v] || 0) + Number(r.monthly_brl || 0);
       });
+
 
       // actuals
       const { data: actualsRows } = await supabase.from("platform_billing_actuals")
