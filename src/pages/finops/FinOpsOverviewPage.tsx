@@ -14,15 +14,15 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { RiskBadge } from '@/components/finops/RiskBadge';
+import { CostDecompositionCard } from '@/components/finops/CostDecompositionCard';
+import { ProfitInsightsCard } from '@/components/finops/ProfitInsightsCard';
+import { ProfitProjectionCard } from '@/components/finops/ProfitProjectionCard';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
