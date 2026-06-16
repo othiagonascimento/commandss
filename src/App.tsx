@@ -151,7 +151,7 @@ const App = () => (
                 <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
                 <Route path="/scheduled-tasks" element={<ProtectedRoute><ScheduledTasks /></ProtectedRoute>} />
                 <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
-                <Route path="/api-costs" element={<ProtectedRoute><APICosts /></ProtectedRoute>} />
+                <Route path="/api-costs" element={<Navigate to="/finops/settings/pricing" replace />} />
                 <Route path="/ai-diagnostics" element={<ProtectedRoute><AIDiagnostics /></ProtectedRoute>} />
                 <Route path="/operations" element={<ProtectedRoute><Operations /></ProtectedRoute>} />
                 <Route path="/admin/cadastros" element={<ProtectedRoute><AdminCadastros /></ProtectedRoute>} />
