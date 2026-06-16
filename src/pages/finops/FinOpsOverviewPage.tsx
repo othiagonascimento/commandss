@@ -183,6 +183,9 @@ export default function FinOpsOverviewPage() {
             </Card>
           </div>
 
+          {/* Projection */}
+          <ProfitProjectionCard data={data} />
+
           <HealthFooter health={data.data_health} />
         </>
       )}
