@@ -25,7 +25,8 @@ const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const SA_JSON = Deno.env.get('GCP_SERVICE_ACCOUNT_JSON');
 const BQ_PROJECT_ID = Deno.env.get('BQ_PROJECT_ID');
 const BQ_DATASET = Deno.env.get('BQ_DATASET');
-const BQ_TABLE = Deno.env.get('BQ_TABLE');
+const BQ_TABLE = Deno.env.get('BQ_TABLE'); // optional — if absent we auto-discover
+const BQ_TABLE_PREFIX = Deno.env.get('BQ_TABLE_PREFIX') ?? 'gcp_billing_export_v1_';
 const USD_BRL_FALLBACK = parseFloat(Deno.env.get('USD_BRL_RATE') ?? '5.0');
 
 // ---------- Google JWT → access token ----------
