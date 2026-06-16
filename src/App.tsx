@@ -34,7 +34,7 @@ const ScheduledTasks = lazy(() => import("./pages/ScheduledTasks"));
 
 const Rankings = lazy(() => import("./pages/Rankings"));
 const Simulator = lazy(() => import("./pages/Simulator"));
-const APICosts = lazy(() => import("./pages/APICosts"));
+
 const AIDiagnostics = lazy(() => import("./pages/AIDiagnostics"));
 const CadastroLoja = lazy(() => import("./pages/CadastroLoja"));
 const AdminCadastros = lazy(() => import("./pages/AdminCadastros"));
