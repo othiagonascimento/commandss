@@ -62,6 +62,33 @@ async function fetchAll<T>(builder: any, pageSize = 1000): Promise<T[]> {
   return out;
 }
 
+// Safe wrapper: if a new optional table doesn't exist yet (42P01),
+// return [] instead of breaking the whole FinOps payload.
+async function safeSelect<T = any>(
+  promise: Promise<{ data: T[] | null; error: any }>,
+): Promise<T[]> {
+  try {
+    const { data, error } = await promise;
+    if (error) {
+      const code = (error as any).code || "";
+      if (code === "42P01" || /does not exist/i.test(error.message || "")) return [];
+      console.warn("[finops] safeSelect soft-fail:", error.message);
+      return [];
+    }
+    return (data || []) as T[];
+  } catch (e) {
+    console.warn("[finops] safeSelect threw:", (e as Error).message);
+    return [];
+  }
+}
+
+// Prorate a monthly value to the actual period (in days).
+function prorate(monthly: number, periodDays: number): number {
+  return (Number(monthly) || 0) * (Math.max(1, periodDays) / 30);
+}
+
+
+
 // ---------- main handler ----------
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
