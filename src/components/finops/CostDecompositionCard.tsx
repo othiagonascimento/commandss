@@ -56,7 +56,7 @@ export function CostDecompositionCard({ data }: Props) {
       hint: 'Custos fixos rateados: Supabase, Lovable, Cloudflare, Uazapi, GCP infra. Independem de uso.',
       nature: 'fixo',
     },
-  ].sort((a, b) => b.amount - a.amount);
+  ] as Row[]).sort((a, b) => b.amount - a.amount);
 
   const fixedTotal = infra;
   const variableTotal = ai + media;
