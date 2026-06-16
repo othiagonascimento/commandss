@@ -953,7 +953,10 @@ Deno.serve(async (req) => {
 
     // ============================================================
     // GET /master-usage/:tenantId/credits-full
-    //   Snapshot completo do card de créditos (base/rollover/extras/used/remaining)
+    //   Snapshot completo do card de créditos.
+    //   FONTE DE VERDADE: RPC `list_tenant_user_credit_balances` (mesma
+    //   lógica que o CRM usa em runtime — respeita per-user overrides,
+    //   classification 'suspicious' e os entry_types corretos de extras).
     // ============================================================
     if (req.method === 'GET' && tenantId && subPath === 'credits-full' && tenantId !== 'zones') {
       const now = new Date();
@@ -962,53 +965,60 @@ Deno.serve(async (req) => {
       const cycleEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
         .toISOString().slice(0, 10);
 
-      const [usageRes, featuresRes, profilesRes, ledgerRes] = await Promise.all([
-        supabase.from('tenant_usage')
-          .select('ai_credits_used, ai_credits_remaining, period_start, period_end, messages_sent, active_users')
-          .eq('tenant_id', tenantId)
-          .lte('period_start', cycleEnd)
-          .gte('period_end', cycleStart)
-          .maybeSingle(),
-        supabase.from('tenant_features')
-          .select('credits_per_user, extra_credits, limit_ai_tokens_monthly')
-          .eq('tenant_id', tenantId)
-          .maybeSingle(),
-        supabase.from('profiles')
-          .select('id, is_active')
-          .eq('tenant_id', tenantId),
+      const [balancesRes, ledgerRes, usageRes] = await Promise.all([
+        supabase.rpc('list_tenant_user_credit_balances', {
+          p_tenant_id: tenantId,
+          p_cycle: cycleStart,
+        }),
         supabase.from('credit_ledger')
           .select('entry_type, credits_delta')
           .eq('tenant_id', tenantId)
-          .eq('cycle_reference', cycleStart),
+          .eq('cycle_reference', cycleStart)
+          .eq('status', 'posted'),
+        supabase.from('tenant_usage')
+          .select('messages_sent, active_users')
+          .eq('tenant_id', tenantId)
+          .maybeSingle(),
       ]);
 
-      const usage = usageRes.data;
-      const features = featuresRes.data;
-      const profiles = profilesRes.data || [];
-      const ledger = ledgerRes.data || [];
+      if (balancesRes.error) {
+        console.error('[master-usage] credits-full RPC error:', balancesRes.error);
+        return new Response(JSON.stringify({ error: balancesRes.error.message }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-      const activeUsers = profiles.filter((p: { is_active?: boolean }) => p.is_active !== false).length;
-      const perUser = Number(features?.credits_per_user ?? 500);
-      const totalBase = perUser * Math.max(activeUsers, 1);
+      type Row = {
+        user_id: string;
+        is_active: boolean | null;
+        base_credits: number | null;
+        extra_credits: number | null;
+        used_credits: number | null;
+        remaining_credits: number | null;
+        suspicious_events: number | null;
+        suspicious_credits: number | null;
+      };
+      const balances: Row[] = (balancesRes.data || []) as Row[];
+      const active = balances.filter((b) => b.is_active !== false);
 
-      const byType = ledger.reduce((acc: Record<string, number>, e: { entry_type: string; credits_delta: number }) => {
+      const totalBase = active.reduce((s, b) => s + Number(b.base_credits || 0), 0);
+      const totalExtras = active.reduce((s, b) => s + Number(b.extra_credits || 0), 0);
+      const used = balances.reduce((s, b) => s + Number(b.used_credits || 0), 0);
+      const remaining = active.reduce((s, b) => s + Number(b.remaining_credits || 0), 0);
+      const suspiciousCredits = balances.reduce((s, b) => s + Number(b.suspicious_credits || 0), 0);
+      const suspiciousEvents = balances.reduce((s, b) => s + Number(b.suspicious_events || 0), 0);
+      const totalAvailable = totalBase + Math.max(totalExtras, 0);
+      const perUserBase = active.length > 0 ? Math.round(totalBase / active.length) : 0;
+
+      // Decompose extras by ledger entry_type for the breakdown UI
+      const byType = (ledgerRes.data || []).reduce((acc: Record<string, number>, e: { entry_type: string; credits_delta: number }) => {
         acc[e.entry_type] = (acc[e.entry_type] || 0) + Number(e.credits_delta || 0);
         return acc;
       }, {});
+      const rolloverIn = Number(byType['reset_opening_balance'] || 0) + Number(byType['reset_offset'] || 0);
+      const recharges = Number(byType['user_recharge'] || 0) + Number(byType['refund'] || 0);
+      const adjustments = Number(byType['master_manual_adjustment'] || 0);
 
-      const rolloverIn = Number(byType['reset_opening_balance'] || 0);
-      const userRecharge = Number(byType['user_recharge'] || 0);
-      const tenantRecharge = Number(byType['tenant_recharge'] || 0);
-      const reversal = Number(byType['admin_reversal'] || 0);
-      const extras = userRecharge + tenantRecharge + reversal + Number(features?.extra_credits || 0);
-
-      const totalAvailable = totalBase + rolloverIn + extras;
-      const used = Number(usage?.ai_credits_used || 0);
-      const remaining = usage?.ai_credits_remaining !== null && usage?.ai_credits_remaining !== undefined
-        ? Number(usage.ai_credits_remaining)
-        : Math.max(totalAvailable - used, 0);
-
-      // burn médio (dias decorridos do ciclo)
       const today = new Date();
       const daysElapsed = Math.max(1, today.getUTCDate());
       const daysInCycle = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
@@ -1021,22 +1031,48 @@ Deno.serve(async (req) => {
         cycle_end: cycleEnd,
         days_elapsed: daysElapsed,
         days_remaining: daysRemaining,
-        active_users: activeUsers,
-        per_user_base: perUser,
+        active_users: active.length,
+        per_user_base: perUserBase,
         total_base: totalBase,
         rollover_in: rolloverIn,
-        extras_recharges: userRecharge + tenantRecharge,
-        extras_reversal: reversal,
-        extras_tenant_features: Number(features?.extra_credits || 0),
+        extras_recharges: recharges,
+        extras_reversal: adjustments < 0 ? adjustments : 0,
+        extras_adjustments: adjustments,
+        extras_tenant_features: 0,
         total_available: totalAvailable,
         used,
         remaining,
         burn_per_day: Math.round(burnPerDay * 100) / 100,
         projected_days_left: projectedEnd,
-        messages_sent: Number(usage?.messages_sent || 0),
+        messages_sent: Number(usageRes.data?.messages_sent || 0),
+        suspicious_events: suspiciousEvents,
+        suspicious_credits: suspiciousCredits,
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ============================================================
+    // GET /master-usage/:tenantId/credits-user-balances
+    //   Lista canônica de saldo por usuário (RPC oficial do CRM)
+    // ============================================================
+    if (req.method === 'GET' && tenantId && subPath === 'credits-user-balances') {
+      const now = new Date();
+      const cycleStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+        .toISOString().slice(0, 10);
+      const { data, error } = await supabase.rpc('list_tenant_user_credit_balances', {
+        p_tenant_id: tenantId,
+        p_cycle: cycleStart,
+      });
+      if (error) {
+        console.error('[master-usage] user-balances RPC error:', error);
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({ rows: data || [], cycle: cycleStart }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
@@ -1054,6 +1090,7 @@ Deno.serve(async (req) => {
         .select('created_at, credits_delta, entry_type')
         .eq('tenant_id', tenantId)
         .eq('cycle_reference', cycleStart)
+        .eq('status', 'posted')
         .order('created_at', { ascending: true });
 
       if (error) return new Response(JSON.stringify({ error: error.message }), {
@@ -1085,7 +1122,7 @@ Deno.serve(async (req) => {
 
       const { data: events, error } = await supabase
         .from('usage_events')
-        .select('resource_type, credits_consumed, user_id')
+        .select('resource_type, event_type, credits_consumed, user_id')
         .eq('tenant_id', tenantId)
         .gte('created_at', cycleStart)
         .lte('created_at', cycleEnd);
@@ -1095,8 +1132,8 @@ Deno.serve(async (req) => {
       });
 
       const map: Record<string, { resource_type: string; credits: number; calls: number; webhook_calls: number }> = {};
-      (events || []).forEach((e: { resource_type: string | null; credits_consumed: number | null; user_id: string | null }) => {
-        const key = e.resource_type || 'unknown';
+      (events || []).forEach((e: { resource_type: string | null; event_type: string | null; credits_consumed: number | null; user_id: string | null }) => {
+        const key = e.resource_type || e.event_type || 'unknown';
         if (!map[key]) map[key] = { resource_type: key, credits: 0, calls: 0, webhook_calls: 0 };
         map[key].credits += Number(e.credits_consumed || 0);
         map[key].calls += 1;
@@ -1112,14 +1149,14 @@ Deno.serve(async (req) => {
 
     // ============================================================
     // GET /master-usage/:tenantId/credits-recharges
-    //   Histórico de recargas (auditoria)
+    //   Histórico de recargas / ajustes / rollovers (auditoria)
     // ============================================================
     if (req.method === 'GET' && tenantId && subPath === 'credits-recharges') {
       const { data: rows, error } = await supabase
         .from('credit_ledger')
         .select('id, created_at, credits_delta, entry_type, classification, user_id, created_by, metadata, source_id, cycle_reference')
         .eq('tenant_id', tenantId)
-        .in('entry_type', ['user_recharge', 'tenant_recharge', 'admin_reversal'])
+        .in('entry_type', ['user_recharge', 'master_manual_adjustment', 'refund', 'reset_opening_balance', 'reset_offset'])
         .order('created_at', { ascending: false })
         .limit(200);
 
@@ -1127,7 +1164,6 @@ Deno.serve(async (req) => {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
 
-      // enriquecer com nomes (target user + actor)
       const userIds = new Set<string>();
       (rows || []).forEach((r: { user_id: string | null; created_by: string | null }) => {
         if (r.user_id) userIds.add(r.user_id);
