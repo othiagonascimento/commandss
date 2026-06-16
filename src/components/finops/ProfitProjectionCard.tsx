@@ -23,7 +23,14 @@ interface Props {
 
 export function ProfitProjectionCard({ data }: Props) {
   const baseline = useMemo(() => deriveBaseline(data), [data]);
-  const [growthPct, setGrowthPct] = useState(50);
+  const [mode, setMode] = useState<'pct' | 'abs'>('abs');
+  const [growthPct, setGrowthPct] = useState(100);
+  const [targetUsers, setTargetUsers] = useState<number>(() => {
+    const base = data.cost_per_active_user?.value && data.cost_total_brl?.value
+      ? Math.max(1, Math.round((data.cost_total_brl.value / data.cost_per_active_user.value)))
+      : 100;
+    return Math.max(base * 2, 500);
+  });
 
   if (!baseline) {
     return (
