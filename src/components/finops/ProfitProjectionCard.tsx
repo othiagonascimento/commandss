@@ -44,7 +44,10 @@ export function ProfitProjectionCard({ data }: Props) {
   }
 
   const { activeUsers, arpu, variablePerUser, fixedCost } = baseline;
-  const projUsers = Math.round(activeUsers * (1 + growthPct / 100));
+  const projUsers = mode === 'pct'
+    ? Math.round(activeUsers * (1 + growthPct / 100))
+    : Math.max(0, Math.round(targetUsers));
+  const effectiveGrowthPct = activeUsers > 0 ? ((projUsers - activeUsers) / activeUsers) * 100 : 0;
   const projRevenue = projUsers * arpu;
   const projVariable = projUsers * variablePerUser;
   const projCost = projVariable + fixedCost;
@@ -53,9 +56,9 @@ export function ProfitProjectionCard({ data }: Props) {
 
   const breakEvenUsers = arpu > variablePerUser ? Math.ceil(fixedCost / (arpu - variablePerUser)) : null;
 
-  // Build scenarios curve: from current to 4x users
-  const maxUsers = Math.max(activeUsers * 4, (breakEvenUsers ?? 0) * 1.5, projUsers * 1.2);
-  const steps = 20;
+  // Build scenarios curve: extend to cover launch-scale projections
+  const maxUsers = Math.max(activeUsers * 10, (breakEvenUsers ?? 0) * 1.5, projUsers * 1.2, 1000);
+  const steps = 30;
   const curve = Array.from({ length: steps + 1 }, (_, i) => {
     const u = Math.round((maxUsers * i) / steps);
     const rev = u * arpu;
@@ -69,15 +72,17 @@ export function ProfitProjectionCard({ data }: Props) {
   });
 
   const scenarios = [
-    { label: 'Conservador', growth: 25 },
-    { label: 'Base', growth: 50 },
-    { label: 'Otimista', growth: 100 },
+    { label: 'Conservador', users: Math.max(activeUsers * 2, 100) },
+    { label: 'Lançamento', users: Math.max(activeUsers * 5, 500) },
+    { label: 'Escala', users: Math.max(activeUsers * 10, 1000) },
+    { label: 'Hipercrescimento', users: Math.max(activeUsers * 25, 5000) },
   ].map((s) => {
-    const u = Math.round(activeUsers * (1 + s.growth / 100));
+    const u = Math.round(s.users);
     const rev = u * arpu;
     const cost = u * variablePerUser + fixedCost;
     const margin = rev - cost;
-    return { ...s, users: u, revenue: rev, cost, margin, marginPct: rev > 0 ? (margin / rev) * 100 : 0 };
+    const growth = activeUsers > 0 ? ((u - activeUsers) / activeUsers) * 100 : 0;
+    return { ...s, users: u, growth, revenue: rev, cost, margin, marginPct: rev > 0 ? (margin / rev) * 100 : 0 };
   });
 
   return (
