@@ -67,6 +67,9 @@ export default function FinOpsOverviewPage() {
             <KPICard label="Custo / usuário ativo" data={data.cost_per_active_user} format={brl} invertDelta accent="warning" />
           </div>
 
+          {/* Profit insights */}
+          <ProfitInsightsCard data={data} />
+
           {/* Mid row: breakdown + timeseries */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             <CostDecompositionCard data={data} />
