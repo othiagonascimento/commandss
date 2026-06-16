@@ -27,7 +27,7 @@ export function CostDecompositionCard({ data }: Props) {
   const infra = data.cost_infra_brl?.value ?? 0;
   const total = ai + media + infra;
 
-  const rows: Row[] = [
+  const rows: Row[] = ([
     {
       key: 'ai',
       label: 'IA (LLM)',
