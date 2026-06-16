@@ -141,8 +141,53 @@ Deno.serve(async (req) => {
       case "finops-actuals-upsert": return json(await actualsUpsert(filters.payload || {}, user.id));
       case "finops-actuals-delete": return json(await actualsDelete(filters.id));
       case "finops-actuals-reconciliation": return json(await actualsReconciliation(filters.month));
+      case "finops-uazapi-status": return json(await uazapiStatus());
       default:
         return json({ error: `Unknown endpoint: ${action}` }, 400);
+    }
+
+    // ---------------- uazapi status (instances + tier dynamic) ----------------
+    async function uazapiStatus() {
+      const [instances, fixedRows, tenantsRows] = await Promise.all([
+        safeSelect(supabase.from("whatsapp_instances")
+          .select("id,tenant_id,instance_name,provider,status,is_active,created_at")
+          .order("instance_name", { ascending: true })),
+        safeSelect(supabase.from("platform_fixed_costs")
+          .select("vendor,product,monthly_brl,is_active")
+          .ilike("vendor", "uazapi")),
+        safeSelect(supabase.from("tenants").select("id,name,slug")),
+      ]);
+      const tenantMap = new Map<string, any>((tenantsRows as any[]).map((t) => [t.id, t]));
+      const tier = (fixedRows as any[]).find((r) => r.is_active !== false);
+      const monthly = tier ? Number(tier.monthly_brl || 0) : 0;
+      const active = (instances as any[]).filter((i) =>
+        i.is_active !== false && i.status !== "deleted"
+      );
+      const perInstance = active.length > 0 ? monthly / active.length : 0;
+      return {
+        tier: {
+          monthly_brl: monthly,
+          product: tier?.product || null,
+          has_tier: !!tier,
+        },
+        counts: {
+          total: (instances as any[]).length,
+          active: active.length,
+          connected: (instances as any[]).filter((i) => i.status === "connected").length,
+        },
+        per_instance_brl: +perInstance.toFixed(4),
+        rows: (instances as any[]).map((i) => ({
+          id: i.id,
+          instance_name: i.instance_name,
+          provider: i.provider,
+          status: i.status,
+          is_active: i.is_active,
+          tenant_id: i.tenant_id,
+          tenant_name: tenantMap.get(i.tenant_id)?.name || null,
+          tenant_slug: tenantMap.get(i.tenant_id)?.slug || null,
+          created_at: i.created_at,
+        })),
+      };
     }
 
     // ---------------- billing actuals (reconciliation) ----------------
