@@ -22,20 +22,19 @@ interface ApiResponse<T> {
 const TIMEOUT_MS = 30_000;
 
 /**
- * Calls master-analytics with body.action and resilient 401 retry/refresh.
- * The edge function lives in the external Supabase (CRM/backopas) and accepts
- * either body.action, query param action, or x-path-suffix header.
+ * Calls master-finops with body.action and resilient 401 retry/refresh.
+ * master-finops reads directly from canonical telemetry tables
+ * (api_usage_logs, ai_model_pricing_history, platform_cost_allocations,
+ * media_usage_events, credit_ledger, …).
  */
 async function callFinOps<T>(action: string, params: Record<string, unknown> | object = {}): Promise<ApiResponse<T>> {
   const body = { action, ...(params as Record<string, unknown>) };
 
   const invoke = async () => {
-    // Timeout via AbortController — supabase-js doesn't pass signal to functions.invoke,
-    // but we race to surface a friendly error when the backend is slow.
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('__finops_timeout__')), TIMEOUT_MS),
     );
-    const call = supabase.functions.invoke('master-analytics', { method: 'POST', body });
+    const call = supabase.functions.invoke('master-finops', { method: 'POST', body });
     const { data, error, response } = (await Promise.race([call, timeout])) as {
       data: unknown;
       error: { message: string } | null;
