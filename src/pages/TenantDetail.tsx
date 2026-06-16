@@ -24,7 +24,7 @@ import {
 import {
   Loader2, Building2, CreditCard, Settings2, Brain, Users, Radio, Crown,
   Handshake, Gift, Ban, ExternalLink, TrendingUp, TrendingDown, XCircle,
-  RefreshCw, Palette, Globe, ClipboardList, DollarSign, Briefcase,
+  RefreshCw, Palette, Globe, ClipboardList, DollarSign, Briefcase, Coins,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -46,10 +46,15 @@ import { TenantUserCreditsTable } from '@/components/tenant/TenantUserCreditsTab
 import { TenantHero } from '@/components/tenant/TenantHero';
 import { TenantIdentityForm } from '@/components/tenant/TenantIdentityForm';
 import TenantOperationsTab from '@/components/tenant/TenantOperationsTabContent';
+import { CreditCenterCard } from '@/components/tenant/CreditCenterCard';
+import { CreditLedgerHistoryChart } from '@/components/tenant/CreditLedgerHistoryChart';
+import { CreditUsageByResourceChart } from '@/components/tenant/CreditUsageByResourceChart';
+import { RechargeHistoryTable } from '@/components/tenant/RechargeHistoryTable';
 
 const TENANT_TABS: TabItem[] = [
   { value: 'identity', label: 'Identidade', shortLabel: 'Identidade', icon: Building2 },
   { value: 'commercial', label: 'Plano & Comercial', shortLabel: 'Comercial', icon: Briefcase },
+  { value: 'credits', label: 'Créditos', shortLabel: 'Créditos', icon: Coins },
   { value: 'resources', label: 'Recursos', shortLabel: 'Recursos', icon: Settings2 },
   { value: 'ai', label: 'Motor de IA', shortLabel: 'IA', icon: Brain },
   { value: 'people', label: 'Pessoas & Operação', shortLabel: 'Pessoas', icon: Users },
@@ -556,6 +561,35 @@ export default function TenantDetail() {
           <div>
             <SectionTitle index="03" title="Unit economics" hint="CAC, LTV, payback e margem" />
             <UnitEconomicsCard tenantId={id!} />
+          </div>
+        </TabsContent>
+
+        {/* ============ CRÉDITOS ============ */}
+        <TabsContent value="credits" className="space-y-8">
+          <div>
+            <SectionTitle index="01" title="Centro de créditos" hint="Base + rollover + extras vs consumo do ciclo" />
+            <CreditCenterCard tenantId={id!} tenantName={tenant.name} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <SectionTitle index="02" title="Consumo diário" hint="Débitos no ledger por dia" />
+              <CreditLedgerHistoryChart tenantId={id!} />
+            </div>
+            <div>
+              <SectionTitle index="03" title="Onde gastou" hint="Distribuição por tipo de recurso" />
+              <CreditUsageByResourceChart tenantId={id!} />
+            </div>
+          </div>
+
+          <div>
+            <SectionTitle index="04" title="Consumo por usuário" hint="Override e recarga ad-hoc por operador" />
+            <TenantUserCreditsTable tenantId={id!} />
+          </div>
+
+          <div>
+            <SectionTitle index="05" title="Histórico de recargas" hint="Recargas, reversões e ajustes" />
+            <RechargeHistoryTable tenantId={id!} />
           </div>
         </TabsContent>
 

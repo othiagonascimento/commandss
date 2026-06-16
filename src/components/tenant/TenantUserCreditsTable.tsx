@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useUserCredits, UserCreditData } from '@/hooks/useUserCredits';
+import { useTenantCreditsFull } from '@/hooks/credits/useCredits';
 import { PeriodFilter, PeriodFilterValue, getDefaultPeriod } from '@/components/ui/period-filter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -20,16 +22,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { 
-  Users, 
-  Coins, 
-  Brain, 
-  Zap, 
+import {
+  Users,
+  Coins,
+  Brain,
+  Zap,
   Mic,
   AlertCircle,
   TrendingUp,
+  Settings2,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { RechargeModal } from './RechargeModal';
+import { UserCreditOverrideModal } from './UserCreditOverrideModal';
 
 interface TenantUserCreditsTableProps {
   tenantId: string;
@@ -68,11 +74,15 @@ function formatNumber(num: number): string {
 
 export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps) {
   const [period, setPeriod] = useState<PeriodFilterValue>(getDefaultPeriod());
-  
+  const [rechargeTarget, setRechargeTarget] = useState<{ userId: string; userName: string } | null>(null);
+  const [overrideTarget, setOverrideTarget] = useState<{ userId: string; userName: string } | null>(null);
+
   const { data: users, isLoading, error } = useUserCredits(tenantId, {
     periodStart: period.periodStart,
     periodEnd: period.periodEnd,
   });
+  const { data: creditsFull } = useTenantCreditsFull(tenantId);
+  const tenantBase = creditsFull?.per_user_base ?? 500;
 
   if (isLoading) {
     return (
@@ -208,6 +218,7 @@ export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps
                   </TooltipProvider>
                 </TableHead>
                 <TableHead className="w-[120px] hidden sm:table-cell">Proporção</TableHead>
+                <TableHead className="w-[180px] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -253,13 +264,35 @@ export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center gap-2">
-                        <Progress 
-                          value={barWidth} 
-                          className="h-2 flex-1" 
+                        <Progress
+                          value={barWidth}
+                          className="h-2 flex-1"
                         />
                         <span className="text-xs text-muted-foreground font-mono w-10 text-right">
                           {proportion.toFixed(0)}%
                         </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setOverrideTarget({ userId: user.user_id, userName: user.user_name })}
+                        >
+                          <Settings2 className="h-3 w-3 mr-1" />
+                          Override
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setRechargeTarget({ userId: user.user_id, userName: user.user_name })}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Recarregar
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -269,6 +302,30 @@ export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps
           </Table>
         </div>
       </CardContent>
+
+      {rechargeTarget && (
+        <RechargeModal
+          open={!!rechargeTarget}
+          onOpenChange={(v) => { if (!v) setRechargeTarget(null); }}
+          tenantId={tenantId}
+          tenantName=""
+          userId={rechargeTarget.userId}
+          userName={rechargeTarget.userName}
+          defaultScope="user"
+        />
+      )}
+
+      {overrideTarget && (
+        <UserCreditOverrideModal
+          open={!!overrideTarget}
+          onOpenChange={(v) => { if (!v) setOverrideTarget(null); }}
+          tenantId={tenantId}
+          userId={overrideTarget.userId}
+          userName={overrideTarget.userName}
+          currentBase={tenantBase}
+          tenantBase={tenantBase}
+        />
+      )}
     </Card>
   );
 }

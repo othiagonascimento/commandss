@@ -76,6 +76,7 @@ const FinOpsInvestor = lazy(() => import("./pages/finops/FinOpsInvestorPage"));
 const FinOpsAnomalies = lazy(() => import("./pages/finops/FinOpsAnomaliesPage"));
 const FinOpsPricing = lazy(() => import("./pages/finops/FinOpsPricingSettingsPage"));
 const FinOpsBudgets = lazy(() => import("./pages/finops/FinOpsBudgetSettingsPage"));
+const CreditRates = lazy(() => import("./pages/CreditRates"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
@@ -168,6 +169,7 @@ const App = () => (
                 <Route path="/finops/anomalies" element={<ProtectedRoute><FinOpsAnomalies /></ProtectedRoute>} />
                 <Route path="/finops/settings/pricing" element={<ProtectedRoute><FinOpsPricing /></ProtectedRoute>} />
                 <Route path="/finops/settings/budgets" element={<ProtectedRoute><FinOpsBudgets /></ProtectedRoute>} />
+                <Route path="/finops/credit-rates" element={<ProtectedRoute><CreditRates /></ProtectedRoute>} />
 
                 {/* Command AI — operação executiva privada */}
                 <Route path="/command" element={<CommandShell />}>
