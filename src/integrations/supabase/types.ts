@@ -5439,6 +5439,69 @@ export type Database = {
           },
         ]
       }
+      gcp_billing_daily: {
+        Row: {
+          cost_brl: number
+          cost_usd: number
+          created_at: string
+          credits_usd: number
+          currency: string
+          id: string
+          labels: Json
+          location: string
+          project_id: string
+          raw: Json | null
+          service: string
+          sku_description: string | null
+          sku_id: string
+          updated_at: string
+          usage_amount: number
+          usage_date: string
+          usage_unit: string | null
+          usd_brl_rate: number
+        }
+        Insert: {
+          cost_brl?: number
+          cost_usd?: number
+          created_at?: string
+          credits_usd?: number
+          currency?: string
+          id?: string
+          labels?: Json
+          location?: string
+          project_id?: string
+          raw?: Json | null
+          service: string
+          sku_description?: string | null
+          sku_id?: string
+          updated_at?: string
+          usage_amount?: number
+          usage_date: string
+          usage_unit?: string | null
+          usd_brl_rate?: number
+        }
+        Update: {
+          cost_brl?: number
+          cost_usd?: number
+          created_at?: string
+          credits_usd?: number
+          currency?: string
+          id?: string
+          labels?: Json
+          location?: string
+          project_id?: string
+          raw?: Json | null
+          service?: string
+          sku_description?: string | null
+          sku_id?: string
+          updated_at?: string
+          usage_amount?: number
+          usage_date?: string
+          usage_unit?: string | null
+          usd_brl_rate?: number
+        }
+        Relationships: []
+      }
       gcs_billing_daily: {
         Row: {
           billing_date: string
@@ -5496,6 +5559,42 @@ export type Database = {
           storage_bytes_avg?: number
           storage_class?: string | null
           tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      gcs_billing_sync_log: {
+        Row: {
+          bq_bytes_billed: number | null
+          date_from: string | null
+          date_to: string | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          rows_upserted: number | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          bq_bytes_billed?: number | null
+          date_from?: string | null
+          date_to?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          rows_upserted?: number | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          bq_bytes_billed?: number | null
+          date_from?: string | null
+          date_to?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          rows_upserted?: number | null
+          started_at?: string
+          status?: string
         }
         Relationships: []
       }
