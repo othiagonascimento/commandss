@@ -54,6 +54,7 @@ import { RechargeHistoryTable } from '@/components/tenant/RechargeHistoryTable';
 const TENANT_TABS: TabItem[] = [
   { value: 'identity', label: 'Identidade', shortLabel: 'Identidade', icon: Building2 },
   { value: 'commercial', label: 'Plano & Comercial', shortLabel: 'Comercial', icon: Briefcase },
+  { value: 'credits', label: 'Créditos', shortLabel: 'Créditos', icon: Coins },
   { value: 'resources', label: 'Recursos', shortLabel: 'Recursos', icon: Settings2 },
   { value: 'ai', label: 'Motor de IA', shortLabel: 'IA', icon: Brain },
   { value: 'people', label: 'Pessoas & Operação', shortLabel: 'Pessoas', icon: Users },
