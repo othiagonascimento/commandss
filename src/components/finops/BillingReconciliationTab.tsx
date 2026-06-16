@@ -37,18 +37,22 @@ type ReconciliationRow = {
   has_actual: boolean;
 };
 
+// Apenas custos FIXOS de plataforma. Custos VARIÁVEIS de IA (OpenAI/Anthropic/Google API)
+// são acompanhados em /finops/ai — não entram aqui pois são por uso e repassados ao tenant.
 const VENDOR_OPTIONS = [
   { value: 'supabase', label: 'Supabase (DB / Storage / Edge)' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic (Claude)' },
-  { value: 'google', label: 'Google (Vertex / Gemini)' },
-  { value: 'gcp', label: 'GCP — outros (Cloud Run, LB, etc.)' },
-  { value: 'uazapi', label: 'Uazapi (WhatsApp)' },
-  { value: 'meta', label: 'Meta WhatsApp (BSP)' },
-  { value: 'cloudflare', label: 'Cloudflare' },
   { value: 'lovable', label: 'Lovable' },
+  { value: 'uazapi', label: 'Uazapi (WhatsApp)' },
+  { value: 'meta', label: 'Meta WhatsApp BSP (fixo)' },
+  { value: 'gcp', label: 'GCP (Cloud Run, LB, Storage)' },
+  { value: 'cloudflare', label: 'Cloudflare' },
+  { value: 'openai_team', label: 'OpenAI Team/ChatGPT (assinatura)' },
+  { value: 'anthropic_team', label: 'Anthropic Team (assinatura)' },
+  { value: 'github_copilot', label: 'GitHub Copilot' },
+  { value: 'resend', label: 'Resend' },
   { value: 'other', label: 'Outro' },
 ];
+
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
