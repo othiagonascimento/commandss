@@ -501,7 +501,7 @@ function UazapiInstancesTab() {
 
 /* ---------------- Page ---------------- */
 export default function FinOpsCostManagementPage() {
-  const [tab, setTab] = useState('fixed');
+  const [tab, setTab] = useState('reconciliation');
 
   return (
     <FinOpsShell
