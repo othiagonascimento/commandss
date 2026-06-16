@@ -25,7 +25,8 @@ const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const SA_JSON = Deno.env.get('GCP_SERVICE_ACCOUNT_JSON');
 const BQ_PROJECT_ID = Deno.env.get('BQ_PROJECT_ID');
 const BQ_DATASET = Deno.env.get('BQ_DATASET');
-const BQ_TABLE = Deno.env.get('BQ_TABLE');
+const BQ_TABLE = Deno.env.get('BQ_TABLE'); // optional — if absent we auto-discover
+const BQ_TABLE_PREFIX = Deno.env.get('BQ_TABLE_PREFIX') ?? 'gcp_billing_export_v1_';
 const USD_BRL_FALLBACK = parseFloat(Deno.env.get('USD_BRL_RATE') ?? '5.0');
 
 // ---------- Google JWT → access token ----------
@@ -132,8 +133,8 @@ Deno.serve(async (req) => {
   };
 
   try {
-    if (!SA_JSON || !BQ_PROJECT_ID || !BQ_DATASET || !BQ_TABLE) {
-      throw new Error('missing_secrets: GCP_SERVICE_ACCOUNT_JSON / BQ_PROJECT_ID / BQ_DATASET / BQ_TABLE');
+    if (!SA_JSON || !BQ_PROJECT_ID || !BQ_DATASET) {
+      throw new Error('missing_secrets: GCP_SERVICE_ACCOUNT_JSON / BQ_PROJECT_ID / BQ_DATASET');
     }
 
     let body: any = {};
@@ -144,10 +145,31 @@ Deno.serve(async (req) => {
     const sa = JSON.parse(SA_JSON);
     const token = await getAccessToken(sa);
 
+    // Resolve table name: explicit BQ_TABLE wins; otherwise discover newest
+    // table in the dataset that matches BQ_TABLE_PREFIX.
+    let tableName = BQ_TABLE;
+    if (!tableName) {
+      const discover = await runBQ(
+        token,
+        `SELECT table_name
+         FROM \`${BQ_PROJECT_ID}.${BQ_DATASET}.INFORMATION_SCHEMA.TABLES\`
+         WHERE table_name LIKE '${BQ_TABLE_PREFIX}%'
+         ORDER BY creation_time DESC
+         LIMIT 1`,
+      );
+      tableName = discover.rows[0]?.table_name as string | undefined;
+      if (!tableName) {
+        throw new Error(
+          `no_billing_export_table_found: dataset='${BQ_DATASET}' prefix='${BQ_TABLE_PREFIX}'. ` +
+          `GCP may not have created the export table yet (can take up to 24h after enabling).`,
+        );
+      }
+    }
+
     const today = new Date().toISOString().slice(0, 10);
     const from = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 
-    const fqtn = `\`${BQ_PROJECT_ID}.${BQ_DATASET}.${BQ_TABLE}\``;
+    const fqtn = `\`${BQ_PROJECT_ID}.${BQ_DATASET}.${tableName}\``;
     const sql = `
       SELECT
         DATE(usage_start_time) AS usage_date,
