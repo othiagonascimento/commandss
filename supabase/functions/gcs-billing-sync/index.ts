@@ -226,9 +226,9 @@ Deno.serve(async (req) => {
 
     for (const batch of chunk(gcsRows, 500)) {
       const { error } = await sb
-        .from('gcs_billing_daily')
+        .from('gcp_billing_daily')
         .upsert(batch, { onConflict: 'usage_date,service,sku_id,project_id,location' });
-      if (error) throw new Error(`upsert_gcs_failed: ${error.message}`);
+      if (error) throw new Error(`upsert_gcp_failed: ${error.message}`);
       upserted += batch.length;
     }
 
