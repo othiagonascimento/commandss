@@ -515,12 +515,14 @@ export default function FinOpsCostManagementPage() {
       }
     >
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
+          <TabsTrigger value="reconciliation" className="gap-1.5"><Scale className="h-3.5 w-3.5" />Reconciliação</TabsTrigger>
           <TabsTrigger value="fixed" className="gap-1.5"><Server className="h-3.5 w-3.5" />SaaS / Fixos</TabsTrigger>
           <TabsTrigger value="wa" className="gap-1.5"><MessageSquare className="h-3.5 w-3.5" />WhatsApp</TabsTrigger>
           <TabsTrigger value="gcs" className="gap-1.5"><Cloud className="h-3.5 w-3.5" />GCS Billing</TabsTrigger>
           <TabsTrigger value="uazapi" className="gap-1.5"><Server className="h-3.5 w-3.5" />Uazapi</TabsTrigger>
         </TabsList>
+        <TabsContent value="reconciliation" className="mt-4"><BillingReconciliationTab /></TabsContent>
         <TabsContent value="fixed" className="mt-4"><FixedCostsTab /></TabsContent>
         <TabsContent value="wa" className="mt-4"><WhatsAppRatesTab /></TabsContent>
         <TabsContent value="gcs" className="mt-4"><GcsBillingTab /></TabsContent>
