@@ -321,24 +321,35 @@ Deno.serve(async (req) => {
 
     // ---------------- overview ----------------
     async function overview() {
-      const [logs, prevLogs, mediaRows, infraRows, tMap] = await Promise.all([
+      const [logs, prevLogs, mediaRows, infraRows, tMap, gcsRealCost] = await Promise.all([
         loadApiLogs(fromISO, toISO),
         loadApiLogs(prevFromISO, prevToISO),
         loadMedia(fromISO, toISO),
         loadInfra(fromISO, toISO),
         tenantMap(),
+        loadGcsRealCost(fromISO, toISO),
       ]);
 
       const sumCost = (rows: any[]) => rows.reduce((a, r) => a + Number(r.cost_brl || 0), 0);
       const cost_ai = sumCost(logs);
       const prev_ai = sumCost(prevLogs);
 
-      const MEDIA_PER_GB_BRL = 0.12; // GCS standard storage estimate
+      // Prefer real GCS billing when available; fall back to R$/GB estimate.
+      const MEDIA_PER_GB_BRL = 0.12;
       const totalBytes = mediaRows.reduce((a: number, r: any) => a + Number(r.bytes_uploaded || 0), 0);
-      const cost_media = (totalBytes / 1024 / 1024 / 1024) * MEDIA_PER_GB_BRL;
+      const cost_media_est = (totalBytes / 1024 / 1024 / 1024) * MEDIA_PER_GB_BRL;
+      const cost_media = gcsRealCost > 0 ? gcsRealCost : cost_media_est;
 
-      const cost_infra = infraRows.reduce((a: number, r: any) => a + Number(r.amount_brl || 0), 0);
+      // Avoid double-counting: infraRows already contains the GCS lines
+      // when gcs_billing_daily has data, so subtract them from "infra"
+      // and route them into cost_media instead.
+      const gcsInInfra = infraRows
+        .filter((r: any) => r.category === "storage")
+        .reduce((a: number, r: any) => a + Number(r.amount_brl || 0), 0);
+      const cost_infra =
+        infraRows.reduce((a: number, r: any) => a + Number(r.amount_brl || 0), 0) - gcsInInfra;
       const cost_total = cost_ai + cost_media + cost_infra;
+
 
       // Revenue
       let revenue = 0;
