@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   creditsReadApi, creditsAdminApi,
   type CreditsFullSnapshot, type LedgerDay, type ResourceBreakdown,
-  type RechargeRow, type CreditRate, type RechargePayload,
+  type RechargeRow, type CreditRate, type RechargePayload, type UserBalanceRow,
 } from '@/services/creditsApi';
 
 const DEFAULTS = { staleTime: 30_000, gcTime: 60_000, refetchOnWindowFocus: false } as const;
