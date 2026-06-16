@@ -445,7 +445,7 @@ function UazapiInstancesTab() {
   const save = async (id: string) => {
     const val = draft[id];
     if (val === undefined) return;
-    const { error } = await supabase.from('whatsapp_instances' as never)
+    const { error } = await (supabase as any).from('whatsapp_instances')
       .update({ monthly_cost_brl: Number(val || 0) }).eq('id', id);
     if (error) { toast.error(error.message); return; }
     toast.success('Atualizado');
