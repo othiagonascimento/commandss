@@ -61,7 +61,7 @@ export function AppSidebar({ mobileOpen, onMobileClose }: Props) {
         { icon: Bell,        label: 'Comunicados',  path: '/comunicados',    permissionCheck: permissions.canViewBroadcasts },
         { icon: Package,     label: 'Planos',       path: '/plans',          permissionCheck: permissions.canViewSettings },
         { icon: DollarSign,  label: 'FinOps',       path: '/finops',         permissionCheck: () => permissions.isSuperAdmin() },
-        { icon: Calculator,  label: 'Custos API',   path: '/api-costs',      permissionCheck: permissions.canViewSettings },
+        
         { icon: UserCog,     label: 'Master Users', path: '/master-users',   permissionCheck: permissions.canViewMasterUsers },
         { icon: FileText,    label: 'Logs',         path: '/activity-logs',  permissionCheck: permissions.canViewSettings },
         { icon: Clock,       label: 'Tarefas',      path: '/scheduled-tasks',permissionCheck: permissions.canViewSettings },

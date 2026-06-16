@@ -25,7 +25,7 @@ const ROUTES = [
   { icon: Bell,            label: 'Comunicados',        path: '/comunicados' },
   { icon: Package,         label: 'Planos',             path: '/plans' },
   { icon: DollarSign,      label: 'FinOps',             path: '/finops' },
-  { icon: Calculator,      label: 'Custos API',         path: '/api-costs' },
+  { icon: Calculator,      label: 'Reconciliação Faturas', path: '/finops/settings/costs' },
   { icon: UserCog,         label: 'Master Users',       path: '/master-users' },
   { icon: FileText,        label: 'Logs',               path: '/activity-logs' },
   { icon: Clock,           label: 'Tarefas Agendadas',  path: '/scheduled-tasks' },
