@@ -158,18 +158,20 @@ export function BillingReconciliationTab() {
           <div className="flex flex-wrap items-end gap-3 justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-semibold">Reconciliação de Faturas</h3>
+                <h3 className="text-base font-semibold">Reconciliação de Faturas — Custos Fixos</h3>
                 <Tooltip>
                   <TooltipTrigger><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-xs">
-                    Uma vez por mês, lance o valor real da fatura de cada provider (Supabase, OpenAI, Anthropic, Google, GCP…).
-                    O sistema compara com a estimativa automática e mostra o delta — assim você sabe se o FinOps está confiável.
+                  <TooltipContent className="max-w-sm text-xs">
+                    Aqui ficam apenas os custos <strong>fixos de plataforma</strong> (Supabase, Lovable, Uazapi, GCP, assinaturas).
+                    O <strong>uso variável de IA</strong> (OpenAI/Anthropic/Google API) é repassado ao tenant e vive em /finops/ai —
+                    são naturezas diferentes e não devem ser misturadas.
                   </TooltipContent>
                 </Tooltip>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Estimativa (token×pricing + GCS export + custos fixos) vs valor real da fatura.
+                Compare a estimativa (custos fixos cadastrados + GCP export) com o valor real da fatura.
               </p>
+
             </div>
             <div className="flex items-center gap-2">
               <Label className="text-xs">Mês</Label>
