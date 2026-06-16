@@ -564,6 +564,35 @@ export default function TenantDetail() {
           </div>
         </TabsContent>
 
+        {/* ============ CRÉDITOS ============ */}
+        <TabsContent value="credits" className="space-y-8">
+          <div>
+            <SectionTitle index="01" title="Centro de créditos" hint="Base + rollover + extras vs consumo do ciclo" />
+            <CreditCenterCard tenantId={id!} tenantName={tenant.name} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <SectionTitle index="02" title="Consumo diário" hint="Débitos no ledger por dia" />
+              <CreditLedgerHistoryChart tenantId={id!} />
+            </div>
+            <div>
+              <SectionTitle index="03" title="Onde gastou" hint="Distribuição por tipo de recurso" />
+              <CreditUsageByResourceChart tenantId={id!} />
+            </div>
+          </div>
+
+          <div>
+            <SectionTitle index="04" title="Consumo por usuário" hint="Override e recarga ad-hoc por operador" />
+            <TenantUserCreditsTable tenantId={id!} />
+          </div>
+
+          <div>
+            <SectionTitle index="05" title="Histórico de recargas" hint="Recargas, reversões e ajustes" />
+            <RechargeHistoryTable tenantId={id!} />
+          </div>
+        </TabsContent>
+
         {/* ============ RECURSOS ============ */}
         <TabsContent value="resources" className="space-y-8">
           <div>
