@@ -77,6 +77,54 @@ Deno.serve(async (req) => {
 
     console.log(`[master-usage] ${req.method} tenantId=${tenantId} subPath=${subPath} pathSuffix=${pathSuffix}`);
 
+    // ============================================================
+    // GLOBAL ROUTES (no tenant_id) — must come BEFORE tenant-scoped
+    // ============================================================
+
+    // GET /master-usage/credit-rates  (lista de tarifas)
+    if (req.method === 'GET' && tenantId === 'credit-rates' && !subPath) {
+      const { data, error } = await supabase
+        .from('credit_rates')
+        .select('*')
+        .order('operation_type', { ascending: true });
+      if (error) return new Response(JSON.stringify({ error: error.message }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+      return new Response(JSON.stringify({ rows: data || [] }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // PUT /master-usage/credit-rates/:rateId  (atualiza tarifa)
+    if (req.method === 'PUT' && tenantId === 'credit-rates' && subPath) {
+      const body = await req.json().catch(() => null);
+      if (!body || typeof body !== 'object') return new Response(JSON.stringify({ error: 'Invalid body' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+      const updates: Record<string, unknown> = {};
+      // deno-lint-ignore no-explicit-any
+      const b = body as any;
+      if (typeof b.credits_per_unit === 'number') updates.credits_per_unit = b.credits_per_unit;
+      if (typeof b.description === 'string') updates.description = b.description;
+      if (typeof b.is_active === 'boolean') updates.is_active = b.is_active;
+      if (typeof b.unit_description === 'string') updates.unit_description = b.unit_description;
+      if (Object.keys(updates).length === 0) return new Response(JSON.stringify({ error: 'Nada a atualizar' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+      const { data, error } = await supabase
+        .from('credit_rates')
+        .update(updates)
+        .eq('id', subPath)
+        .select('*')
+        .single();
+      if (error) return new Response(JSON.stringify({ error: error.message }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+      return new Response(JSON.stringify({ success: true, rate: data }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // GET|POST /master-usage/zones - Get credit zones summary for all tenants (DASHBOARD)
     // (We accept POST too because functions.invoke defaults to POST in some call-sites.)
     if ((req.method === 'GET' || req.method === 'POST') && tenantId === 'zones') {
@@ -1108,52 +1156,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============================================================
-    // GET /master-usage/credit-rates  (lista de tarifas)
-    // PUT /master-usage/credit-rates/:rateId  (atualiza tarifa)
-    // ============================================================
-    if (req.method === 'GET' && tenantId === 'credit-rates' && !subPath) {
-      const { data, error } = await supabase
-        .from('credit_rates')
-        .select('*')
-        .order('operation_type', { ascending: true });
-      if (error) return new Response(JSON.stringify({ error: error.message }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-      return new Response(JSON.stringify({ rows: data || [] }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // credit-rates routes are handled at the top (global routes)
 
-    if (req.method === 'PUT' && tenantId === 'credit-rates' && subPath) {
-      const body = await req.json().catch(() => null);
-      if (!body || typeof body !== 'object') return new Response(JSON.stringify({ error: 'Invalid body' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-      const updates: Record<string, unknown> = {};
-      // deno-lint-ignore no-explicit-any
-      const b = body as any;
-      if (typeof b.credits_per_unit === 'number') updates.credits_per_unit = b.credits_per_unit;
-      if (typeof b.description === 'string') updates.description = b.description;
-      if (typeof b.is_active === 'boolean') updates.is_active = b.is_active;
-      if (typeof b.unit_description === 'string') updates.unit_description = b.unit_description;
-      if (Object.keys(updates).length === 0) return new Response(JSON.stringify({ error: 'Nada a atualizar' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-
-      const { data, error } = await supabase
-        .from('credit_rates')
-        .update(updates)
-        .eq('id', subPath)
-        .select('*')
-        .single();
-      if (error) return new Response(JSON.stringify({ error: error.message }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-      return new Response(JSON.stringify({ success: true, rate: data }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
