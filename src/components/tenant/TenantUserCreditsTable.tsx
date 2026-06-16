@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useUserCredits, UserCreditData } from '@/hooks/useUserCredits';
 import { useTenantCreditsFull } from '@/hooks/credits/useCredits';
 import { PeriodFilter, PeriodFilterValue, getDefaultPeriod } from '@/components/ui/period-filter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
