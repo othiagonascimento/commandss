@@ -195,36 +195,29 @@ Deno.serve(async (req) => {
       return { ok: true };
     }
 
-    // Estimate (from api_usage_logs + platform_cost_allocations) vs Actual (manual invoices) by vendor.
+    // Reconciliação SOMENTE de custos FIXOS de plataforma
+    // (Supabase, Lovable, Uazapi, Cloudflare, GCP infra, etc.).
+    // Custos VARIÁVEIS de IA por uso (OpenAI/Anthropic/Google API) NÃO entram aqui —
+    // são acompanhados em /finops/ai pois são repassados via consumo do usuário.
     async function actualsReconciliation(monthStr?: string) {
       const m = monthStr || new Date().toISOString().slice(0, 7);
       const monthDate = m + "-01";
       const [y, mo] = m.split("-").map(Number);
-      const from = new Date(Date.UTC(y, mo - 1, 1)).toISOString();
       const to = new Date(Date.UTC(y, mo, 0, 23, 59, 59, 999)).toISOString();
 
-      // estimates per vendor
-      const aiLogs = await fetchAll<any>(
-        supabase.from("api_usage_logs").select("provider,cost_brl")
-          .gte("created_at", from).lte("created_at", to),
-      );
       const estByVendor: Record<string, number> = {};
-      aiLogs.forEach((l) => {
-        const v = String(l.provider || "unknown").toLowerCase();
-        estByVendor[v] = (estByVendor[v] || 0) + Number(l.cost_brl || 0);
-      });
 
-      // GCP estimate from gcp_billing_daily if present
+      // GCP infra (Cloud Run, LB, Storage…) — usa export do BigQuery
       const gcp = await safeSelect<any>(
         supabase.from("gcp_billing_daily").select("cost_brl,usage_date")
           .gte("usage_date", m + "-01").lte("usage_date", to.slice(0, 10)),
       );
       if (gcp.length) {
-        estByVendor.google = (estByVendor.google || 0) +
+        estByVendor.gcp = (estByVendor.gcp || 0) +
           gcp.reduce((s, r) => s + Number(r.cost_brl || 0), 0);
       }
 
-      // Supabase / SaaS estimate from platform_fixed_costs (prorated to month = monthly value)
+      // Custos fixos cadastrados manualmente (Supabase, Lovable, Uazapi, Cloudflare…)
       const fixed = await safeSelect<any>(
         supabase.from("platform_fixed_costs").select("vendor,monthly_brl,is_active,starts_on,ends_on")
           .eq("is_active", true),
@@ -234,6 +227,7 @@ Deno.serve(async (req) => {
         if (!v) return;
         estByVendor[v] = (estByVendor[v] || 0) + Number(r.monthly_brl || 0);
       });
+
 
       // actuals
       const { data: actualsRows } = await supabase.from("platform_billing_actuals")
@@ -387,25 +381,69 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 4) WhatsApp infra (uazapi / Meta) — fixed per active instance + variable per send.
-      const waInstances = await safeSelect(
+      // 4) WhatsApp infra
+      // 4a) Uazapi (e similares com tier fixo): pega o custo fixo cadastrado em
+      //     platform_fixed_costs (vendor=uazapi) e divide pelo nº de instâncias
+      //     ativas para gerar o R$/instância dinâmico.
+      const waInstancesAll = await safeSelect(
         supabase.from("whatsapp_instances")
-          .select("id,tenant_id,monthly_cost_brl,is_active,status,provider"),
+          .select("id,tenant_id,is_active,status,provider,monthly_cost_brl"),
       );
-      const waFixedTotal = waInstances
-        .filter((i: any) => i.is_active !== false && Number(i.monthly_cost_brl || 0) > 0)
-        .reduce((a: number, i: any) => a + prorate(Number(i.monthly_cost_brl || 0), periodDays), 0);
+      const activeInstances = waInstancesAll.filter((i: any) =>
+        i.is_active !== false && i.status !== "deleted"
+      );
+      const activeCount = activeInstances.length;
+      const totalInstances = waInstancesAll.length;
+
+      const uazapiFixed = fixed.find((r: any) =>
+        String(r.vendor || "").toLowerCase() === "uazapi" && r.is_active !== false
+      );
+      const uazapiMonthly = uazapiFixed ? Number(uazapiFixed.monthly_brl || 0) : 0;
+      if (uazapiMonthly > 0) {
+        const proratedTotal = prorate(uazapiMonthly, periodDays);
+        const perInstance = activeCount > 0 ? proratedTotal / activeCount : 0;
+        rows.push({
+          service: `Uazapi — tier mensal (${activeCount} inst. ativas)`,
+          sku: "uazapi_tier",
+          amount_brl: proratedTotal,
+          allocation_strategy: "per_instance_dynamic",
+          attribution_confidence: "high",
+          category: "whatsapp",
+          metadata: {
+            monthly_brl: uazapiMonthly,
+            active_instances: activeCount,
+            total_instances: totalInstances,
+            cost_per_active_instance_brl: +perInstance.toFixed(4),
+            note: activeCount === 0
+              ? "Nenhuma instância ativa em whatsapp_instances — custo fica como overhead até cadastrar"
+              : "Custo do tier dividido pelas instâncias ativas no período",
+          },
+        });
+      }
+
+      // 4b) Outros providers (Meta BSP etc.) que ainda usam custo fixo por instância
+      const otherProvidersFixed = waInstancesAll.filter((i: any) =>
+        i.is_active !== false &&
+        String(i.provider || "").toLowerCase() !== "uazapi" &&
+        Number(i.monthly_cost_brl || 0) > 0
+      );
+      const waFixedTotal = otherProvidersFixed.reduce(
+        (a: number, i: any) => a + prorate(Number(i.monthly_cost_brl || 0), periodDays),
+        0,
+      );
       if (waFixedTotal > 0) {
         rows.push({
-          service: "WhatsApp — instâncias (uazapi/Meta)",
+          service: "WhatsApp — instâncias (outros providers)",
           sku: "wa_instance_fixed",
           amount_brl: waFixedTotal,
           allocation_strategy: "per_instance",
           attribution_confidence: "high",
           category: "whatsapp",
-          metadata: { active_instances: waInstances.filter((i: any) => i.is_active !== false).length },
+          metadata: { instances: otherProvidersFixed.length },
         });
       }
+
+      // 4c) Custo variável por mensagem (Meta Cloud / templates)
       const waJobs = await safeSelect(
         supabase.from("whatsapp_send_jobs").select("cost_brl,message_category,created_at")
           .gte("created_at", from).lte("created_at", to),
@@ -425,6 +463,7 @@ Deno.serve(async (req) => {
 
       return rows;
     }
+
 
     // Real GCS variable cost for the period (sum of cost_total_brl) — used
     // by overview/tenants/media to replace the R$/GB estimate when present.

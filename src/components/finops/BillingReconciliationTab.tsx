@@ -37,18 +37,22 @@ type ReconciliationRow = {
   has_actual: boolean;
 };
 
+// Apenas custos FIXOS de plataforma. Custos VARIÁVEIS de IA (OpenAI/Anthropic/Google API)
+// são acompanhados em /finops/ai — não entram aqui pois são por uso e repassados ao tenant.
 const VENDOR_OPTIONS = [
   { value: 'supabase', label: 'Supabase (DB / Storage / Edge)' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic (Claude)' },
-  { value: 'google', label: 'Google (Vertex / Gemini)' },
-  { value: 'gcp', label: 'GCP — outros (Cloud Run, LB, etc.)' },
-  { value: 'uazapi', label: 'Uazapi (WhatsApp)' },
-  { value: 'meta', label: 'Meta WhatsApp (BSP)' },
-  { value: 'cloudflare', label: 'Cloudflare' },
   { value: 'lovable', label: 'Lovable' },
+  { value: 'uazapi', label: 'Uazapi (WhatsApp)' },
+  { value: 'meta', label: 'Meta WhatsApp BSP (fixo)' },
+  { value: 'gcp', label: 'GCP (Cloud Run, LB, Storage)' },
+  { value: 'cloudflare', label: 'Cloudflare' },
+  { value: 'openai_team', label: 'OpenAI Team/ChatGPT (assinatura)' },
+  { value: 'anthropic_team', label: 'Anthropic Team (assinatura)' },
+  { value: 'github_copilot', label: 'GitHub Copilot' },
+  { value: 'resend', label: 'Resend' },
   { value: 'other', label: 'Outro' },
 ];
+
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -154,18 +158,20 @@ export function BillingReconciliationTab() {
           <div className="flex flex-wrap items-end gap-3 justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-semibold">Reconciliação de Faturas</h3>
+                <h3 className="text-base font-semibold">Reconciliação de Faturas — Custos Fixos</h3>
                 <Tooltip>
                   <TooltipTrigger><Info className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-xs">
-                    Uma vez por mês, lance o valor real da fatura de cada provider (Supabase, OpenAI, Anthropic, Google, GCP…).
-                    O sistema compara com a estimativa automática e mostra o delta — assim você sabe se o FinOps está confiável.
+                  <TooltipContent className="max-w-sm text-xs">
+                    Aqui ficam apenas os custos <strong>fixos de plataforma</strong> (Supabase, Lovable, Uazapi, GCP, assinaturas).
+                    O <strong>uso variável de IA</strong> (OpenAI/Anthropic/Google API) é repassado ao tenant e vive em /finops/ai —
+                    são naturezas diferentes e não devem ser misturadas.
                   </TooltipContent>
                 </Tooltip>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Estimativa (token×pricing + GCS export + custos fixos) vs valor real da fatura.
+                Compare a estimativa (custos fixos cadastrados + GCP export) com o valor real da fatura.
               </p>
+
             </div>
             <div className="flex items-center gap-2">
               <Label className="text-xs">Mês</Label>
