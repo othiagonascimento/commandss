@@ -35,6 +35,9 @@ export function useTenantUserBalances(tenantId: string | undefined) {
     enabled: !!tenantId,
     ...DEFAULTS,
   });
+}
+
+
 
 export function useCreditLedgerHistory(tenantId: string | undefined) {
   return useQuery({
