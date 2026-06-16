@@ -23,6 +23,19 @@ export function useTenantCreditsFull(tenantId: string | undefined) {
   });
 }
 
+export function useTenantUserBalances(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['credits', 'user-balances', tenantId],
+    queryFn: async (): Promise<UserBalanceRow[]> => {
+      if (!tenantId) return [];
+      const { data, error } = await creditsReadApi.userBalances(tenantId);
+      if (error) throw new Error(error);
+      return data?.rows ?? [];
+    },
+    enabled: !!tenantId,
+    ...DEFAULTS,
+  });
+
 export function useCreditLedgerHistory(tenantId: string | undefined) {
   return useQuery({
     queryKey: ['credits', 'ledger', tenantId],
