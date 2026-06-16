@@ -159,10 +159,144 @@ Deno.serve(async (req) => {
     async function loadInfra(from: string, to: string) {
       const fromMonth = from.slice(0, 7) + "-01";
       const toMonth = to.slice(0, 7) + "-01";
-      const { data } = await supabase.from("platform_cost_allocations").select("*")
-        .gte("billing_month", fromMonth).lte("billing_month", toMonth);
-      return data || [];
+      const periodDays = Math.max(
+        1,
+        (new Date(to).getTime() - new Date(from).getTime()) / (1000 * 3600 * 24),
+      );
+      const rows: any[] = [];
+
+      // 1) Manual allocations (Cloud Run / LB / etc.)
+      const alloc = await safeSelect(
+        supabase.from("platform_cost_allocations").select("*")
+          .gte("billing_month", fromMonth).lte("billing_month", toMonth),
+      );
+      alloc.forEach((r: any) => rows.push({
+        service: r.service || r.sku || "—",
+        sku: r.sku,
+        amount_brl: Number(r.amount_brl || 0),
+        allocation_strategy: r.allocation_strategy,
+        attribution_confidence: r.attribution_confidence || "medium",
+        category: r.category || "infra",
+        metadata: r.metadata,
+      }));
+
+      // 2) SaaS subscriptions paid by the Master (Lovable, OpenAI Teams,
+      //    Antigravity, Codex, GitHub Copilot, Cloudflare, Resend, …).
+      //    Prorate monthly_brl by the active days inside the period.
+      const fixed = await safeSelect(
+        supabase.from("platform_fixed_costs").select("*").eq("is_active", true),
+      );
+      fixed.forEach((r: any) => {
+        const starts = r.starts_on ? new Date(r.starts_on).getTime() : 0;
+        const ends = r.ends_on ? new Date(r.ends_on).getTime() : Infinity;
+        const pFrom = new Date(from).getTime();
+        const pTo = new Date(to).getTime();
+        const overlapFrom = Math.max(starts, pFrom);
+        const overlapTo = Math.min(ends, pTo);
+        if (overlapTo <= overlapFrom) return;
+        const overlapDays = (overlapTo - overlapFrom) / (1000 * 3600 * 24);
+        const amount = prorate(Number(r.monthly_brl || 0), overlapDays);
+        if (amount <= 0) return;
+        rows.push({
+          service: `${r.vendor} — ${r.product}`,
+          sku: r.vendor,
+          amount_brl: amount,
+          allocation_strategy: "overhead",
+          attribution_confidence: "high",
+          category: r.category || "saas",
+          metadata: { monthly_brl: r.monthly_brl, monthly_usd: r.monthly_usd, ...r.metadata },
+        });
+      });
+
+      // 3) GCS billing (storage + ops + egress) — preferred over the
+      //    R$/GB estimate when daily rows are present.
+      const gcs = await safeSelect(
+        supabase.from("gcs_billing_daily").select("*")
+          .gte("billing_date", from.slice(0, 10)).lte("billing_date", to.slice(0, 10)),
+      );
+      if (gcs.length > 0) {
+        const gcsAgg: Record<string, any> = {};
+        gcs.forEach((r: any) => {
+          const k = `${r.bucket_name}|${r.storage_class || "standard"}`;
+          gcsAgg[k] = gcsAgg[k] || {
+            bucket: r.bucket_name,
+            storage_class: r.storage_class || "standard",
+            cost_storage: 0, cost_ops: 0, cost_egress: 0, cost_total: 0,
+            egress_bytes: 0,
+          };
+          gcsAgg[k].cost_storage += Number(r.cost_storage_brl || 0);
+          gcsAgg[k].cost_ops += Number(r.cost_ops_brl || 0);
+          gcsAgg[k].cost_egress += Number(r.cost_egress_brl || 0);
+          gcsAgg[k].cost_total += Number(r.cost_total_brl || 0);
+          gcsAgg[k].egress_bytes += Number(r.egress_bytes || 0);
+        });
+        Object.values(gcsAgg).forEach((g: any) => {
+          rows.push({
+            service: `GCS ${g.bucket}`,
+            sku: g.storage_class,
+            amount_brl: g.cost_total,
+            allocation_strategy: "usage_proportional",
+            attribution_confidence: "high",
+            category: "storage",
+            metadata: {
+              cost_storage_brl: g.cost_storage,
+              cost_ops_brl: g.cost_ops,
+              cost_egress_brl: g.cost_egress,
+              egress_bytes: g.egress_bytes,
+            },
+          });
+        });
+      }
+
+      // 4) WhatsApp infra (uazapi / Meta) — fixed per active instance + variable per send.
+      const waInstances = await safeSelect(
+        supabase.from("whatsapp_instances")
+          .select("id,tenant_id,monthly_cost_brl,is_active,status,provider"),
+      );
+      const waFixedTotal = waInstances
+        .filter((i: any) => i.is_active !== false && Number(i.monthly_cost_brl || 0) > 0)
+        .reduce((a: number, i: any) => a + prorate(Number(i.monthly_cost_brl || 0), periodDays), 0);
+      if (waFixedTotal > 0) {
+        rows.push({
+          service: "WhatsApp — instâncias (uazapi/Meta)",
+          sku: "wa_instance_fixed",
+          amount_brl: waFixedTotal,
+          allocation_strategy: "per_instance",
+          attribution_confidence: "high",
+          category: "whatsapp",
+          metadata: { active_instances: waInstances.filter((i: any) => i.is_active !== false).length },
+        });
+      }
+      const waJobs = await safeSelect(
+        supabase.from("whatsapp_send_jobs").select("cost_brl,message_category,created_at")
+          .gte("created_at", from).lte("created_at", to),
+      );
+      const waVarTotal = waJobs.reduce((a: number, j: any) => a + Number(j.cost_brl || 0), 0);
+      if (waVarTotal > 0) {
+        rows.push({
+          service: "WhatsApp — mensagens (Meta Cloud)",
+          sku: "wa_message_variable",
+          amount_brl: waVarTotal,
+          allocation_strategy: "per_message",
+          attribution_confidence: "high",
+          category: "whatsapp",
+          metadata: { jobs: waJobs.length },
+        });
+      }
+
+      return rows;
     }
+
+    // Real GCS variable cost for the period (sum of cost_total_brl) — used
+    // by overview/tenants/media to replace the R$/GB estimate when present.
+    async function loadGcsRealCost(from: string, to: string): Promise<number> {
+      const rows = await safeSelect(
+        supabase.from("gcs_billing_daily").select("cost_total_brl,billing_date")
+          .gte("billing_date", from.slice(0, 10)).lte("billing_date", to.slice(0, 10)),
+      );
+      return rows.reduce((a: number, r: any) => a + Number(r.cost_total_brl || 0), 0);
+    }
+
 
     async function tenantMap() {
       const { data } = await supabase.from("tenants").select(
