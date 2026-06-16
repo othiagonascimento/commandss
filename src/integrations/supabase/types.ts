@@ -308,6 +308,13 @@ export type Database = {
           niche_category: string | null
           orchestration_rules: Json | null
           orchestrator_config: Json | null
+          outreach_autopilot_config: Json | null
+          outreach_autopilot_enabled: boolean | null
+          outreach_cadence: Json | null
+          outreach_daily_cap: number | null
+          outreach_enabled: boolean | null
+          outreach_runs_completed: number | null
+          outreach_window: Json | null
           payment_config: Json | null
           personality: string | null
           personality_prompt: string | null
@@ -372,6 +379,13 @@ export type Database = {
           niche_category?: string | null
           orchestration_rules?: Json | null
           orchestrator_config?: Json | null
+          outreach_autopilot_config?: Json | null
+          outreach_autopilot_enabled?: boolean | null
+          outreach_cadence?: Json | null
+          outreach_daily_cap?: number | null
+          outreach_enabled?: boolean | null
+          outreach_runs_completed?: number | null
+          outreach_window?: Json | null
           payment_config?: Json | null
           personality?: string | null
           personality_prompt?: string | null
@@ -436,6 +450,13 @@ export type Database = {
           niche_category?: string | null
           orchestration_rules?: Json | null
           orchestrator_config?: Json | null
+          outreach_autopilot_config?: Json | null
+          outreach_autopilot_enabled?: boolean | null
+          outreach_cadence?: Json | null
+          outreach_daily_cap?: number | null
+          outreach_enabled?: boolean | null
+          outreach_runs_completed?: number | null
+          outreach_window?: Json | null
           payment_config?: Json | null
           personality?: string | null
           personality_prompt?: string | null
@@ -5362,10 +5383,15 @@ export type Database = {
           created_at: string
           funnel_id: string | null
           id: string
+          is_active: boolean | null
           is_lost: boolean | null
+          is_system: boolean | null
           is_won: boolean | null
           name: string
+          position: number | null
+          slug: string | null
           sort_order: number | null
+          system_type: string | null
           tenant_id: string | null
           win_probability: number | null
         }
@@ -5374,10 +5400,15 @@ export type Database = {
           created_at?: string
           funnel_id?: string | null
           id?: string
+          is_active?: boolean | null
           is_lost?: boolean | null
+          is_system?: boolean | null
           is_won?: boolean | null
           name: string
+          position?: number | null
+          slug?: string | null
           sort_order?: number | null
+          system_type?: string | null
           tenant_id?: string | null
           win_probability?: number | null
         }
@@ -5386,10 +5417,15 @@ export type Database = {
           created_at?: string
           funnel_id?: string | null
           id?: string
+          is_active?: boolean | null
           is_lost?: boolean | null
+          is_system?: boolean | null
           is_won?: boolean | null
           name?: string
+          position?: number | null
+          slug?: string | null
           sort_order?: number | null
+          system_type?: string | null
           tenant_id?: string | null
           win_probability?: number | null
         }
@@ -8048,6 +8084,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      message_trigger_error_log: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          error_message: string | null
+          external_message_id: string | null
+          function_name: string
+          id: number
+          message_id: string | null
+          operation: string | null
+          payload: Json
+          sqlstate: string | null
+          tenant_id: string | null
+          trigger_name: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          external_message_id?: string | null
+          function_name: string
+          id?: number
+          message_id?: string | null
+          operation?: string | null
+          payload?: Json
+          sqlstate?: string | null
+          tenant_id?: string | null
+          trigger_name?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          external_message_id?: string | null
+          function_name?: string
+          id?: number
+          message_id?: string | null
+          operation?: string | null
+          payload?: Json
+          sqlstate?: string | null
+          tenant_id?: string | null
+          trigger_name?: string | null
+        }
+        Relationships: []
       }
       messages: {
         Row: {
@@ -13821,6 +13902,54 @@ export type Database = {
         }
         Relationships: []
       }
+      uoclub_dispatch_requests: {
+        Row: {
+          account_id: string
+          attempts: number
+          created_at: string
+          event: string
+          id: string
+          last_error: string | null
+          next_retry_at: string | null
+          processed_at: string | null
+          reference_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          vars: Json
+        }
+        Insert: {
+          account_id: string
+          attempts?: number
+          created_at?: string
+          event: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          processed_at?: string | null
+          reference_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          vars?: Json
+        }
+        Update: {
+          account_id?: string
+          attempts?: number
+          created_at?: string
+          event?: string
+          id?: string
+          last_error?: string | null
+          next_retry_at?: string | null
+          processed_at?: string | null
+          reference_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          vars?: Json
+        }
+        Relationships: []
+      }
       uoclub_ledger_events: {
         Row: {
           account_id: string | null
@@ -14122,6 +14251,110 @@ export type Database = {
           {
             foreignKeyName: "uoclub_programs_default_whatsapp_instance_id_fkey"
             columns: ["default_whatsapp_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uoclub_public_otp_challenges: {
+        Row: {
+          account_id: string | null
+          attempts: number
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          metadata: Json
+          phone: string
+          program_id: string | null
+          sent_at: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          verified_at: string | null
+          whatsapp_instance_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          metadata?: Json
+          phone: string
+          program_id?: string | null
+          sent_at?: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          verified_at?: string | null
+          whatsapp_instance_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          metadata?: Json
+          phone?: string
+          program_id?: string | null
+          sent_at?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          verified_at?: string | null
+          whatsapp_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uoclub_public_otp_challenges_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uoclub_public_otp_challenges_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_executive_metrics"
+            referencedColumns: ["program_id"]
+          },
+          {
+            foreignKeyName: "uoclub_public_otp_challenges_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "uoclub_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uoclub_public_otp_challenges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uoclub_public_otp_challenges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_effective_ai_config"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "uoclub_public_otp_challenges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_ai_consumption"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "uoclub_public_otp_challenges_whatsapp_instance_id_fkey"
+            columns: ["whatsapp_instance_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
@@ -14710,6 +14943,152 @@ export type Database = {
           type?: string
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      uopa_outreach_items: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approved_message: string | null
+          attempts: number
+          chosen_angle: string | null
+          conversation_id: string | null
+          created_at: string
+          edited_at: string | null
+          edited_by: string | null
+          generated_message: string | null
+          id: string
+          last_error: string | null
+          lead_id: string
+          max_attempts: number
+          message_fingerprint: string | null
+          replied_at: string | null
+          reply_message_id: string | null
+          run_id: string
+          scheduled_for: string
+          send_job_id: string | null
+          skip_reason: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          whatsapp_instance_id: string | null
+          zone_snapshot: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_message?: string | null
+          attempts?: number
+          chosen_angle?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
+          generated_message?: string | null
+          id?: string
+          last_error?: string | null
+          lead_id: string
+          max_attempts?: number
+          message_fingerprint?: string | null
+          replied_at?: string | null
+          reply_message_id?: string | null
+          run_id: string
+          scheduled_for: string
+          send_job_id?: string | null
+          skip_reason?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          whatsapp_instance_id?: string | null
+          zone_snapshot?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_message?: string | null
+          attempts?: number
+          chosen_angle?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
+          generated_message?: string | null
+          id?: string
+          last_error?: string | null
+          lead_id?: string
+          max_attempts?: number
+          message_fingerprint?: string | null
+          replied_at?: string | null
+          reply_message_id?: string | null
+          run_id?: string
+          scheduled_for?: string
+          send_job_id?: string | null
+          skip_reason?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          whatsapp_instance_id?: string | null
+          zone_snapshot?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uopa_outreach_items_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "uopa_outreach_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uopa_outreach_runs: {
+        Row: {
+          activation_template: Json | null
+          cadence_snapshot: Json | null
+          created_at: string
+          id: string
+          metrics: Json
+          mode: string
+          outreach_brief: Json | null
+          status: string
+          tenant_id: string
+          total_leads: number
+          trigger_source: string
+          triggered_by: string | null
+          updated_at: string
+          zone: string | null
+        }
+        Insert: {
+          activation_template?: Json | null
+          cadence_snapshot?: Json | null
+          created_at?: string
+          id?: string
+          metrics?: Json
+          mode?: string
+          outreach_brief?: Json | null
+          status?: string
+          tenant_id: string
+          total_leads?: number
+          trigger_source: string
+          triggered_by?: string | null
+          updated_at?: string
+          zone?: string | null
+        }
+        Update: {
+          activation_template?: Json | null
+          cadence_snapshot?: Json | null
+          created_at?: string
+          id?: string
+          metrics?: Json
+          mode?: string
+          outreach_brief?: Json | null
+          status?: string
+          tenant_id?: string
+          total_leads?: number
+          trigger_source?: string
+          triggered_by?: string | null
+          updated_at?: string
+          zone?: string | null
         }
         Relationships: []
       }
@@ -16129,51 +16508,6 @@ export type Database = {
           },
         ]
       }
-      webhook_events_raw_backup_before_repair: {
-        Row: {
-          created_at: string | null
-          error_log: string | null
-          event_type: string | null
-          external_message_id: string | null
-          id: string | null
-          processed_at: string | null
-          provider: string | null
-          raw_payload: Json | null
-          status: Database["public"]["Enums"]["webhook_event_status"] | null
-          tenant_id: string | null
-          updated_at: string | null
-          whatsapp_instance_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          error_log?: string | null
-          event_type?: string | null
-          external_message_id?: string | null
-          id?: string | null
-          processed_at?: string | null
-          provider?: string | null
-          raw_payload?: Json | null
-          status?: Database["public"]["Enums"]["webhook_event_status"] | null
-          tenant_id?: string | null
-          updated_at?: string | null
-          whatsapp_instance_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          error_log?: string | null
-          event_type?: string | null
-          external_message_id?: string | null
-          id?: string | null
-          processed_at?: string | null
-          provider?: string | null
-          raw_payload?: Json | null
-          status?: Database["public"]["Enums"]["webhook_event_status"] | null
-          tenant_id?: string | null
-          updated_at?: string | null
-          whatsapp_instance_id?: string | null
-        }
-        Relationships: []
-      }
       webhook_logs: {
         Row: {
           attempt_number: number | null
@@ -16670,6 +17004,7 @@ export type Database = {
           unread_count: number | null
           updated_at: string | null
           visibility_level: string | null
+          whatsapp_instance_id: string | null
         }
         Insert: {
           announce_only?: boolean | null
@@ -16699,6 +17034,7 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
           visibility_level?: string | null
+          whatsapp_instance_id?: string | null
         }
         Update: {
           announce_only?: boolean | null
@@ -16728,6 +17064,7 @@ export type Database = {
           unread_count?: number | null
           updated_at?: string | null
           visibility_level?: string | null
+          whatsapp_instance_id?: string | null
         }
         Relationships: [
           {
@@ -16750,6 +17087,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_ai_consumption"
             referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_groups_whatsapp_instance_id_fkey"
+            columns: ["whatsapp_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -16778,6 +17122,7 @@ export type Database = {
           main_instance_id: string | null
           messages_sent_today: number | null
           name: string | null
+          phone: string | null
           phone_number: string | null
           qr_code: string | null
           role: string | null
@@ -16818,6 +17163,7 @@ export type Database = {
           main_instance_id?: string | null
           messages_sent_today?: number | null
           name?: string | null
+          phone?: string | null
           phone_number?: string | null
           qr_code?: string | null
           role?: string | null
@@ -16858,6 +17204,7 @@ export type Database = {
           main_instance_id?: string | null
           messages_sent_today?: number | null
           name?: string | null
+          phone?: string | null
           phone_number?: string | null
           qr_code?: string | null
           role?: string | null
@@ -17928,6 +18275,25 @@ export type Database = {
         Args: { p_message_id: string }
         Returns: string
       }
+      claim_whatsapp_send_jobs: {
+        Args: {
+          p_limit?: number
+          p_lock_ttl_seconds?: number
+          p_worker_id?: string
+        }
+        Returns: {
+          attempts: number
+          conversation_id: string
+          id: string
+          instance_id: string
+          items: Json
+          lead_phone: string
+          max_attempts: number
+          progress: Json
+          tenant_id: string
+          user_id: string
+        }[]
+      }
       cleanup_old_data: { Args: never; Returns: Json }
       cleanup_ops_health_data: { Args: never; Returns: undefined }
       cleanup_store_events: { Args: never; Returns: Json }
@@ -17949,50 +18315,29 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: Json
       }
-      debit_ai_credits:
-        | {
-            Args: {
-              p_metadata?: Json
-              p_operation_type: string
-              p_tenant_id: string
-              p_units?: number
-              p_user_id: string
-            }
-            Returns: {
-              can_transcribe: boolean
-              can_use_layer_2: boolean
-              can_use_layer_3: boolean
-              credits_debited: number
-              credits_limit: number
-              credits_remaining: number
-              error_message: string
-              is_degraded: boolean
-              success: boolean
-              usage_percent: number
-            }[]
-          }
-        | {
-            Args: {
-              p_metadata?: Json
-              p_operation_type: string
-              p_tenant_id: string
-              p_units?: number
-              p_user_id: string
-            }
-            Returns: {
-              can_transcribe: boolean
-              can_use_layer_2: boolean
-              can_use_layer_3: boolean
-              credits_debited: number
-              credits_limit: number
-              credits_remaining: number
-              error_message: string
-              is_degraded: boolean
-              success: boolean
-              usage_percent: number
-            }[]
-          }
+      debit_ai_credits: {
+        Args: {
+          p_metadata?: Json
+          p_operation_type: string
+          p_tenant_id: string
+          p_units?: number
+          p_user_id: string
+        }
+        Returns: {
+          can_transcribe: boolean
+          can_use_layer_2: boolean
+          can_use_layer_3: boolean
+          credits_debited: number
+          credits_limit: number
+          credits_remaining: number
+          error_message: string
+          is_degraded: boolean
+          success: boolean
+          usage_percent: number
+        }[]
+      }
       debug_jwt_claims: { Args: never; Returns: Json }
+      derive_funnel_stage_slug: { Args: { p_name: string }; Returns: string }
       elite_data_hygiene: { Args: never; Returns: undefined }
       enqueue_message: {
         Args: {
@@ -18563,6 +18908,21 @@ export type Database = {
         }
         Returns: string
       }
+      log_message_trigger_error: {
+        Args: {
+          p_conversation_id: string
+          p_error_message: string
+          p_external_message_id: string
+          p_function_name: string
+          p_message_id: string
+          p_operation: string
+          p_payload?: Json
+          p_sqlstate: string
+          p_tenant_id: string
+          p_trigger_name: string
+        }
+        Returns: undefined
+      }
       login_public_customer: {
         Args: { p_email: string; p_tenant_id: string }
         Returns: Json
@@ -18694,6 +19054,19 @@ export type Database = {
           tenant_id: string
         }[]
       }
+      requeue_stuck_processing_events: {
+        Args: { p_limit?: number; p_timeout_minutes?: number }
+        Returns: {
+          created_at: string
+          event_type: string
+          id: string
+          max_retries: number
+          recovered_status: string
+          retry_count: number
+          started_at: string
+          tenant_id: string
+        }[]
+      }
       requeue_stuck_processing_messages: {
         Args: {
           p_limit?: number
@@ -18745,6 +19118,10 @@ export type Database = {
         Args: { p_limit?: number; p_tenant_id: string }
         Returns: number
       }
+      rollover_credit_cycles: {
+        Args: { p_new_cycle: string; p_previous_cycle: string }
+        Returns: undefined
+      }
       rpc_add_store_order_note: {
         Args: { p_note: string; p_token: string }
         Returns: Json
@@ -18775,6 +19152,7 @@ export type Database = {
           best_contact_hour: number
           conv_status: string
           deal_won_count: number
+          factors: Json
           has_active_checkout: boolean
           has_conversation: boolean
           has_paid_payment: boolean
@@ -18804,6 +19182,58 @@ export type Database = {
       }
       rpc_get_store_order_notes_and_history: {
         Args: { p_token: string }
+        Returns: Json
+      }
+      rpc_lead_board: {
+        Args: {
+          p_birth_month_filter?: string
+          p_city_filter?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_funnel_id?: string
+          p_limit_per_stage?: number
+          p_quick_filter?: string
+          p_search?: string
+          p_seller_filter?: string
+          p_source_filter?: string
+          p_stage_filter?: string
+          p_tag_filter?: string[]
+          p_temperature_filter?: string
+          p_tenant_id: string
+        }
+        Returns: {
+          cold_count: number
+          hot_count: number
+          leads: Json
+          on_fire_count: number
+          quick_all_count: number
+          quick_forgotten_count: number
+          stage_id: string
+          stage_slug: string
+          total_count: number
+          total_value: number
+          warm_count: number
+        }[]
+      }
+      rpc_lead_stage_page: {
+        Args: {
+          p_birth_month_filter?: string
+          p_city_filter?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_funnel_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_quick_filter?: string
+          p_search?: string
+          p_seller_filter?: string
+          p_source_filter?: string
+          p_stage_filter?: string
+          p_stage_id: string
+          p_tag_filter?: string[]
+          p_temperature_filter?: string
+          p_tenant_id: string
+        }
         Returns: Json
       }
       rpc_list_store_orders: {
@@ -19068,6 +19498,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      transition_ai_conversation_state: {
+        Args: {
+          p_action: string
+          p_activation?: Json
+          p_assigned_to?: string
+          p_conversation_id: string
+          p_reason?: string
+          p_summary?: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       trigger_process_event_queue: { Args: never; Returns: undefined }
       try_lock_int: { Args: { key: number }; Returns: boolean }
       unaccent: { Args: { "": string }; Returns: string }
@@ -19091,6 +19533,7 @@ export type Database = {
         Returns: Json
       }
       uoclub_expire_reservations: { Args: { p_limit?: number }; Returns: Json }
+      uoclub_internal_health: { Args: { p_tenant_id: string }; Returns: Json }
       uoclub_redeem_quote: {
         Args: {
           p_account_id: string
