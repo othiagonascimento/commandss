@@ -5439,6 +5439,66 @@ export type Database = {
           },
         ]
       }
+      gcs_billing_daily: {
+        Row: {
+          billing_date: string
+          bucket_name: string
+          class_a_ops: number
+          class_b_ops: number
+          cost_egress_brl: number
+          cost_ops_brl: number
+          cost_storage_brl: number
+          cost_total_brl: number | null
+          created_at: string
+          egress_bytes: number
+          id: string
+          metadata: Json
+          region: string | null
+          source: string
+          storage_bytes_avg: number
+          storage_class: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          billing_date: string
+          bucket_name: string
+          class_a_ops?: number
+          class_b_ops?: number
+          cost_egress_brl?: number
+          cost_ops_brl?: number
+          cost_storage_brl?: number
+          cost_total_brl?: number | null
+          created_at?: string
+          egress_bytes?: number
+          id?: string
+          metadata?: Json
+          region?: string | null
+          source?: string
+          storage_bytes_avg?: number
+          storage_class?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          billing_date?: string
+          bucket_name?: string
+          class_a_ops?: number
+          class_b_ops?: number
+          cost_egress_brl?: number
+          cost_ops_brl?: number
+          cost_storage_brl?: number
+          cost_total_brl?: number | null
+          created_at?: string
+          egress_bytes?: number
+          id?: string
+          metadata?: Json
+          region?: string | null
+          source?: string
+          storage_bytes_avg?: number
+          storage_class?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
       gestao_auto_analyses: {
         Row: {
           created_at: string | null
@@ -9536,6 +9596,60 @@ export type Database = {
           service?: string
           sku?: string | null
           source?: string
+        }
+        Relationships: []
+      }
+      platform_fixed_costs: {
+        Row: {
+          billing_cycle: string
+          category: string
+          created_at: string
+          ends_on: string | null
+          id: string
+          is_active: boolean
+          metadata: Json
+          monthly_brl: number
+          monthly_usd: number
+          notes: string | null
+          product: string
+          starts_on: string
+          updated_at: string
+          usd_brl_rate: number | null
+          vendor: string
+        }
+        Insert: {
+          billing_cycle?: string
+          category?: string
+          created_at?: string
+          ends_on?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          monthly_brl?: number
+          monthly_usd?: number
+          notes?: string | null
+          product: string
+          starts_on?: string
+          updated_at?: string
+          usd_brl_rate?: number | null
+          vendor: string
+        }
+        Update: {
+          billing_cycle?: string
+          category?: string
+          created_at?: string
+          ends_on?: string | null
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          monthly_brl?: number
+          monthly_usd?: number
+          notes?: string | null
+          product?: string
+          starts_on?: string
+          updated_at?: string
+          usd_brl_rate?: number | null
+          vendor?: string
         }
         Relationships: []
       }
@@ -17121,9 +17235,11 @@ export type Database = {
           last_health_check: string | null
           main_instance_id: string | null
           messages_sent_today: number | null
+          monthly_cost_brl: number
           name: string | null
           phone: string | null
           phone_number: string | null
+          provider: string
           qr_code: string | null
           role: string | null
           routing_mode: string | null
@@ -17162,9 +17278,11 @@ export type Database = {
           last_health_check?: string | null
           main_instance_id?: string | null
           messages_sent_today?: number | null
+          monthly_cost_brl?: number
           name?: string | null
           phone?: string | null
           phone_number?: string | null
+          provider?: string
           qr_code?: string | null
           role?: string | null
           routing_mode?: string | null
@@ -17203,9 +17321,11 @@ export type Database = {
           last_health_check?: string | null
           main_instance_id?: string | null
           messages_sent_today?: number | null
+          monthly_cost_brl?: number
           name?: string | null
           phone?: string | null
           phone_number?: string | null
+          provider?: string
           qr_code?: string | null
           role?: string | null
           routing_mode?: string | null
@@ -17279,11 +17399,54 @@ export type Database = {
           },
         ]
       }
+      whatsapp_message_rate_card: {
+        Row: {
+          category: string
+          cost_brl: number
+          cost_usd: number | null
+          country_code: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          notes: string | null
+          provider: string
+          usd_brl_rate: number | null
+        }
+        Insert: {
+          category: string
+          cost_brl?: number
+          cost_usd?: number | null
+          country_code?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          provider?: string
+          usd_brl_rate?: number | null
+        }
+        Update: {
+          category?: string
+          cost_brl?: number
+          cost_usd?: number | null
+          country_code?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          provider?: string
+          usd_brl_rate?: number | null
+        }
+        Relationships: []
+      }
       whatsapp_send_jobs: {
         Row: {
           attempts: number
           completed_at: string | null
           conversation_id: string | null
+          cost_brl: number
           created_at: string
           dedupe_key: string | null
           id: string
@@ -17294,6 +17457,7 @@ export type Database = {
           locked_at: string | null
           locked_by: string | null
           max_attempts: number
+          message_category: string | null
           progress: Json
           status: string
           tenant_id: string
@@ -17304,6 +17468,7 @@ export type Database = {
           attempts?: number
           completed_at?: string | null
           conversation_id?: string | null
+          cost_brl?: number
           created_at?: string
           dedupe_key?: string | null
           id?: string
@@ -17314,6 +17479,7 @@ export type Database = {
           locked_at?: string | null
           locked_by?: string | null
           max_attempts?: number
+          message_category?: string | null
           progress?: Json
           status?: string
           tenant_id: string
@@ -17324,6 +17490,7 @@ export type Database = {
           attempts?: number
           completed_at?: string | null
           conversation_id?: string | null
+          cost_brl?: number
           created_at?: string
           dedupe_key?: string | null
           id?: string
@@ -17334,6 +17501,7 @@ export type Database = {
           locked_at?: string | null
           locked_by?: string | null
           max_attempts?: number
+          message_category?: string | null
           progress?: Json
           status?: string
           tenant_id?: string
