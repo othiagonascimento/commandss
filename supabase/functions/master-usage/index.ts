@@ -903,10 +903,264 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ============================================================
+    // GET /master-usage/:tenantId/credits-full
+    //   Snapshot completo do card de créditos (base/rollover/extras/used/remaining)
+    // ============================================================
+    if (req.method === 'GET' && tenantId && subPath === 'credits-full' && tenantId !== 'zones') {
+      const now = new Date();
+      const cycleStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+        .toISOString().slice(0, 10);
+      const cycleEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0))
+        .toISOString().slice(0, 10);
+
+      const [usageRes, featuresRes, profilesRes, ledgerRes] = await Promise.all([
+        supabase.from('tenant_usage')
+          .select('ai_credits_used, ai_credits_remaining, period_start, period_end, messages_sent, active_users')
+          .eq('tenant_id', tenantId)
+          .lte('period_start', cycleEnd)
+          .gte('period_end', cycleStart)
+          .maybeSingle(),
+        supabase.from('tenant_features')
+          .select('credits_per_user, extra_credits, limit_ai_tokens_monthly')
+          .eq('tenant_id', tenantId)
+          .maybeSingle(),
+        supabase.from('profiles')
+          .select('id, is_active')
+          .eq('tenant_id', tenantId),
+        supabase.from('credit_ledger')
+          .select('entry_type, credits_delta')
+          .eq('tenant_id', tenantId)
+          .eq('cycle_reference', cycleStart),
+      ]);
+
+      const usage = usageRes.data;
+      const features = featuresRes.data;
+      const profiles = profilesRes.data || [];
+      const ledger = ledgerRes.data || [];
+
+      const activeUsers = profiles.filter((p: { is_active?: boolean }) => p.is_active !== false).length;
+      const perUser = Number(features?.credits_per_user ?? 500);
+      const totalBase = perUser * Math.max(activeUsers, 1);
+
+      const byType = ledger.reduce((acc: Record<string, number>, e: { entry_type: string; credits_delta: number }) => {
+        acc[e.entry_type] = (acc[e.entry_type] || 0) + Number(e.credits_delta || 0);
+        return acc;
+      }, {});
+
+      const rolloverIn = Number(byType['reset_opening_balance'] || 0);
+      const userRecharge = Number(byType['user_recharge'] || 0);
+      const tenantRecharge = Number(byType['tenant_recharge'] || 0);
+      const reversal = Number(byType['admin_reversal'] || 0);
+      const extras = userRecharge + tenantRecharge + reversal + Number(features?.extra_credits || 0);
+
+      const totalAvailable = totalBase + rolloverIn + extras;
+      const used = Number(usage?.ai_credits_used || 0);
+      const remaining = usage?.ai_credits_remaining !== null && usage?.ai_credits_remaining !== undefined
+        ? Number(usage.ai_credits_remaining)
+        : Math.max(totalAvailable - used, 0);
+
+      // burn médio (dias decorridos do ciclo)
+      const today = new Date();
+      const daysElapsed = Math.max(1, today.getUTCDate());
+      const daysInCycle = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
+      const daysRemaining = Math.max(0, daysInCycle - daysElapsed);
+      const burnPerDay = used / daysElapsed;
+      const projectedEnd = burnPerDay > 0 ? Math.ceil(remaining / burnPerDay) : null;
+
+      return new Response(JSON.stringify({
+        cycle_start: cycleStart,
+        cycle_end: cycleEnd,
+        days_elapsed: daysElapsed,
+        days_remaining: daysRemaining,
+        active_users: activeUsers,
+        per_user_base: perUser,
+        total_base: totalBase,
+        rollover_in: rolloverIn,
+        extras_recharges: userRecharge + tenantRecharge,
+        extras_reversal: reversal,
+        extras_tenant_features: Number(features?.extra_credits || 0),
+        total_available: totalAvailable,
+        used,
+        remaining,
+        burn_per_day: Math.round(burnPerDay * 100) / 100,
+        projected_days_left: projectedEnd,
+        messages_sent: Number(usage?.messages_sent || 0),
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ============================================================
+    // GET /master-usage/:tenantId/credits-ledger
+    //   Histórico diário do ciclo (usage_debit por dia)
+    // ============================================================
+    if (req.method === 'GET' && tenantId && subPath === 'credits-ledger') {
+      const now = new Date();
+      const cycleStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+        .toISOString().slice(0, 10);
+
+      const { data: rows, error } = await supabase
+        .from('credit_ledger')
+        .select('created_at, credits_delta, entry_type')
+        .eq('tenant_id', tenantId)
+        .eq('cycle_reference', cycleStart)
+        .order('created_at', { ascending: true });
+
+      if (error) return new Response(JSON.stringify({ error: error.message }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+      const byDay: Record<string, { date: string; debits: number; credits: number }> = {};
+      (rows || []).forEach((r: { created_at: string; credits_delta: number; entry_type: string }) => {
+        const day = r.created_at.slice(0, 10);
+        if (!byDay[day]) byDay[day] = { date: day, debits: 0, credits: 0 };
+        const v = Number(r.credits_delta || 0);
+        if (v < 0) byDay[day].debits += Math.abs(v);
+        else byDay[day].credits += v;
+      });
+
+      return new Response(JSON.stringify({ rows: Object.values(byDay) }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ============================================================
+    // GET /master-usage/:tenantId/credits-resources
+    //   Consumo por resource_type (usage_events)
+    // ============================================================
+    if (req.method === 'GET' && tenantId && subPath === 'credits-resources') {
+      const now = new Date();
+      const cycleStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+      const cycleEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59)).toISOString();
+
+      const { data: events, error } = await supabase
+        .from('usage_events')
+        .select('resource_type, credits_consumed, user_id')
+        .eq('tenant_id', tenantId)
+        .gte('created_at', cycleStart)
+        .lte('created_at', cycleEnd);
+
+      if (error) return new Response(JSON.stringify({ error: error.message }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+      const map: Record<string, { resource_type: string; credits: number; calls: number; webhook_calls: number }> = {};
+      (events || []).forEach((e: { resource_type: string | null; credits_consumed: number | null; user_id: string | null }) => {
+        const key = e.resource_type || 'unknown';
+        if (!map[key]) map[key] = { resource_type: key, credits: 0, calls: 0, webhook_calls: 0 };
+        map[key].credits += Number(e.credits_consumed || 0);
+        map[key].calls += 1;
+        if (!e.user_id) map[key].webhook_calls += 1;
+      });
+
+      return new Response(JSON.stringify({
+        rows: Object.values(map).sort((a, b) => b.credits - a.credits),
+      }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ============================================================
+    // GET /master-usage/:tenantId/credits-recharges
+    //   Histórico de recargas (auditoria)
+    // ============================================================
+    if (req.method === 'GET' && tenantId && subPath === 'credits-recharges') {
+      const { data: rows, error } = await supabase
+        .from('credit_ledger')
+        .select('id, created_at, credits_delta, entry_type, classification, user_id, created_by, metadata, source_id, cycle_reference')
+        .eq('tenant_id', tenantId)
+        .in('entry_type', ['user_recharge', 'tenant_recharge', 'admin_reversal'])
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (error) return new Response(JSON.stringify({ error: error.message }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+      // enriquecer com nomes (target user + actor)
+      const userIds = new Set<string>();
+      (rows || []).forEach((r: { user_id: string | null; created_by: string | null }) => {
+        if (r.user_id) userIds.add(r.user_id);
+        if (r.created_by) userIds.add(r.created_by);
+      });
+
+      let profilesMap: Record<string, { id: string; full_name: string | null; email: string | null }> = {};
+      if (userIds.size > 0) {
+        const { data: profs } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', Array.from(userIds));
+        profilesMap = (profs || []).reduce((acc: Record<string, { id: string; full_name: string | null; email: string | null }>, p) => {
+          acc[p.id] = p; return acc;
+        }, {});
+      }
+
+      const enriched = (rows || []).map((r: Record<string, unknown>) => ({
+        ...r,
+        target_user: r.user_id ? profilesMap[r.user_id as string] || null : null,
+        actor: r.created_by ? profilesMap[r.created_by as string] || null : null,
+      }));
+
+      return new Response(JSON.stringify({ rows: enriched }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ============================================================
+    // GET /master-usage/credit-rates  (lista de tarifas)
+    // PUT /master-usage/credit-rates/:rateId  (atualiza tarifa)
+    // ============================================================
+    if (req.method === 'GET' && tenantId === 'credit-rates' && !subPath) {
+      const { data, error } = await supabase
+        .from('credit_rates')
+        .select('*')
+        .order('operation_type', { ascending: true });
+      if (error) return new Response(JSON.stringify({ error: error.message }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+      return new Response(JSON.stringify({ rows: data || [] }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (req.method === 'PUT' && tenantId === 'credit-rates' && subPath) {
+      const body = await req.json().catch(() => null);
+      if (!body || typeof body !== 'object') return new Response(JSON.stringify({ error: 'Invalid body' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+      const updates: Record<string, unknown> = {};
+      // deno-lint-ignore no-explicit-any
+      const b = body as any;
+      if (typeof b.credits_per_unit === 'number') updates.credits_per_unit = b.credits_per_unit;
+      if (typeof b.description === 'string') updates.description = b.description;
+      if (typeof b.is_active === 'boolean') updates.is_active = b.is_active;
+      if (typeof b.unit_description === 'string') updates.unit_description = b.unit_description;
+      if (Object.keys(updates).length === 0) return new Response(JSON.stringify({ error: 'Nada a atualizar' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+      const { data, error } = await supabase
+        .from('credit_rates')
+        .update(updates)
+        .eq('id', subPath)
+        .select('*')
+        .single();
+      if (error) return new Response(JSON.stringify({ error: error.message }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+      return new Response(JSON.stringify({ success: true, rate: data }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
+
 
   } catch (error) {
     console.error('[master-usage] Exception:', error);
