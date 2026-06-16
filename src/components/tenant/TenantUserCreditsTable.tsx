@@ -74,11 +74,15 @@ function formatNumber(num: number): string {
 
 export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps) {
   const [period, setPeriod] = useState<PeriodFilterValue>(getDefaultPeriod());
-  
+  const [rechargeTarget, setRechargeTarget] = useState<{ userId: string; userName: string } | null>(null);
+  const [overrideTarget, setOverrideTarget] = useState<{ userId: string; userName: string } | null>(null);
+
   const { data: users, isLoading, error } = useUserCredits(tenantId, {
     periodStart: period.periodStart,
     periodEnd: period.periodEnd,
   });
+  const { data: creditsFull } = useTenantCreditsFull(tenantId);
+  const tenantBase = creditsFull?.per_user_base ?? 500;
 
   if (isLoading) {
     return (
