@@ -137,8 +137,147 @@ Deno.serve(async (req) => {
       case "finops-infra": return json(await infra());
       case "finops-investor-summary": return json(await investor());
       case "finops-anomalies": return json(await anomalies());
+      case "finops-actuals-list": return json(await actualsList(filters));
+      case "finops-actuals-upsert": return json(await actualsUpsert(filters.payload || {}, user.id));
+      case "finops-actuals-delete": return json(await actualsDelete(filters.id));
+      case "finops-actuals-reconciliation": return json(await actualsReconciliation(filters.month));
       default:
         return json({ error: `Unknown endpoint: ${action}` }, 400);
+    }
+
+    // ---------------- billing actuals (reconciliation) ----------------
+    async function actualsList(f: any) {
+      const limit = Math.min(Number(f.limit) || 200, 1000);
+      let q = supabase.from("platform_billing_actuals").select("*")
+        .order("billing_month", { ascending: false })
+        .order("vendor", { ascending: true })
+        .limit(limit);
+      if (f.month) q = q.eq("billing_month", f.month + "-01");
+      if (f.vendor) q = q.eq("vendor", f.vendor);
+      const { data, error } = await q;
+      if (error) return { rows: [], error: error.message };
+      return { rows: data || [] };
+    }
+
+    async function actualsUpsert(p: any, userId: string) {
+      if (!p.billing_month || !p.vendor) return { error: "billing_month and vendor required" };
+      const month = /^\d{4}-\d{2}$/.test(p.billing_month) ? p.billing_month + "-01" : p.billing_month;
+      const row: any = {
+        billing_month: month,
+        vendor: String(p.vendor).toLowerCase().trim(),
+        product: p.product?.trim() || null,
+        amount_brl: Number(p.amount_brl || 0),
+        amount_usd: p.amount_usd != null ? Number(p.amount_usd) : null,
+        usd_brl_rate: p.usd_brl_rate != null ? Number(p.usd_brl_rate) : null,
+        invoice_ref: p.invoice_ref?.trim() || null,
+        notes: p.notes?.trim() || null,
+        source: p.source || "manual",
+        metadata: p.metadata || {},
+      };
+      if (p.id) {
+        const { data, error } = await supabase.from("platform_billing_actuals")
+          .update(row).eq("id", p.id).select().single();
+        if (error) return { error: error.message };
+        return { row: data };
+      }
+      row.created_by = userId;
+      const { data, error } = await supabase.from("platform_billing_actuals")
+        .upsert(row, { onConflict: "billing_month,vendor,product" })
+        .select().single();
+      if (error) return { error: error.message };
+      return { row: data };
+    }
+
+    async function actualsDelete(id: string) {
+      if (!id) return { error: "id required" };
+      const { error } = await supabase.from("platform_billing_actuals").delete().eq("id", id);
+      if (error) return { error: error.message };
+      return { ok: true };
+    }
+
+    // Estimate (from api_usage_logs + platform_cost_allocations) vs Actual (manual invoices) by vendor.
+    async function actualsReconciliation(monthStr?: string) {
+      const m = monthStr || new Date().toISOString().slice(0, 7);
+      const monthDate = m + "-01";
+      const [y, mo] = m.split("-").map(Number);
+      const from = new Date(Date.UTC(y, mo - 1, 1)).toISOString();
+      const to = new Date(Date.UTC(y, mo, 0, 23, 59, 59, 999)).toISOString();
+
+      // estimates per vendor
+      const aiLogs = await fetchAll<any>(
+        supabase.from("api_usage_logs").select("provider,cost_brl")
+          .gte("created_at", from).lte("created_at", to),
+      );
+      const estByVendor: Record<string, number> = {};
+      aiLogs.forEach((l) => {
+        const v = String(l.provider || "unknown").toLowerCase();
+        estByVendor[v] = (estByVendor[v] || 0) + Number(l.cost_brl || 0);
+      });
+
+      // GCP estimate from gcp_billing_daily if present
+      const gcp = await safeSelect<any>(
+        supabase.from("gcp_billing_daily").select("cost_brl,usage_date")
+          .gte("usage_date", m + "-01").lte("usage_date", to.slice(0, 10)),
+      );
+      if (gcp.length) {
+        estByVendor.google = (estByVendor.google || 0) +
+          gcp.reduce((s, r) => s + Number(r.cost_brl || 0), 0);
+      }
+
+      // Supabase / SaaS estimate from platform_fixed_costs (prorated to month = monthly value)
+      const fixed = await safeSelect<any>(
+        supabase.from("platform_fixed_costs").select("vendor,monthly_brl,is_active,starts_on,ends_on")
+          .eq("is_active", true),
+      );
+      fixed.forEach((r) => {
+        const v = String(r.vendor || "").toLowerCase();
+        if (!v) return;
+        estByVendor[v] = (estByVendor[v] || 0) + Number(r.monthly_brl || 0);
+      });
+
+      // actuals
+      const { data: actualsRows } = await supabase.from("platform_billing_actuals")
+        .select("vendor,amount_brl").eq("billing_month", monthDate);
+      const actByVendor: Record<string, number> = {};
+      (actualsRows || []).forEach((r: any) => {
+        const v = String(r.vendor).toLowerCase();
+        actByVendor[v] = (actByVendor[v] || 0) + Number(r.amount_brl || 0);
+      });
+
+      const vendors = Array.from(new Set([...Object.keys(estByVendor), ...Object.keys(actByVendor)])).sort();
+      const rows = vendors.map((v) => {
+        const est = estByVendor[v] || 0;
+        const act = actByVendor[v] || 0;
+        return {
+          vendor: v,
+          estimate_brl: +est.toFixed(2),
+          actual_brl: +act.toFixed(2),
+          delta_brl: +(act - est).toFixed(2),
+          delta_pct: est > 0 ? +(((act - est) / est) * 100).toFixed(1) : null,
+          has_actual: act > 0,
+        };
+      });
+
+      const totals = rows.reduce(
+        (s, r) => ({
+          estimate_brl: s.estimate_brl + r.estimate_brl,
+          actual_brl: s.actual_brl + r.actual_brl,
+        }),
+        { estimate_brl: 0, actual_brl: 0 },
+      );
+
+      return {
+        month: m,
+        rows,
+        totals: {
+          estimate_brl: +totals.estimate_brl.toFixed(2),
+          actual_brl: +totals.actual_brl.toFixed(2),
+          delta_brl: +(totals.actual_brl - totals.estimate_brl).toFixed(2),
+          delta_pct: totals.estimate_brl > 0
+            ? +(((totals.actual_brl - totals.estimate_brl) / totals.estimate_brl) * 100).toFixed(1)
+            : null,
+        },
+      };
     }
 
     // ---------------- queries ----------------
