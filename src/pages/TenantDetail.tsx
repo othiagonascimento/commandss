@@ -46,6 +46,10 @@ import { TenantUserCreditsTable } from '@/components/tenant/TenantUserCreditsTab
 import { TenantHero } from '@/components/tenant/TenantHero';
 import { TenantIdentityForm } from '@/components/tenant/TenantIdentityForm';
 import TenantOperationsTab from '@/components/tenant/TenantOperationsTabContent';
+import { CreditCenterCard } from '@/components/tenant/CreditCenterCard';
+import { CreditLedgerHistoryChart } from '@/components/tenant/CreditLedgerHistoryChart';
+import { CreditUsageByResourceChart } from '@/components/tenant/CreditUsageByResourceChart';
+import { RechargeHistoryTable } from '@/components/tenant/RechargeHistoryTable';
 
 const TENANT_TABS: TabItem[] = [
   { value: 'identity', label: 'Identidade', shortLabel: 'Identidade', icon: Building2 },
