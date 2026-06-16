@@ -381,41 +381,68 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 4) WhatsApp infra (uazapi / Meta) — fixed per active instance + variable per send.
-      const waInstances = await safeSelect(
+      // 4) WhatsApp infra
+      // 4a) Uazapi (e similares com tier fixo): pega o custo fixo cadastrado em
+      //     platform_fixed_costs (vendor=uazapi) e divide pelo nº de instâncias
+      //     ativas para gerar o R$/instância dinâmico.
+      const waInstancesAll = await safeSelect(
         supabase.from("whatsapp_instances")
-          .select("id,tenant_id,monthly_cost_brl,is_active,status,provider"),
+          .select("id,tenant_id,is_active,status,provider,monthly_cost_brl"),
       );
-      const waFixedTotal = waInstances
-        .filter((i: any) => i.is_active !== false && Number(i.monthly_cost_brl || 0) > 0)
-        .reduce((a: number, i: any) => a + prorate(Number(i.monthly_cost_brl || 0), periodDays), 0);
+      const activeInstances = waInstancesAll.filter((i: any) =>
+        i.is_active !== false && i.status !== "deleted"
+      );
+      const activeCount = activeInstances.length;
+      const totalInstances = waInstancesAll.length;
+
+      const uazapiFixed = fixed.find((r: any) =>
+        String(r.vendor || "").toLowerCase() === "uazapi" && r.is_active !== false
+      );
+      const uazapiMonthly = uazapiFixed ? Number(uazapiFixed.monthly_brl || 0) : 0;
+      if (uazapiMonthly > 0) {
+        const proratedTotal = prorate(uazapiMonthly, periodDays);
+        const perInstance = activeCount > 0 ? proratedTotal / activeCount : 0;
+        rows.push({
+          service: `Uazapi — tier mensal (${activeCount} inst. ativas)`,
+          sku: "uazapi_tier",
+          amount_brl: proratedTotal,
+          allocation_strategy: "per_instance_dynamic",
+          attribution_confidence: "high",
+          category: "whatsapp",
+          metadata: {
+            monthly_brl: uazapiMonthly,
+            active_instances: activeCount,
+            total_instances: totalInstances,
+            cost_per_active_instance_brl: +perInstance.toFixed(4),
+            note: activeCount === 0
+              ? "Nenhuma instância ativa em whatsapp_instances — custo fica como overhead até cadastrar"
+              : "Custo do tier dividido pelas instâncias ativas no período",
+          },
+        });
+      }
+
+      // 4b) Outros providers (Meta BSP etc.) que ainda usam custo fixo por instância
+      const otherProvidersFixed = waInstancesAll.filter((i: any) =>
+        i.is_active !== false &&
+        String(i.provider || "").toLowerCase() !== "uazapi" &&
+        Number(i.monthly_cost_brl || 0) > 0
+      );
+      const waFixedTotal = otherProvidersFixed.reduce(
+        (a: number, i: any) => a + prorate(Number(i.monthly_cost_brl || 0), periodDays),
+        0,
+      );
       if (waFixedTotal > 0) {
         rows.push({
-          service: "WhatsApp — instâncias (uazapi/Meta)",
+          service: "WhatsApp — instâncias (outros providers)",
           sku: "wa_instance_fixed",
           amount_brl: waFixedTotal,
           allocation_strategy: "per_instance",
           attribution_confidence: "high",
           category: "whatsapp",
-          metadata: { active_instances: waInstances.filter((i: any) => i.is_active !== false).length },
+          metadata: { instances: otherProvidersFixed.length },
         });
       }
-      const waJobs = await safeSelect(
-        supabase.from("whatsapp_send_jobs").select("cost_brl,message_category,created_at")
-          .gte("created_at", from).lte("created_at", to),
-      );
-      const waVarTotal = waJobs.reduce((a: number, j: any) => a + Number(j.cost_brl || 0), 0);
-      if (waVarTotal > 0) {
-        rows.push({
-          service: "WhatsApp — mensagens (Meta Cloud)",
-          sku: "wa_message_variable",
-          amount_brl: waVarTotal,
-          allocation_strategy: "per_message",
-          attribution_confidence: "high",
-          category: "whatsapp",
-          metadata: { jobs: waJobs.length },
-        });
-      }
+
 
       return rows;
     }
