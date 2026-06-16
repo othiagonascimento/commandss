@@ -69,50 +69,7 @@ export default function FinOpsOverviewPage() {
 
           {/* Mid row: breakdown + timeseries */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <Card className="p-4 lg:col-span-1">
-              <h3 className="text-sm font-semibold mb-3">Decomposição de custo</h3>
-              {data.cost_breakdown?.length ? (
-                <>
-                  <div className="h-48">
-                    <ResponsiveContainer>
-                      <PieChart>
-                        <Pie
-                          data={data.cost_breakdown}
-                          dataKey="amount_brl"
-                          nameKey="category"
-                          innerRadius={50}
-                          outerRadius={75}
-                          paddingAngle={2}
-                        >
-                          {data.cost_breakdown.map((_, i) => (
-                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(v: number) => brl(v)}
-                          contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="space-y-1.5 text-xs">
-                    {data.cost_breakdown.map((c, i) => (
-                      <div key={c.category} className="flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-                          <span className="capitalize">{c.category}</span>
-                        </span>
-                        <span className="tabular-nums">
-                          {brl(c.amount_brl)} <span className="text-muted-foreground">({pct(c.pct)})</span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">Sem dados de decomposição.</p>
-              )}
-            </Card>
+            <CostDecompositionCard data={data} />
 
             <Card className="p-4 lg:col-span-2">
               <h3 className="text-sm font-semibold mb-3">Custo vs Receita ao longo do tempo</h3>
