@@ -264,13 +264,35 @@ export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center gap-2">
-                        <Progress 
-                          value={barWidth} 
-                          className="h-2 flex-1" 
+                        <Progress
+                          value={barWidth}
+                          className="h-2 flex-1"
                         />
                         <span className="text-xs text-muted-foreground font-mono w-10 text-right">
                           {proportion.toFixed(0)}%
                         </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setOverrideTarget({ userId: user.user_id, userName: user.user_name })}
+                        >
+                          <Settings2 className="h-3 w-3 mr-1" />
+                          Override
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => setRechargeTarget({ userId: user.user_id, userName: user.user_name })}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Recarregar
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -280,6 +302,30 @@ export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps
           </Table>
         </div>
       </CardContent>
+
+      {rechargeTarget && (
+        <RechargeModal
+          open={!!rechargeTarget}
+          onOpenChange={(v) => { if (!v) setRechargeTarget(null); }}
+          tenantId={tenantId}
+          tenantName=""
+          userId={rechargeTarget.userId}
+          userName={rechargeTarget.userName}
+          defaultScope="user"
+        />
+      )}
+
+      {overrideTarget && (
+        <UserCreditOverrideModal
+          open={!!overrideTarget}
+          onOpenChange={(v) => { if (!v) setOverrideTarget(null); }}
+          tenantId={tenantId}
+          userId={overrideTarget.userId}
+          userName={overrideTarget.userName}
+          currentBase={tenantBase}
+          tenantBase={tenantBase}
+        />
+      )}
     </Card>
   );
 }
