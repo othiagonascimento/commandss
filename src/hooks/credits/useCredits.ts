@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   creditsReadApi, creditsAdminApi,
   type CreditsFullSnapshot, type LedgerDay, type ResourceBreakdown,
-  type RechargeRow, type CreditRate, type RechargePayload,
+  type RechargeRow, type CreditRate, type RechargePayload, type UserBalanceRow,
 } from '@/services/creditsApi';
 
 const DEFAULTS = { staleTime: 30_000, gcTime: 60_000, refetchOnWindowFocus: false } as const;
@@ -22,6 +22,22 @@ export function useTenantCreditsFull(tenantId: string | undefined) {
     ...DEFAULTS,
   });
 }
+
+export function useTenantUserBalances(tenantId: string | undefined) {
+  return useQuery({
+    queryKey: ['credits', 'user-balances', tenantId],
+    queryFn: async (): Promise<UserBalanceRow[]> => {
+      if (!tenantId) return [];
+      const { data, error } = await creditsReadApi.userBalances(tenantId);
+      if (error) throw new Error(error);
+      return data?.rows ?? [];
+    },
+    enabled: !!tenantId,
+    ...DEFAULTS,
+  });
+}
+
+
 
 export function useCreditLedgerHistory(tenantId: string | undefined) {
   return useQuery({

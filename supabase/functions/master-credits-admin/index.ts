@@ -65,12 +65,19 @@ Deno.serve(async (req) => {
     console.log('[master-credits-admin]', action, 'by', user.id);
 
     // ============================================================
-    // RECHARGE — insere crédito extra no ledger (user ou tenant)
+    // RECHARGE — insere crédito extra no ledger (user ou tenant).
+    //
+    // IMPORTANTE: O CRM só reconhece como "extra" os entry_types:
+    //   user_recharge, master_manual_adjustment, refund,
+    //   reset_opening_balance, reset_offset
+    // Por isso usamos `master_manual_adjustment` (recarga gratuita
+    // operada pelo Master) — `tenant_recharge` / `admin_reversal`
+    // são silenciosamente IGNORADOS por rebuild_*_credit_projection.
     // ============================================================
     if (action === 'recharge') {
       const {
         tenant_id, user_id, credits, reason,
-        scope = 'user', // 'user' | 'tenant'
+        scope = 'user',
         payment_method, amount_brl,
         idempotency_key, valid_until,
       } = body as Record<string, unknown>;
@@ -83,73 +90,93 @@ Deno.serve(async (req) => {
         return json({ error: 'reason obrigatório (mín. 3 chars)' }, 400);
       }
 
-      // Quando scope='tenant', resolve admin do tenant; quando 'user', exige user_id
-      let targetUserId: string | null = null;
+      // Resolve target user(s)
+      let targetUserIds: string[] = [];
       if (scope === 'user') {
         if (!isUuid(user_id)) return json({ error: 'user_id inválido' }, 400);
-        targetUserId = user_id as string;
+        targetUserIds = [user_id as string];
       } else if (scope === 'tenant') {
-        const { data: admin } = await supabase
+        // Distribui por TODOS usuários ativos do tenant (cada um recebe `amount`).
+        const { data: members } = await supabase
           .from('profiles')
           .select('id')
           .eq('tenant_id', tenant_id)
-          .eq('role', 'admin')
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        if (!admin?.id) return json({ error: 'Tenant sem admin para receber recarga' }, 400);
-        targetUserId = admin.id;
+          .neq('is_active', false);
+        targetUserIds = (members || []).map((m) => m.id);
+        if (targetUserIds.length === 0) {
+          return json({ error: 'Tenant sem usuários ativos para receber recarga' }, 400);
+        }
       } else {
         return json({ error: 'scope inválido (use user|tenant)' }, 400);
       }
 
-      const entryType = scope === 'tenant' ? 'tenant_recharge' : 'user_recharge';
       const cycle = currentCycleRef();
+      const results: Array<{ user_id: string; success: boolean; error?: string }> = [];
 
-      const { data: inserted, error: insertError } = await supabase
-        .from('credit_ledger')
-        .insert({
-          tenant_id: tenant_id as string,
-          user_id: targetUserId,
-          credits_delta: amount,
-          entry_type: entryType,
-          source_type: 'master_admin',
-          classification: 'extra',
-          cycle_reference: cycle,
-          idempotency_key: idempotency_key as string,
-          created_by: user.id,
-          metadata: {
-            reason,
-            payment_method: payment_method ?? null,
-            amount_brl: amount_brl ?? null,
-            valid_until: valid_until ?? null,
-            scope,
-            actor: user.id,
-            actor_master_user_id: masterUser.id,
-          },
-        })
-        .select('*')
-        .single();
+      for (const uid of targetUserIds) {
+        const idemKey = scope === 'tenant'
+          ? `${idempotency_key}:${uid}`
+          : (idempotency_key as string);
 
-      if (insertError) {
-        // Conflito de idempotency → 200 com flag (cliente entende como sucesso já aplicado)
-        if (insertError.code === '23505') {
-          const { data: existing } = await supabase
-            .from('credit_ledger')
-            .select('*')
-            .eq('idempotency_key', idempotency_key as string)
-            .maybeSingle();
-          return json({ success: true, idempotent: true, ledger: existing });
+        const { error: insertError } = await supabase
+          .from('credit_ledger')
+          .insert({
+            tenant_id: tenant_id as string,
+            user_id: uid,
+            credits_delta: amount,
+            entry_type: 'master_manual_adjustment',
+            source_type: 'master_admin',
+            classification: 'valid',
+            cycle_reference: cycle,
+            idempotency_key: idemKey,
+            created_by: user.id,
+            metadata: {
+              reason,
+              payment_method: payment_method ?? null,
+              amount_brl: amount_brl ?? null,
+              valid_until: valid_until ?? null,
+              scope,
+              actor: user.id,
+              actor_master_user_id: masterUser.id,
+              kind: 'recharge',
+            },
+          });
+
+        if (insertError && insertError.code !== '23505') {
+          results.push({ user_id: uid, success: false, error: insertError.message });
+          continue;
         }
-        console.error('[master-credits-admin] recharge insert error:', insertError);
-        return json({ error: insertError.message }, 500);
+        results.push({ user_id: uid, success: true });
+
+        // Garante projeção atualizada imediatamente (triggers de ledger não
+        // chamam rebuild — só o de credit_transactions/settings/features).
+        await supabase.rpc('rebuild_user_credit_projection', {
+          p_user_id: uid,
+          p_cycle: cycle,
+        });
       }
 
-      return json({ success: true, ledger: inserted });
+      await supabase.rpc('rebuild_tenant_credit_projection', {
+        p_tenant_id: tenant_id as string,
+        p_cycle: cycle,
+      });
+
+      const failed = results.filter((r) => !r.success);
+      if (failed.length === results.length) {
+        return json({ error: 'Todas as recargas falharam', details: failed }, 500);
+      }
+      return json({
+        success: true,
+        scope,
+        users_credited: results.filter((r) => r.success).length,
+        users_failed: failed.length,
+        total_credits: amount * results.filter((r) => r.success).length,
+      });
     }
 
     // ============================================================
-    // REVERSE — estorno de uma recarga (cria entry negativa)
+    // REVERSE — estorno de um lançamento (cria ajuste negativo).
+    // Usa master_manual_adjustment para que a projeção seja recalculada.
     // ============================================================
     if (action === 'reverse') {
       const { source_ledger_id, reason, idempotency_key } = body as Record<string, unknown>;
@@ -172,14 +199,14 @@ Deno.serve(async (req) => {
           tenant_id: orig.tenant_id,
           user_id: orig.user_id,
           credits_delta: -Math.abs(Number(orig.credits_delta)),
-          entry_type: 'admin_reversal',
+          entry_type: 'master_manual_adjustment',
           source_type: 'master_admin',
-          classification: 'reversal',
+          classification: 'valid',
           cycle_reference: orig.cycle_reference,
           idempotency_key: idempotency_key as string,
           source_id: orig.id,
           created_by: user.id,
-          metadata: { reason, actor: user.id, reversed_entry_type: orig.entry_type },
+          metadata: { reason, actor: user.id, kind: 'reversal', reversed_entry_type: orig.entry_type, reversed_id: orig.id },
         })
         .select('*')
         .single();
@@ -189,6 +216,16 @@ Deno.serve(async (req) => {
         console.error('[master-credits-admin] reverse error:', revErr);
         return json({ error: revErr.message }, 500);
       }
+
+      if (orig.user_id) {
+        await supabase.rpc('rebuild_user_credit_projection', {
+          p_user_id: orig.user_id, p_cycle: orig.cycle_reference,
+        });
+      }
+      await supabase.rpc('rebuild_tenant_credit_projection', {
+        p_tenant_id: orig.tenant_id, p_cycle: orig.cycle_reference,
+      });
+
       return json({ success: true, ledger: reversed });
     }
 

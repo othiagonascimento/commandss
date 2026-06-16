@@ -36,6 +36,7 @@ export interface CreditsFullSnapshot {
   rollover_in: number;
   extras_recharges: number;
   extras_reversal: number;
+  extras_adjustments: number;
   extras_tenant_features: number;
   total_available: number;
   used: number;
@@ -43,10 +44,25 @@ export interface CreditsFullSnapshot {
   burn_per_day: number;
   projected_days_left: number | null;
   messages_sent: number;
+  suspicious_events: number;
+  suspicious_credits: number;
 }
 
 export interface LedgerDay { date: string; debits: number; credits: number }
 export interface ResourceBreakdown { resource_type: string; credits: number; calls: number; webhook_calls: number }
+export interface UserBalanceRow {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string | null;
+  is_active: boolean | null;
+  base_credits: number;
+  extra_credits: number;
+  used_credits: number;
+  remaining_credits: number;
+  suspicious_events: number;
+  suspicious_credits: number;
+}
 export interface RechargeRow {
   id: string;
   created_at: string;
@@ -75,6 +91,8 @@ export interface CreditRate {
 export const creditsReadApi = {
   full: (tenantId: string) =>
     invoke<CreditsFullSnapshot>('master-usage', 'GET', `${tenantId}/credits-full`),
+  userBalances: (tenantId: string) =>
+    invoke<{ rows: UserBalanceRow[]; cycle: string }>('master-usage', 'GET', `${tenantId}/credits-user-balances`),
   ledger: (tenantId: string) =>
     invoke<{ rows: LedgerDay[] }>('master-usage', 'GET', `${tenantId}/credits-ledger`),
   resources: (tenantId: string) =>
@@ -86,6 +104,7 @@ export const creditsReadApi = {
   updateRate: (id: string, patch: Partial<CreditRate>) =>
     invoke<{ success: boolean; rate: CreditRate }>('master-usage', 'PUT', `credit-rates/${id}`, patch),
 };
+
 
 // ---------------- WRITE ----------------
 export interface RechargePayload {

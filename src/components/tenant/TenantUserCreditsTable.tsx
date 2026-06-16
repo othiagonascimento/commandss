@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useUserCredits, UserCreditData } from '@/hooks/useUserCredits';
 import { useTenantCreditsFull } from '@/hooks/credits/useCredits';
 import { PeriodFilter, PeriodFilterValue, getDefaultPeriod } from '@/components/ui/period-filter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -72,17 +71,32 @@ function formatNumber(num: number): string {
   return num.toLocaleString('pt-BR');
 }
 
+import { useTenantUserBalances } from '@/hooks/credits/useCredits';
+
 export function TenantUserCreditsTable({ tenantId }: TenantUserCreditsTableProps) {
   const [period, setPeriod] = useState<PeriodFilterValue>(getDefaultPeriod());
   const [rechargeTarget, setRechargeTarget] = useState<{ userId: string; userName: string } | null>(null);
   const [overrideTarget, setOverrideTarget] = useState<{ userId: string; userName: string } | null>(null);
 
-  const { data: users, isLoading, error } = useUserCredits(tenantId, {
-    periodStart: period.periodStart,
-    periodEnd: period.periodEnd,
-  });
+  // Fonte canônica do CRM: list_tenant_user_credit_balances (RPC)
+  const { data: balances, isLoading, error } = useTenantUserBalances(tenantId);
   const { data: creditsFull } = useTenantCreditsFull(tenantId);
   const tenantBase = creditsFull?.per_user_base ?? 500;
+
+  const users = (balances || []).map((b) => ({
+    user_id: b.user_id,
+    user_name: b.full_name || b.email || 'Usuário',
+    user_role: b.role || 'seller',
+    credits_consumed: b.used_credits,
+    ai_tokens: b.used_credits,
+    api_calls: 0,
+    transcription_minutes: 0,
+    base_credits: b.base_credits,
+    extra_credits: b.extra_credits,
+    remaining_credits: b.remaining_credits,
+    suspicious_credits: b.suspicious_credits,
+    is_active: b.is_active !== false,
+  }));
 
   if (isLoading) {
     return (
