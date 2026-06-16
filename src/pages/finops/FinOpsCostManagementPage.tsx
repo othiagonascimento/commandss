@@ -425,70 +425,101 @@ function GcsBillingTab() {
   );
 }
 
-/* ---------------- Uazapi Instances Monthly Cost ---------------- */
+/* ---------------- Uazapi Tier + Instâncias (modelo dinâmico) ---------------- */
 function UazapiInstancesTab() {
-  const [rows, setRows] = useState<AnyRow[]>([]);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [draft, setDraft] = useState<Record<string, string>>({});
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('whatsapp_instances' as never)
-      .select('id,tenant_id,instance_name,provider,status,is_active,monthly_cost_brl')
-      .order('instance_name', { ascending: true });
-    if (error) toast.error(error.message);
-    setRows((data as AnyRow[]) ?? []);
+    const { data: resp, error } = await supabase.functions.invoke('master-finops', {
+      method: 'POST',
+      body: { action: 'finops-uazapi-status' },
+    });
+    if (error || (resp as any)?.error) {
+      toast.error(error?.message || (resp as any)?.error || 'Erro ao carregar');
+      setLoading(false);
+      return;
+    }
+    setData(resp);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
-  const save = async (id: string) => {
-    const val = draft[id];
-    if (val === undefined) return;
-    const { error } = await (supabase as any).from('whatsapp_instances')
-      .update({ monthly_cost_brl: Number(val || 0) }).eq('id', id);
-    if (error) { toast.error(error.message); return; }
-    toast.success('Atualizado');
-    setDraft(d => { const n = { ...d }; delete n[id]; return n; });
-    load();
-  };
-
-  const total = rows.filter(r => r.is_active !== false).reduce((a, r) => a + Number(r.monthly_cost_brl || 0), 0);
+  const tierMonthly = data?.tier?.monthly_brl ?? 0;
+  const activeCount = data?.counts?.active ?? 0;
+  const perInstance = data?.per_instance_brl ?? 0;
+  const rows: AnyRow[] = data?.rows ?? [];
 
   return (
     <div className="space-y-3">
+      {/* Resumo do modelo dinâmico */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <Card className="p-4">
+          <div className="text-xs uppercase text-muted-foreground">Tier mensal (fatura)</div>
+          <div className="text-xl font-bold tabular-nums mt-1">{brl(tierMonthly)}</div>
+          <div className="text-[11px] text-muted-foreground mt-1">
+            {data?.tier?.has_tier ? (data?.tier?.product || 'platform_fixed_costs · uazapi') : (
+              <span className="text-destructive">Sem tier cadastrado em SaaS / Fixos (vendor=uazapi)</span>
+            )}
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-xs uppercase text-muted-foreground">Instâncias ativas</div>
+          <div className="text-xl font-bold tabular-nums mt-1">{activeCount} <span className="text-sm font-normal text-muted-foreground">/ {data?.counts?.total ?? 0}</span></div>
+          <div className="text-[11px] text-muted-foreground mt-1">{data?.counts?.connected ?? 0} conectadas agora</div>
+        </Card>
+        <Card className="p-4 border-primary/30">
+          <div className="text-xs uppercase text-muted-foreground">R$ / instância ativa</div>
+          <div className="text-xl font-bold tabular-nums mt-1">{brl(perInstance)}</div>
+          <div className="text-[11px] text-muted-foreground mt-1">Tier ÷ ativas — atualiza dinamicamente</div>
+        </Card>
+      </div>
+
       <Card className="p-3 border-info/40 bg-info/5 text-xs text-muted-foreground flex gap-2">
         <Info className="h-4 w-4 text-info flex-shrink-0" />
-        <div>Custo fixo mensal por instância (uazapi/server dedicado). Multiplicado pelo número de instâncias ativas em <code className="font-mono">/finops/infra</code>.
-          Total ativo: <strong className="text-foreground">{brl(total)}/mês</strong></div>
+        <div>
+          O modelo é <strong>dinâmico</strong>: o tier total (ex.: R$ 138/mês até 100 instâncias) é dividido
+          pelo nº de instâncias ativas. Para alterar o valor da fatura, edite o vendor <code className="font-mono">uazapi</code> em
+          <strong> SaaS / Fixos</strong>. As instâncias abaixo são read-only — provisionamento é feito no painel do tenant.
+        </div>
       </Card>
 
       <Card className="overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Instância</TableHead><TableHead>Tenant</TableHead><TableHead>Provider</TableHead>
-              <TableHead>Status</TableHead><TableHead className="text-right">BRL/mês</TableHead><TableHead className="w-20"></TableHead>
+              <TableHead>Instância</TableHead>
+              <TableHead>Tenant</TableHead>
+              <TableHead>Provider</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">R$/mês (rateio)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Carregando…</TableCell></TableRow>}
-            {!loading && rows.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Sem instâncias.</TableCell></TableRow>}
-            {rows.map(r => {
-              const dirty = draft[r.id] !== undefined && Number(draft[r.id]) !== Number(r.monthly_cost_brl || 0);
+            {loading && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Carregando…</TableCell></TableRow>}
+            {!loading && rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Sem instâncias.</TableCell></TableRow>}
+            {rows.map((r) => {
+              const isActive = r.is_active !== false && r.status !== 'deleted';
               return (
                 <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.instance_name || r.id.slice(0,8)}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{(r.tenant_id || '').slice(0,8)}</TableCell>
-                  <TableCell className="text-xs">{r.provider || '—'}</TableCell>
-                  <TableCell>{r.is_active === false ? <Badge variant="outline">inativo</Badge> : <Badge className="bg-success/15 text-success border-success/30 text-xs">{r.status || 'ativo'}</Badge>}</TableCell>
-                  <TableCell className="text-right">
-                    <Input type="number" step="0.01" className="w-28 ml-auto text-right"
-                      value={draft[r.id] ?? (r.monthly_cost_brl ?? '')}
-                      onChange={e => setDraft(d => ({ ...d, [r.id]: e.target.value }))} />
+                  <TableCell className="font-medium">{r.instance_name || r.id.slice(0, 8)}</TableCell>
+                  <TableCell className="text-xs">
+                    {r.tenant_name ? (
+                      <span>{r.tenant_name} <span className="font-mono text-muted-foreground">· {r.tenant_slug}</span></span>
+                    ) : (
+                      <span className="font-mono text-muted-foreground">{(r.tenant_id || '').slice(0, 8)}</span>
+                    )}
                   </TableCell>
-                  <TableCell><Button size="sm" disabled={!dirty} onClick={() => save(r.id)}>Salvar</Button></TableCell>
+                  <TableCell className="text-xs">{r.provider || '—'}</TableCell>
+                  <TableCell>
+                    {!isActive ? <Badge variant="outline">inativo</Badge> :
+                      r.status === 'connected' ? <Badge className="bg-success/15 text-success border-success/30 text-xs">connected</Badge> :
+                      <Badge variant="secondary" className="text-xs">{r.status || 'ativo'}</Badge>}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-xs">
+                    {isActive ? brl(perInstance) : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
                 </TableRow>
               );
             })}
