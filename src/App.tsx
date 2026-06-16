@@ -76,6 +76,7 @@ const FinOpsInvestor = lazy(() => import("./pages/finops/FinOpsInvestorPage"));
 const FinOpsAnomalies = lazy(() => import("./pages/finops/FinOpsAnomaliesPage"));
 const FinOpsPricing = lazy(() => import("./pages/finops/FinOpsPricingSettingsPage"));
 const FinOpsBudgets = lazy(() => import("./pages/finops/FinOpsBudgetSettingsPage"));
+const CreditRates = lazy(() => import("./pages/CreditRates"));
 
 // Page loading skeleton
 const PageSkeleton = () => (
