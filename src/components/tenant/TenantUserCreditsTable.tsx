@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useUserCredits, UserCreditData } from '@/hooks/useUserCredits';
+import { useTenantCreditsFull } from '@/hooks/credits/useCredits';
 import { PeriodFilter, PeriodFilterValue, getDefaultPeriod } from '@/components/ui/period-filter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -20,16 +22,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { 
-  Users, 
-  Coins, 
-  Brain, 
-  Zap, 
+import {
+  Users,
+  Coins,
+  Brain,
+  Zap,
   Mic,
   AlertCircle,
   TrendingUp,
+  Settings2,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { RechargeModal } from './RechargeModal';
+import { UserCreditOverrideModal } from './UserCreditOverrideModal';
 
 interface TenantUserCreditsTableProps {
   tenantId: string;
